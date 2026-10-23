@@ -1,0 +1,66 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "creation": "2026-10-17 20:30:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "screens_section",
+  "use_patched_ui",
+  "rates_section",
+  "max_desk_discount_pct"
+ ],
+ "fields": [
+  {
+   "fieldname": "screens_section",
+   "fieldtype": "Section Break",
+   "label": "Screens"
+  },
+  {
+   "default": "1",
+   "description": "Serve Kamra's screens with the customisations. Turn off to serve Kamra's original screens.",
+   "fieldname": "use_patched_ui",
+   "fieldtype": "Check",
+   "label": "Use customised Kamra screens"
+  },
+  {
+   "fieldname": "rates_section",
+   "fieldtype": "Section Break",
+   "label": "Negotiated rates"
+  },
+  {
+   "default": "10",
+   "description": "A negotiated room rate that is more than this percent below the system rate needs a Revenue Manager or Hotel Admin. 0 means every discount needs one.",
+   "fieldname": "max_desk_discount_pct",
+   "fieldtype": "Percent",
+   "label": "Largest discount the front desk can give"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-10-17 20:30:00.000000",
+ "modified_by": "Administrator",
+ "module": "Kamra Custom",
+ "name": "Kamra Custom Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Hotel Admin",
+   "write": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

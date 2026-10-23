@@ -1,0 +1,19 @@
+--- a/src/screens/ReservationDetail.tsx	2026-10-19 12:38:50.761408093 +0530
++++ b/src/screens/ReservationDetail.tsx	2026-10-19 12:38:50.762687319 +0530
+@@ -38,6 +38,7 @@
+ import SecurityDepositPanel from "../components/SecurityDepositPanel"
+ import RoomChangeDialog from "../components/RoomChangeDialog"
+ import { cur, moneyLocale } from "../lib/money"
++import { CustomReservationPanel } from "../custom/CustomReservation"
+ 
+ const inr = (n: number) =>
+   `${cur()}` + Number(n || 0).toLocaleString(moneyLocale(), { maximumFractionDigits: 0 })
+@@ -606,6 +607,8 @@
+         )}
+       </Card>
+ 
++      <CustomReservationPanel name={name} onChanged={refresh} />
++
+       {/* cancellation record, if any */}
+       {d.cancellation && (
+         <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">

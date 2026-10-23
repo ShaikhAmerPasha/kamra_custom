@@ -1,0 +1,207 @@
+--- a/src/components/BookingDialog.tsx	2026-10-22 14:45:09.271241438 +0530
++++ b/src/components/BookingDialog.tsx	2026-10-22 14:45:09.271945393 +0530
+@@ -10,7 +10,6 @@
+   getCurrentProperty,
+   getQuote,
+   guestAlert,
+-  guestSearch,
+   type BookingOptions,
+   type GuestAlert,
+   type GuestHit,
+@@ -30,6 +29,7 @@
+ import { petChargeBasis } from "../lib/pets"
+ import { useCashierAuth } from "../lib/cashierAuth"
+ import DepositPanel, { type DepositState } from "./DepositPanel"
++import { CustomBookingFields, customGuestSearch, useCustomBooking } from "../custom/CustomBooking"
+ import CheckInDialog from "./CheckInDialog"
+ import TillCard, { useTill } from "./TillCard"
+ 
+@@ -216,6 +216,7 @@
+     : {}
+   const [moreOpen, setMoreOpen] = useState(false)
+   const [moreRooms, setMoreRooms] = useState<ExtraRoom[]>([])
++  const custom = useCustomBooking()
+   const [moreQuotes, setMoreQuotes] = useState<(Quote | null)[]>([])
+   const [addonQty, setAddonQty] = useState<Record<string, number>>({})
+   const [extra, setExtra] = useState({
+@@ -325,16 +326,19 @@
+ 
+   // profile typeahead - find the returning guest before creating a dupe
+   useEffect(() => {
+-    if (profile || form.guest_name.trim().length < 2) {
++    // the mobile number finds a returning guest as well as the name does
++    const byName = form.guest_name.trim().length >= 2
++    const byPhone = !byName && form.phone.replace(/\D/g, "").length >= 4
++    if (profile || (!byName && !byPhone)) {
+       setHits([])
+       return
+     }
+     const t = setTimeout(
+-      () => guestSearch(form.guest_name).then(setHits).catch(() => setHits([])),
++      () => customGuestSearch(byName ? form.guest_name : form.phone).then(setHits).catch(() => setHits([])),
+       250,
+     )
+     return () => clearTimeout(t)
+-  }, [form.guest_name, profile])
++  }, [form.guest_name, form.phone, profile])
+ 
+   useEffect(() => {
+     const guest = profile?.name
+@@ -589,13 +593,15 @@
+             adults: form.adults,
+             children: form.children,
+             meal_plan: form.meal_plan || undefined,
++            custom_rate: custom.rateFor(0),
+           },
+-          ...moreRooms.map((r) => ({
++          ...moreRooms.map((r, i) => ({
+             room_type: r.room_type,
+             count: 1,
+             adults: r.adults,
+             children: r.children,
+             meal_plan: r.meal_plan || undefined,
++            custom_rate: custom.rateFor(i + 1),
+           })),
+         ]
+         const out = await call<{
+@@ -612,6 +618,9 @@
+           phone: form.phone || undefined,
+           company: form.company || undefined,
+           rate_plan: form.rate_plan || undefined,
++          guest: profile?.name,
++          special_requests: extra.special_requests.trim() || undefined,
++          ...custom.group(),
+         })
+         if (out.skipped.length > 0) {
+           setError(
+@@ -628,6 +637,7 @@
+         over_capacity_reason: form.over_capacity_reason || undefined,
+           over_capacity_guests: form.over_capacity_guests || undefined,
+           over_capacity_charge: extraCharge || undefined,
++        ...custom.single(),
+         guest_name: form.guest_name,
+         phone: form.phone || undefined,
+         guest: profile?.name,
+@@ -729,6 +739,7 @@
+         payment_amount: amount,
+         payment_reference: walk.pay_reference.trim() || undefined,
+         idempotency_key: walkInKey,
++        ...(dayUse ? {} : custom.single()),
+         ...slotArgs,
+         blacklist_override_reason: blacklistOverride,
+         // book, assign and take the money now; the guided check-in
+@@ -773,7 +784,8 @@
+     return (
+       quote.amount_after_tax +
+       moreQuotes.reduce((s, q) => s + (q?.amount_after_tax ?? 0), 0) +
+-      addonsGross
++      addonsGross +
++      custom.adjust
+     )
+   })()
+ 
+@@ -798,7 +810,8 @@
+     badSlot ||
+     !walk.room ||
+     payAmount < 0 ||
+-    (!!walk.id_number.trim() && !walk.id_type)
++    (!!walk.id_number.trim() && !walk.id_type) ||
++    (!dayUse && custom.blocked)
+ 
+   // the server judges the terms from today (season, tiers, free window);
+   // a window that has already closed reads as non-refundable, never as a
+@@ -1636,6 +1649,15 @@
+                   />
+                 )}
+ 
++                {walkIn && !dayUse && (
++                  <CustomBookingFields
++                    custom={custom}
++                    rooms={[{ room_type: form.room_type, adults: form.adults, children: form.children, meal_plan: form.meal_plan }]}
++                    checkIn={form.check_in_date}
++                    checkOut={checkOut}
++                  />
++                )}
++
+                 {walkIn && (
+                   <div className="space-y-3 rounded-xl border border-zinc-200 p-4">
+                     <h3 className="text-sm font-semibold text-zinc-800">
+@@ -1756,6 +1778,23 @@
+                         )
+                       }
+                     />
++                    <input
++                      type="number"
++                      min={0}
++                      aria-label={`Room ${i + 2} children`}
++                      placeholder="Children"
++                      className={`${inputCls} !w-20`}
++                      value={r.children}
++                      onChange={(e) =>
++                        setMoreRooms((rs) =>
++                          rs.map((x, j) =>
++                            j === i
++                              ? { ...x, children: Math.max(0, Number(e.target.value)) }
++                              : x,
++                          ),
++                        )
++                      }
++                    />
+                     <select
+                       className={`${inputCls} !w-auto`}
+                       aria-label={`Room ${i + 2} meal plan`}
+@@ -1807,6 +1846,18 @@
+                   {t("Add another room")}
+                 </button>}
+ 
++                {!dayUse && (
++                  <CustomBookingFields
++                    custom={custom}
++                    rooms={[
++                      { room_type: form.room_type, adults: form.adults, children: form.children, meal_plan: form.meal_plan },
++                      ...moreRooms,
++                    ]}
++                    checkIn={form.check_in_date}
++                    checkOut={checkOut}
++                  />
++                )}
++
+                 <div className="border-t border-zinc-100 pt-2">
+                   <button
+                     type="button"
+@@ -2207,6 +2258,17 @@
+                       </div>
+                     )}
+ 
++                    {custom.adjust !== 0 && (
++                      <div className="flex justify-between text-zinc-600">
++                        <span>Agreed rate</span>
++                        <span className="tabular-nums">
++                          {custom.adjust < 0 ? "-" : "+"}
++                          {cur()}
++                          {inr(Math.abs(custom.adjust))}
++                        </span>
++                      </div>
++                    )}
++
+                     <div className="mt-3 rounded-xl border border-zinc-200 bg-white px-4 py-3.5 shadow-sm">
+                       <div className="flex items-baseline justify-between gap-2">
+                         <span>{t("Total")}{moreRooms.length > 0 ? t(" · all rooms") : ""}</span>
+@@ -2282,7 +2344,7 @@
+                 <>
+                 <Button
+                   className="w-full justify-center py-2.5 text-base"
+-                  disabled={busy || !form.guest_name || !quote || pastCheckIn || badPhone || badSlot || blacklistBlocked || creditBlocked || extraNeedsReason}
++                  disabled={busy || !form.guest_name || !quote || pastCheckIn || badPhone || badSlot || blacklistBlocked || creditBlocked || extraNeedsReason || (!dayUse && custom.blocked)}
+                   onClick={() => submit()}
+                 >
+                   {busy ? t("Booking…") : t("Confirm booking")}
+@@ -2298,7 +2360,7 @@
+                   <Button
+                     variant="outline"
+                     className="justify-center"
+-                    disabled={busy || !form.guest_name || pastCheckIn || badPhone || badSlot || blacklistBlocked || extraNeedsReason}
++                    disabled={busy || !form.guest_name || pastCheckIn || badPhone || badSlot || blacklistBlocked || extraNeedsReason || (!dayUse && custom.blocked)}
+                     onClick={() => submit(true)}
+                     title={t("Park this stay with no room; promote when inventory frees")}
+                   >

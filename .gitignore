@@ -53,3 +53,12 @@ jspm_packages/
 
 # Aider AI Chat
 .aider*
+
+# Frontend build cache
+frontend/tsconfig.tsbuildinfo
+
+# Scratch copy of Kamra used to build the patched screens
+ui/.build/
+ui/.deps/
+ui/.base/
+ui/.cmp/

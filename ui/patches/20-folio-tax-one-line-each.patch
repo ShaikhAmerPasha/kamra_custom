@@ -1,0 +1,29 @@
+--- a/src/screens/FolioView.tsx	2026-10-19 12:27:35.598952157 +0530
++++ b/src/screens/FolioView.tsx	2026-10-19 12:27:35.600672165 +0530
+@@ -1073,19 +1073,18 @@
+                       { label: "CGST", rate: g.rate / 2, amount: g.cgst },
+                       { label: "SGST", rate: g.rate / 2, amount: g.sgst },
+                     ],
+-                  }))).map((r) => (
+-                    <tr key={r.rate}>
+-                      <td className="py-1.5 pr-3">{r.rate}%</td>
++                  }))).flatMap((r) => r.parts.map((x, i) => (
++                    // one line per tax: CGST on its own line, SGST on the next
++                    <tr key={`${r.rate}-${x.label}`}>
++                      <td className="py-1.5 pr-3">{i === 0 ? `${r.rate}%` : ""}</td>
+                       <td className="py-1.5 pr-3 text-right text-zinc-500">
+-                        {t("taxable {cur}{amount}", { cur: cur(), amount: inr(r.taxable) })}
++                        {i === 0 ? t("taxable {cur}{amount}", { cur: cur(), amount: inr(r.taxable) }) : ""}
+                       </td>
+                       <td className="py-1.5 text-right">
+-                        {r.parts
+-                          .map((x) => `${x.label} @ ${x.rate}% ${cur()}${inr(x.amount)}`)
+-                          .join(" · ")}
++                        {`${x.label} @ ${x.rate}% ${cur()}${inr(x.amount)}`}
+                       </td>
+                     </tr>
+-                  ))}
++                  )))}
+                 </tbody>
+               </table>
+             </div>

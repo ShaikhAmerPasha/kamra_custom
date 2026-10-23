@@ -8,7 +8,7 @@ app_license = "mit"
 # Apps
 # ------------------
 
-# required_apps = []
+required_apps = ["kamra"]
 
 # Each item in the list will be shown as an app in the apps page
 # add_to_apps_screen = [
@@ -272,3 +272,23 @@ app_license = "mit"
 # List of apps whose translatable strings should be excluded from this app's translations.
 # ignore_translatable_strings_from = []
 
+
+
+# Schema we add to Kamra: one column, two indexes. Re-applied after every migrate.
+after_install = "kamra_custom.setup.after_install"
+after_migrate = ["kamra_custom.setup.after_migrate"]
+
+# Keep each guest's phone key in step with the phone number.
+doc_events = {
+	"Guest": {"before_save": "kamra_custom.guests.set_phone_key"},
+}
+
+# Serve Kamra's own app, built with our patches (ui/), in place of the stock build.
+page_renderer = ["kamra_custom.render.KamraPatchedPage"]
+
+# Kamra's booking calls, with the extras the customised booking dialog sends.
+override_whitelisted_methods = {
+	"kamra.api.create_booking": "kamra_custom.overrides.create_booking",
+	"kamra.api.create_group_booking": "kamra_custom.overrides.create_group_booking",
+	"kamra.api.walk_in": "kamra_custom.overrides.walk_in",
+}

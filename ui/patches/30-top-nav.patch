@@ -1,0 +1,27 @@
+--- a/src/AppShell.tsx	2026-10-21 19:22:28.075877487 +0530
++++ b/src/AppShell.tsx	2026-10-21 19:22:28.076517195 +0530
+@@ -34,6 +34,7 @@
+ import { loadLocale } from "./lib/money"
+ import { cn } from "./lib/utils"
+ import { useKiosk } from "./lib/kiosk"
++import { CUSTOM_NAV, TopNav } from "./custom/TopNav"
+ import { getSiteInfo, versionLabel } from "./lib/siteInfo"
+ import AlertSettings from "./components/AlertSettings"
+ import NotificationHost from "./components/NotificationHost"
+@@ -328,7 +329,7 @@
+       {!kiosk && !demoMode && <UpdateNag />}
+       {!kiosk && !demoMode && <SetupNag />}
+       <div className="flex min-h-0 flex-1">
+-      {!kiosk && (
++      {!kiosk && !CUSTOM_NAV && (
+       <aside className="hidden w-56 shrink-0 flex-col border-r border-zinc-200 bg-white px-3 py-5 sm:sticky sm:top-0 sm:flex sm:h-screen sm:overflow-y-auto">
+         <NavLink
+           to="/"
+@@ -468,6 +469,7 @@
+           </div>
+         </header>
+         )}
++        {!kiosk && CUSTOM_NAV && <TopNav apps={apps} roles={roles} />}
+ 
+         <main
+           key={property}
