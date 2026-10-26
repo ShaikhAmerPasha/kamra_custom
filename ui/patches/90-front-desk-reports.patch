@@ -9,8 +9,8 @@
  const RevenueReports = lazy(() => import("./screens/RevenueReports"))
  const OpsSLA = lazy(() => import("./screens/OpsSLA"))
 @@ -325,6 +326,8 @@
-           <Route path="reports/flash" element={<Reports initialTab="flash" />} />
            <Route path="reports/custom" element={<Reports />} />
+           <Route path="reports/packs" element={<Reports key="packs" initialTab="packs" />} />
            <Route path="in-house" element={<InHouse />} />
 +          <Route path="desk-reports" element={<DeskReports />} />
 +          <Route path="desk-reports/:report" element={<DeskReports />} />
