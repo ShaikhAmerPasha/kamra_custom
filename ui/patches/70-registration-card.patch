@@ -1,0 +1,46 @@
+--- a/src/screens/RegistrationCard.tsx	2026-10-25 19:40:19.472720710 +0530
++++ b/src/screens/RegistrationCard.tsx	2026-10-25 19:40:19.473415054 +0530
+@@ -2,6 +2,7 @@
+ import {
+   Camera, ArrowLeft, BedDouble, Plus, Printer, Receipt, Trash2 } from "lucide-react"
+ import { Link, useParams } from "react-router-dom"
++import { PaperSignMark, StaffName, grcRoomLabel, useGrc } from "../custom/CustomGrc"
+ import { call, getCurrentProperty } from "../lib/api"
+ import EditableNationality from "../components/EditableNationality"
+ import { Button } from "../components/ui/button"
+@@ -475,6 +476,7 @@
+ 
+ export default function RegistrationCard() {
+   const { name } = useParams()
++  const grc = useGrc(name)
+   const { t } = useT()
+   const loc = useLocale()
+   const [d, setD] = useState<Grc | null>(null)
+@@ -503,9 +505,7 @@
+   if (!d) return <p className="py-10 text-center text-zinc-400">{t("Loading…")}</p>
+ 
+   const r = d.reservation
+-  const roomLabel = r.room_number
+-    ? `${r.room_number} · ${r.room_type_name ?? r.room_type}`
+-    : t("Unassigned")
++  const roomLabel = grcRoomLabel(r, t, grc.flags.grc_staff_name)
+   const canMove = r.status === "Confirmed" || r.status === "Checked In"
+   const rd = d.readiness
+   const checks: { ok: boolean; label: string; hint?: string }[] = rd
+@@ -746,6 +746,7 @@
+                 {d.signature && (
+                   <img src={d.signature} alt={t("Guest signature")} className="max-h-16 object-contain" />
+                 )}
++                <PaperSignMark grc={grc} hasImage={!!d.signature} />
+               </div>
+               <div className="border-t border-zinc-400 pt-1">
+                 {t("Guest signature")}
+@@ -753,7 +754,7 @@
+               </div>
+             </div>
+             <div className="text-center text-xs text-zinc-500">
+-              <div className="h-16" />
++              <StaffName grc={grc} />
+               <div className="border-t border-zinc-400 pt-1">{t("Front desk (name & sign)")}</div>
+             </div>
+           </div>

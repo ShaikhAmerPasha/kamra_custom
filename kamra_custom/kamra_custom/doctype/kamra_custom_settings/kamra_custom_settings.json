@@ -7,8 +7,16 @@
  "field_order": [
   "screens_section",
   "use_patched_ui",
+  "grc_staff_name",
+  "checkout_date_on_booking",
   "rates_section",
-  "max_desk_discount_pct"
+  "max_desk_discount_pct",
+  "rooms_section",
+  "assign_room_at_checkin",
+  "clean_rooms_only",
+  "complimentary_pos_nc",
+  "merge_meal_in_room_line",
+  "express_checkin"
  ],
  "fields": [
   {
@@ -24,6 +32,20 @@
    "label": "Use customised Kamra screens"
   },
   {
+   "default": "1",
+   "description": "Print the name of the staff member who checked the guest in, and a mark when the guest signed the printed card, on the registration card (GRC). Before check-in the GRC shows the room category only.",
+   "fieldname": "grc_staff_name",
+   "fieldtype": "Check",
+   "label": "Staff name and room category on the registration card"
+  },
+  {
+   "default": "1",
+   "description": "Show a Check-out date box beside Nights when making a reservation. Changing one changes the other.",
+   "fieldname": "checkout_date_on_booking",
+   "fieldtype": "Check",
+   "label": "Check-out date when making a reservation"
+  },
+  {
    "fieldname": "rates_section",
    "fieldtype": "Section Break",
    "label": "Negotiated rates"
@@ -34,6 +56,46 @@
    "fieldname": "max_desk_discount_pct",
    "fieldtype": "Percent",
    "label": "Largest discount the front desk can give"
+  },
+  {
+   "fieldname": "rooms_section",
+   "fieldtype": "Section Break",
+   "label": "Rooms"
+  },
+  {
+   "default": "0",
+   "description": "A new reservation holds a room type, not a room. The room is chosen at check-in. Walk-ins still get a room at once.",
+   "fieldname": "assign_room_at_checkin",
+   "fieldtype": "Check",
+   "label": "Assign the room at check-in"
+  },
+  {
+   "default": "0",
+   "description": "Refuse to check a guest in to a room that housekeeping has not marked Clean, Inspected or Ready.",
+   "fieldname": "clean_rooms_only",
+   "fieldtype": "Check",
+   "label": "Check in to clean rooms only"
+  },
+  {
+   "default": "1",
+   "description": "Restaurant orders of a complimentary guest are marked NC: they are recorded and shown in the complimentary report, and no money is asked for.",
+   "fieldname": "complimentary_pos_nc",
+   "fieldtype": "Check",
+   "label": "Restaurant orders of complimentary guests are NC"
+  },
+  {
+   "default": "0",
+   "description": "On the printed bill, show the meal inside the room line of each night (Room with Continental Plan) instead of a separate Meal Plan line. The tax summary still lists every tax rate. Check with your accountant first.",
+   "fieldname": "merge_meal_in_room_line",
+   "fieldtype": "Check",
+   "label": "Print the meal inside the room line"
+  },
+  {
+   "default": "0",
+   "description": "Check in on two pages instead of six steps. Page 1: ID and room. Page 2: signature. Name, ID, room and signature are the only things asked. The hotel takes an advance, not a deposit, so no deposit is asked.",
+   "fieldname": "express_checkin",
+   "fieldtype": "Check",
+   "label": "Two-page check-in"
   }
  ],
  "index_web_pages_for_search": 0,

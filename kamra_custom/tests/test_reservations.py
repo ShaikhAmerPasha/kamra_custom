@@ -48,7 +48,7 @@ class TestStays(IntegrationTestCase):
 
 	def test_rate_can_be_changed_after_booking(self):
 		name = self.book()
-		negotiation.set_negotiated_rate(name, [2300, 2300], "Asked on arrival")
+		negotiation.set_negotiated_rate(name, [2300, 2300], "Asked on arrival", "MD Sir")
 		d = reservations.detail(name)
 		self.assertEqual([n["rate"] for n in d["night_rates"]], [2300, 2300])
 		self.assertEqual(d["rate_negotiated"], 1)

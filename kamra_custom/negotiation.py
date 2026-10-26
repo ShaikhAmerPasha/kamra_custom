@@ -25,12 +25,40 @@ from frappe.utils import cint, flt, now_datetime
 
 from kamra.authz import require_roles
 from kamra.pricing import _dec, quote, rates_include_tax, room_gst_rate
+from kamra_custom import approvers
 
 MANAGER_ROLES = {"Revenue Manager", "Hotel Admin", "System Manager"}
 DEFAULT_MAX_DISCOUNT_PCT = 10.0
 
 
 # --- the maths ----------------------------------------------------------------
+
+def meal_per_night(q: dict) -> Decimal:
+	"""What the meal plan adds to each night, before tax (the same for every night of a stay)."""
+	nights = len(q.get("nightly") or [])
+	return _dec(q.get("meal_total") or 0) / Decimal(nights) if nights else Decimal(0)
+
+
+def to_room_rates(q: dict, property: str, entered: list, all_in: bool) -> tuple[list, bool]:
+	"""The room rate for each night, and whether the entered rates were all-in.
+
+	With a meal plan the desk can agree one price for room and meal together. The system
+	prices the room and the meal apart, so the meal is taken off each night to find the room
+	part. Without a meal there is nothing to take off.
+	"""
+	meal = meal_per_night(q)
+	if not all_in or meal <= 0:
+		return list(entered), False
+	if rates_include_tax(property):
+		frappe.throw(_("An all-in rate with meals is not available when rates include tax."))
+	room = []
+	for e in entered:
+		part = _dec(e) - meal
+		if part < 0:
+			frappe.throw(_("The rate must be more than the meal, {0} a night.").format(round(float(meal), 2)))
+		room.append(float(part))
+	return room, True
+
 
 def reprice(q: dict, property: str, room_type: str, entered: list) -> dict:
 	"""`q` with its nightly room rates replaced by `entered`.
@@ -176,7 +204,7 @@ def quote_inputs_for(res) -> dict:
 @require_roles("Front Desk", "Revenue Manager", "Kamra Agent")
 def preview(property: str, room_type: str, check_in_date: str, check_out_date: str,
             adults: int = 2, children: int = 0, meal_plan: str | None = None,
-            rates=None) -> dict:
+            rates=None, all_in: int = 0) -> dict:
 	"""The system price, and the price at the given nightly rates, without saving."""
 	inputs = {
 		"property": property, "room_type": room_type,
@@ -189,6 +217,8 @@ def preview(property: str, room_type: str, check_in_date: str, check_out_date: s
 	result = {"system": system, "negotiated": None, "discount_pct": 0.0,
 	          "limit_pct": max_desk_discount_pct(), "needs_manager": False,
 	          "can_approve": is_manager(), "inclusive": inclusive,
+	          # what the meal plan adds to each night; above zero, a rate is agreed for room and meal together
+	          "meal_per_night": round(float(meal_per_night(system)), 2),
 	          # the system's nightly rates, written the way a rate is typed at this property
 	          "entry_rates": [
 		          round(n["rate"] * (1 + n["gst_rate"] / 100) if inclusive else n["rate"], 2)
@@ -196,19 +226,21 @@ def preview(property: str, room_type: str, check_in_date: str, check_out_date: s
 	          ]}
 	rates = frappe.parse_json(rates) if isinstance(rates, str) else rates
 	if rates:
-		neg = reprice(system, property, room_type, rates)
+		room_rates, _all_in = to_room_rates(system, property, rates, bool(int(all_in or 0)))
+		neg = reprice(system, property, room_type, room_rates)
 		pct = discount_pct(system, neg)
-		result.update(negotiated=neg, discount_pct=pct,
+		result.update(negotiated=neg, discount_pct=pct, all_in=_all_in,
 		              needs_manager=pct > max_desk_discount_pct() + 1e-9)
 		# say now what the booking would be refused for later
 		try:
-			check_guardrails(property, room_type, system["nightly"], rates)
+			check_guardrails(property, room_type, system["nightly"], room_rates)
 		except frappe.ValidationError as e:
 			result["rule_error"] = frappe.utils.strip_html(str(e))
 	return result
 
 
-def apply_rates(res, rates: list, reason: str = "") -> dict:
+def apply_rates(res, rates: list, reason: str = "", approver: str | None = None, all_in: bool = False,
+                enforce: bool = True) -> dict:
 	"""Agree `rates` on a saved reservation (a document).
 
 	Checks the rules, holds the price (`auto_price` off), stores the nightly
@@ -219,11 +251,15 @@ def apply_rates(res, rates: list, reason: str = "") -> dict:
 	reason = (reason or "").strip()
 	inputs = quote_inputs_for(res)
 	system = quote(**inputs, check_voucher_limits=False)
+	rates, all_in = to_room_rates(system, res.property, rates, bool(all_in))
 	neg = reprice(system, res.property, res.room_type, rates)
 	pct = discount_pct(system, neg)
-	check_rules(res.property, res.room_type, system["nightly"], rates, pct)
-	if pct > 0 and not reason:
-		frappe.throw(_("Say why the rate was reduced."), title=_("Reason needed"))
+	if enforce:
+		# a rate already approved and carried to new dates (amended stay) is not asked for again
+		check_rules(res.property, res.room_type, system["nightly"], rates, pct)
+	if pct > 0 or approver:
+		# a lower rate always names who agreed it; the note is optional
+		approver = approvers.check_approver(approver)
 
 	before = {
 		"amount_before_tax": res.amount_before_tax, "tax_amount": res.tax_amount,
@@ -242,9 +278,11 @@ def apply_rates(res, rates: list, reason: str = "") -> dict:
 	res.rate_lock_key = res.rate_lock_key_for(inputs)
 	res._apply_commission()
 	res.rate_negotiated = 1
+	res.rate_all_in = 1 if all_in else 0
 	res.rack_amount_before_tax = system["amount_before_tax"]
 	res.negotiated_by = frappe.session.user
 	res.negotiated_reason = reason or res.get("negotiated_reason")
+	res.rate_approved_by = approver or res.get("rate_approved_by")
 
 	after = {
 		"amount_before_tax": res.amount_before_tax, "tax_amount": res.tax_amount,
@@ -255,19 +293,22 @@ def apply_rates(res, rates: list, reason: str = "") -> dict:
 	return {"before": before, "after": after, "discount_pct": pct, "system": system, "negotiated": neg}
 
 
-def log_change(res, outcome: dict, reason: str):
+def log_change(res, outcome: dict, reason: str, approver: str | None = None):
 	from kamra.savings import log_action
 
+	# the log's own approver column links to a User, so the name goes in the text
+	who = f" Approved by {approver}." if approver else ""
 	log_action(
 		"negotiate_rate", "Reservation", res.name, res.property,
-		rationale=f"{outcome['discount_pct']:.1f}% below system rate. {reason}".strip(),
+		rationale=f"{outcome['discount_pct']:.1f}% below system rate.{who} {reason}".strip(),
 		before_snapshot=outcome["before"], after_snapshot=outcome["after"],
 	)
 
 
 @frappe.whitelist(methods=["POST"])
 @require_roles("Front Desk", "Revenue Manager", "Kamra Agent")
-def set_negotiated_rate(reservation: str, rates, reason: str = "") -> dict:
+def set_negotiated_rate(reservation: str, rates, reason: str = "", approver: str | None = None,
+                        all_in: int = 0) -> dict:
 	"""Change the agreed nightly rates of a saved reservation."""
 	rates = frappe.parse_json(rates) if isinstance(rates, str) else rates
 	res = frappe.get_doc("Reservation", reservation)
@@ -278,9 +319,9 @@ def set_negotiated_rate(reservation: str, rates, reason: str = "") -> dict:
 	if res.status in ("Checked Out", "Cancelled", "No Show"):
 		frappe.throw(_("A {0} booking's rate cannot be changed.").format(res.status))
 	_assert_no_posted_nights(res)
-	outcome = apply_rates(res, rates, reason)
+	outcome = apply_rates(res, rates, reason, approver, bool(int(all_in or 0)))
 	res.save()
-	log_change(res, outcome, reason)
+	log_change(res, outcome, reason, approver)
 	return {
 		"reservation": res.name,
 		"amount_before_tax": res.amount_before_tax,

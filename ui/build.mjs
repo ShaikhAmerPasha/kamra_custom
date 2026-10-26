@@ -58,7 +58,9 @@ const patchDir = path.join(here, "patches")
 const patches = readdirSync(patchDir).filter((f) => f.endsWith(".patch")).sort()
 for (const p of patches) {
   const file = path.join(patchDir, p)
-  const args = ["--forward", "--no-backup-if-mismatch", "-p1", "-d", work, "-i", file]
+  // --fuzz=0: a hunk must match its context exactly. A loose match could land in the
+  // wrong place after a Kamra update and still report success.
+  const args = ["--forward", "--fuzz=0", "--no-backup-if-mismatch", "-p1", "-d", work, "-i", file]
   const dry = spawnSync("patch", ["--dry-run", ...args], { encoding: "utf8" })
   if (dry.status !== 0) {
     console.error(dry.stdout + dry.stderr)

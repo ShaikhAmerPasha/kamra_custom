@@ -1,0 +1,51 @@
+--- a/src/App.tsx	2026-10-25 20:43:02.159011359 +0530
++++ b/src/App.tsx	2026-10-25 20:43:02.159638890 +0530
+@@ -50,6 +50,7 @@
+ const ReportsHub = lazy(() => import("./screens/ReportsHub"))
+ const InHouse = lazy(() => import("./screens/InHouse"))
+ const DeskReports = lazy(() => import("./custom/DeskReports"))
++const FindBooking = lazy(() => import("./custom/FindBooking"))
+ const RateCalendar = lazy(() => import("./screens/RateCalendar"))
+ const RevenueReports = lazy(() => import("./screens/RevenueReports"))
+ const OpsSLA = lazy(() => import("./screens/OpsSLA"))
+@@ -326,6 +327,7 @@
+           <Route path="reports/flash" element={<Reports initialTab="flash" />} />
+           <Route path="reports/custom" element={<Reports />} />
+           <Route path="in-house" element={<InHouse />} />
++          <Route path="find-booking/:action" element={<FindBooking />} />
+           <Route path="desk-reports" element={<DeskReports />} />
+           <Route path="desk-reports/:report" element={<DeskReports />} />
+           <Route path="arrivals" element={<Navigate to="/in-house?tab=arrivals" replace />} />
+--- a/src/screens/ReportsHub.tsx	2026-10-25 20:43:02.162958749 +0530
++++ b/src/screens/ReportsHub.tsx	2026-10-25 20:43:02.163697210 +0530
+@@ -49,6 +49,8 @@
+       { to: "/desk-reports/departures", label: "Expected departures", blurb: "Everyone due out on a day or between dates, with who has left. Excel.", icon: FileSpreadsheet, app: "front-desk" },
+       { to: "/desk-reports/in_house", label: "In-house guests", blurb: "Who is in which room, with packs, plan and dates. Excel.", icon: FileSpreadsheet, app: "front-desk" },
+       { to: "/desk-reports/plan", label: "Meal plan report", blurb: "Guests, rooms, packs and plan for a day, for the kitchen. Excel.", icon: FileSpreadsheet, app: "front-desk" },
++      { to: "/desk-reports/cancellations", label: "Cancellations", blurb: "Bookings cancelled, with who cancelled, why and any fee. Excel.", icon: FileSpreadsheet, app: "front-desk" },
++      { to: "/desk-reports/amendments", label: "Amendments", blurb: "Changes to bookings: dates, room, rate, instructions, and who made them. Excel.", icon: FileSpreadsheet, app: "front-desk" },
+       { to: "/desk-reports/agreed_rates", label: "Agreed rates by approver", blurb: "Bookings at an agreed rate, by who approved them, by day or month. Excel.", icon: FileSpreadsheet, app: "front-desk" },
+     ],
+   },
+--- a/src/lib/apps.ts	2026-10-25 20:43:02.167202793 +0530
++++ b/src/lib/apps.ts	2026-10-25 20:43:02.167948347 +0530
+@@ -18,6 +18,8 @@
+   CalendarDays,
+   CalendarRange,
+   ClipboardCheck,
++  CalendarCog,
++  CalendarX,
+   ClipboardList,
+   Clock,
+   Code2,
+@@ -120,6 +122,10 @@
+       { to: "/in-house", label: "In House", icon: BedDouble,
+         keywords: ["Arrivals", "Departures", "In-house guests", "Who is in", "Due out"] },
+       { to: "/reservations", label: "Reservations", icon: ClipboardList },
++      { to: "/find-booking/cancel", label: "Cancel a booking", icon: CalendarX,
++        keywords: ["Cancel", "Cancellation", "Cancel reservation"] },
++      { to: "/find-booking/amend", label: "Amend a booking", icon: CalendarCog,
++        keywords: ["Amend", "Modify", "Change dates", "Extend stay", "Edit booking"] },
+       { to: "/tape", label: "Tape Chart", icon: LayoutGrid },
+       { to: "/room-board", label: "Rooms", icon: DoorOpen,
+         keywords: ["Room board", "Room status", "Out of order", "Room history"] },

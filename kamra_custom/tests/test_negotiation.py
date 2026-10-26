@@ -186,7 +186,7 @@ class TestOnAReservation(_Site):
 		name = self.book()
 		res = frappe.get_doc("Reservation", name)
 		system_total = res.amount_after_tax
-		outcome = negotiation.apply_rates(res, [2000, 2000, 2000], "Walk-in bargained")
+		outcome = negotiation.apply_rates(res, [2000, 2000, 2000], "Walk-in bargained", "MD Sir")
 		res.save()
 		res.reload()
 		self.assertEqual(res.auto_price, 0)
@@ -202,7 +202,7 @@ class TestOnAReservation(_Site):
 		from kamra.folio import _nightly_room_rate
 
 		res = frappe.get_doc("Reservation", self.book())
-		negotiation.apply_rates(res, [2000, 2250, 2100], "bargain")
+		negotiation.apply_rates(res, [2000, 2250, 2100], "bargain", "MD Sir")
 		res.save()
 		res.reload()
 		billed = [_nightly_room_rate(res, add_days(res.check_in_date, i)) for i in range(3)]
@@ -211,7 +211,7 @@ class TestOnAReservation(_Site):
 	def test_a_later_save_keeps_the_agreed_price(self):
 		name = self.book()
 		res = frappe.get_doc("Reservation", name)
-		negotiation.apply_rates(res, [2100, 2100, 2100], "bargain")
+		negotiation.apply_rates(res, [2100, 2100, 2100], "bargain", "GM Sir")
 		res.save()
 		again = frappe.get_doc("Reservation", name)
 		again.internal_remarks = "touch"
@@ -220,15 +220,27 @@ class TestOnAReservation(_Site):
 		self.assertAlmostEqual(again.amount_before_tax, 6300, places=1)
 		self.assertEqual([round(r.rate, 2) for r in again.night_rates], [2100, 2100, 2100])
 
-	def test_reason_is_required_for_a_discount(self):
+	def test_an_approver_is_required_for_a_discount(self):
+		res = frappe.get_doc("Reservation", self.book())
+		for approver in (None, "", "  ", "Nobody Sir"):
+			with self.assertRaises(frappe.ValidationError):
+				negotiation.apply_rates(res, [2000, 2000, 2000], "a note", approver)
+
+	def test_the_note_is_optional_once_an_approver_is_named(self):
+		res = frappe.get_doc("Reservation", self.book())
+		negotiation.apply_rates(res, [2000, 2000, 2000], "", "GM Sir")
+		self.assertEqual(res.rate_approved_by, "GM Sir")
+
+	def test_a_disabled_name_cannot_be_chosen(self):
+		frappe.db.set_value("Rate Approver", "GM Sir", "disabled", 1)
 		res = frappe.get_doc("Reservation", self.book())
 		with self.assertRaises(frappe.ValidationError):
-			negotiation.apply_rates(res, [2000, 2000, 2000], "  ")
+			negotiation.apply_rates(res, [2000, 2000, 2000], "", "GM Sir")
 
 	def test_endpoint_changes_the_rate_and_logs_it(self):
 		name = self.book()
 		before = frappe.db.count("Agent Action Log", {"action_type": "negotiate_rate", "reference_name": name})
-		negotiation.set_negotiated_rate(name, [2200, 2200, 2200], "Repeat guest")
+		negotiation.set_negotiated_rate(name, [2200, 2200, 2200], "Repeat guest", "Front Office")
 		self.assertEqual(frappe.db.get_value("Reservation", name, "auto_price"), 0)
 		self.assertEqual(
 			frappe.db.count("Agent Action Log", {"action_type": "negotiate_rate", "reference_name": name}),

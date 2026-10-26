@@ -58,13 +58,14 @@ def _finish(name: str, special_requests: str = "", internal_remarks: str = "", c
 		doc.special_requests = special_requests
 	if internal_remarks:
 		doc.internal_remarks = internal_remarks
-	outcome, reason = None, ""
+	outcome, reason, approver = None, "", None
 	if custom_rate:
 		reason = (custom_rate.get("reason") or "").strip()
-		outcome = negotiation.apply_rates(doc, custom_rate["rates"], reason)
+		approver = custom_rate.get("approver")
+		outcome = negotiation.apply_rates(doc, custom_rate["rates"], reason, approver, bool(custom_rate.get("all_in")))
 	doc.save()
 	if outcome:
-		negotiation.log_change(doc, outcome, reason)
+		negotiation.log_change(doc, outcome, reason, doc.get("rate_approved_by"))
 	return {"amount_after_tax": doc.amount_after_tax} if outcome else None
 
 
@@ -135,3 +136,53 @@ def walk_in(*args, internal_remarks=None, custom_rate=None, **kwargs):
 	if changed:
 		res = {**res, **changed}
 	return res
+
+
+def _held_rates(doc) -> list | None:
+	"""What the guest was promised for each night: the agreed all-in rate, or the room rate."""
+	if not doc.get("rate_negotiated") or doc.get("auto_price") or not doc.get("night_rates"):
+		return None
+	rows = sorted(doc.night_rates, key=lambda r: str(r.stay_date))
+	inclusive = negotiation.rates_include_tax(doc.property)
+	out = []
+	for r in rows:
+		value = float(r.rate or 0) + (float(r.meal_amount or 0) if doc.get("rate_all_in") else 0)
+		if inclusive:
+			value = round(value * (1 + float(r.gst_rate or 0) / 100), 2)
+		out.append((str(r.stay_date), value))
+	return out
+
+
+@frappe.whitelist(methods=["POST"])
+def amend_stay(*args, **kwargs):
+	"""kamra.api.amend_stay, then keep the promised price on the new dates.
+
+	Kamra keeps the old total of a stay whose price was agreed by hand, so a stay lengthened
+	from one night to two would still bill one night's price and have no rate for the second
+	night. Here the agreed rate carries to every night of the new dates (a longer stay uses
+	the last night's rate for the added nights), and a complimentary stay stays free.
+	"""
+	from kamra.api import amend_stay as kamra_amend_stay
+
+	name = kwargs.get("reservation") or (args[0] if args else None)
+	doc = frappe.get_doc("Reservation", name)
+	held = _held_rates(doc)
+	free = bool(doc.get("is_complimentary"))
+	out = kamra_amend_stay(*args, **_accepted(kamra_amend_stay, kwargs))
+	if not held and not free:
+		return out
+
+	doc = frappe.get_doc("Reservation", name)
+	if free:
+		from kamra_custom import complimentary
+
+		complimentary.reprice_free(doc)
+	else:
+		by_date = dict(held)
+		first, last = held[0][1], held[-1][1]
+		nights = int(doc.nights or 0)
+		start = frappe.utils.getdate(doc.check_in_date)
+		rates = [by_date.get(str(frappe.utils.add_days(start, i)), first if frappe.utils.add_days(start, i) < frappe.utils.getdate(held[0][0]) else last) for i in range(nights)]
+		negotiation.apply_rates(doc, rates, doc.get("negotiated_reason") or "", doc.get("rate_approved_by"), bool(doc.get("rate_all_in")), enforce=False)
+	doc.save()
+	return {**out, "nights": doc.nights, "amount_after_tax": doc.amount_after_tax}

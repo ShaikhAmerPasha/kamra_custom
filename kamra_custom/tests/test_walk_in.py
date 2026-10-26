@@ -34,7 +34,7 @@ class TestWalkIn(IntegrationTestCase):
 	def test_agreed_rate_and_remarks_land_on_the_walk_in(self):
 		out = self.walk_in(
 			internal_remarks="Regular, agreed at the desk",
-			custom_rate={"rates": [2300], "reason": "Repeat guest"},
+			custom_rate={"rates": [2300], "reason": "Repeat guest", "approver": "Front Office"},
 		)
 		doc = frappe.get_doc("Reservation", out["reservation"])
 		self.assertEqual(doc.rate_negotiated, 1)

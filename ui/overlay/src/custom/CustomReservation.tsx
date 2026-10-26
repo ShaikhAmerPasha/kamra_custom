@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react"
 import { call } from "../lib/api"
 import { Button } from "../components/ui/button"
 import { fmtMoney } from "../lib/money"
+import { ApproverSelect } from "./ApproverSelect"
 import { agreedRates, emptyRate, nightsBetween, rateProblem, type PreviewInfo, type RoomRate } from "./rates"
 
 interface Detail {
@@ -20,9 +21,10 @@ interface Detail {
   meal_plan: string | null
   amount_after_tax: number
   advance_paid: number
-  night_rates: { date: string; rate: number; gst_rate: number }[]
+  night_rates: { date: string; rate: number; gst_rate: number; meal?: number }[]
   rate_negotiated: number
   negotiated_reason: string | null
+  rate_approved_by: string | null
   internal_remarks: string | null
   special_requests: string | null
   rate_locked_reason: string | null
@@ -64,7 +66,7 @@ export function CustomReservationPanel({ name, onChanged }: { name: string; onCh
       .then((x) => {
         setD(x)
         setRemarks(x.internal_remarks ?? "")
-        setRate({ ...emptyRate(), nightly: x.night_rates.map((n) => String(n.rate)), rate: String(x.night_rates[0]?.rate ?? "") })
+        setRate({ ...emptyRate(), nightly: x.night_rates.map((n) => String(n.rate + (n.meal ?? 0))), rate: String((x.night_rates[0]?.rate ?? 0) + (x.night_rates[0]?.meal ?? 0)) })
       })
       .catch(() => setD(null))
   }, [name])
@@ -79,7 +81,7 @@ export function CustomReservationPanel({ name, onChanged }: { name: string; onCh
     const timer = setTimeout(() => {
       call<Preview>("kamra_custom.negotiation.preview", {
         property: d.property, room_type: d.room_type, check_in_date: d.check_in_date, check_out_date: d.check_out_date,
-        adults: d.adults, children: d.children, meal_plan: d.meal_plan || undefined, rates,
+        adults: d.adults, children: d.children, meal_plan: d.meal_plan || undefined, rates, all_in: 1,
       })
         .then((p) => alive && setPreview(p))
         .catch((e) => alive && setError(message(e)))
@@ -109,6 +111,7 @@ export function CustomReservationPanel({ name, onChanged }: { name: string; onCh
 
   if (!d) return null
   const problem = rateProblem(rate, nights, preview ?? undefined)
+  const hasMeal = d.night_rates.some((n) => (n.meal ?? 0) > 0)
   const remarksChanged = remarks !== (d.internal_remarks ?? "")
 
   return (
@@ -134,19 +137,21 @@ export function CustomReservationPanel({ name, onChanged }: { name: string; onCh
           Total <b>{fmtMoney(d.amount_after_tax)}</b> with tax
           {d.rate_negotiated ? (
             <span className="ml-2 rounded bg-brand-50 px-1.5 py-0.5 text-xs text-brand-700">
-              Agreed rate{d.negotiated_reason ? `: ${d.negotiated_reason}` : ""}
+              Agreed rate{d.rate_approved_by ? ` · approved by ${d.rate_approved_by}` : ""}{d.negotiated_reason ? ` · ${d.negotiated_reason}` : ""}
             </span>
           ) : null}
         </p>
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-xs uppercase tracking-wide text-zinc-500">
-              <th className="py-1">Night</th><th className="py-1 text-right">Rate before tax</th><th className="py-1 text-right">Tax</th>
+              <th className="py-1">Night</th><th className="py-1 text-right">Room</th>
+              {hasMeal ? <><th className="py-1 text-right">Meal</th><th className="py-1 text-right">Room + meal</th></> : null}<th className="py-1 text-right">Tax</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
             {d.night_rates.map((n) => (
-              <tr key={n.date}><td className="py-1">{n.date}</td><td className="py-1 text-right">{fmtMoney(n.rate)}</td><td className="py-1 text-right">{n.gst_rate}%</td></tr>
+              <tr key={n.date}><td className="py-1">{n.date}</td><td className="py-1 text-right">{fmtMoney(n.rate)}</td>
+                {hasMeal ? <><td className="py-1 text-right">{fmtMoney(n.meal ?? 0)}</td><td className="py-1 text-right">{fmtMoney(n.rate + (n.meal ?? 0))}</td></> : null}<td className="py-1 text-right">{n.gst_rate}%</td></tr>
             ))}
           </tbody>
         </table>
@@ -164,7 +169,7 @@ export function CustomReservationPanel({ name, onChanged }: { name: string; onCh
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                   {d.night_rates.map((n, i) => (
                     <div key={n.date}>
-                      <label className={label} htmlFor={`custom-edit-night-${i}`}>{n.date}</label>
+                      <label className={label} htmlFor={`custom-edit-night-${i}`}>{n.date}{hasMeal ? " · room + meal" : ""}</label>
                       <input id={`custom-edit-night-${i}`} inputMode="decimal" className={field} value={rate.nightly[i] ?? ""}
                         onChange={(e) => setRate((r) => ({ ...r, nightly: Object.assign([...r.nightly], { [i]: e.target.value }) }))} />
                     </div>
@@ -178,13 +183,14 @@ export function CustomReservationPanel({ name, onChanged }: { name: string; onCh
                 ) : null}
                 {preview && preview.discount_pct > 0 ? (
                   <div>
-                    <label className={label} htmlFor="custom-edit-why">Reason for the discount</label>
+                    <ApproverSelect id="custom-edit-approver" value={rate.approver} onChange={(v) => setRate((r) => ({ ...r, approver: v }))} />
+                    <label className={`${label} mt-2`} htmlFor="custom-edit-why">Note (optional)</label>
                     <input id="custom-edit-why" className={field} value={rate.reason} onChange={(e) => setRate((r) => ({ ...r, reason: e.target.value }))} />
                   </div>
                 ) : null}
                 {problem ? <p role="alert" className="text-rose-700">{problem}</p> : null}
                 <Button disabled={busy || !rates || problem !== ""}
-                  onClick={() => run(() => call("kamra_custom.negotiation.set_negotiated_rate", { reservation: name, rates, reason: rate.reason.trim() }), "Rate saved.")}>
+                  onClick={() => run(() => call("kamra_custom.negotiation.set_negotiated_rate", { reservation: name, rates, reason: rate.reason.trim(), approver: rate.approver.trim(), all_in: 1 }), "Rate saved.")}>
                   Save rate
                 </Button>
               </>

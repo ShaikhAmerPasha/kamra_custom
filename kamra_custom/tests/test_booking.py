@@ -82,7 +82,7 @@ class TestCreateStay(IntegrationTestCase):
 
 	def test_agreed_rate_per_room(self):
 		out = self.stay([
-			{"room_type": DLX, "rates": [2100, 2100], "reason": "Bargained at desk"},
+			{"room_type": DLX, "rates": [2100, 2100], "reason": "Bargained at desk", "approver": "GM Sir"},
 			{"room_type": PRM},
 		])
 		a, b = [frappe.get_doc("Reservation", r["reservation"]) for r in out["reservations"]]
@@ -97,7 +97,7 @@ class TestCreateStay(IntegrationTestCase):
 		before = frappe.db.count("Reservation")
 		frappe.set_user("banquet.sales@test.local")
 		with self.assertRaises(frappe.PermissionError):
-			self.stay([{"room_type": DLX, "rates": [1900, 1900], "reason": "x"}])
+			self.stay([{"room_type": DLX, "rates": [1900, 1900], "reason": "x", "approver": "MD Sir"}])
 		frappe.db.rollback()
 		frappe.set_user("Administrator")
 		self.assertEqual(frappe.db.count("Reservation"), before)

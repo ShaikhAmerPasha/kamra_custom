@@ -1,0 +1,41 @@
+--- a/src/screens/FolioView.tsx	2026-10-25 20:53:18.240143114 +0530
++++ b/src/screens/FolioView.tsx	2026-10-25 20:53:18.240819640 +0530
+@@ -1,3 +1,5 @@
++import { PrintBillLines } from "../custom/PrintBillLines"
++import { useFlags } from "../custom/flags"
+ import { Fragment, useCallback, useEffect, useState } from "react"
+ import { ArrowLeft, ArrowRightLeft, Printer, Trash2, X } from "lucide-react"
+ import { Link, useNavigate, useParams } from "react-router-dom"
+@@ -243,6 +245,7 @@
+ 
+ export default function FolioView() {
+   const { t } = useT()
++  const customFlags = useFlags()
+   const { name } = useParams()
+   const navigate = useNavigate()
+   const [data, setData] = useState<InvoiceData | null>(null)
+@@ -919,7 +922,7 @@
+                     </div>
+                   )
+                 })()}
+-                <table className="mb-5 w-full text-sm">
++                <table className={customFlags.merge_meal_in_room_line ? "mb-5 w-full text-sm print:hidden" : "mb-5 w-full text-sm"}>
+                   <thead>
+                     <tr className="border-b border-zinc-200 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">
+                       {open && (
+@@ -1046,13 +1049,14 @@
+                     ))}
+                   </tbody>
+                 </table>
++                {customFlags.merge_meal_in_room_line && <PrintBillLines charges={folio.charges} />}
+               </>
+             )
+           })()}
+ 
+           {/* What the guest actually bought, before they read forty lines. */}
+           {(data.summary_by_head?.length ?? 0) > 1 && (
+-            <div className="mb-6 break-inside-avoid rounded-xl bg-zinc-50 px-4 py-3">
++            <div className={customFlags.merge_meal_in_room_line ? "mb-6 break-inside-avoid rounded-xl bg-zinc-50 px-4 py-3 print:hidden" : "mb-6 break-inside-avoid rounded-xl bg-zinc-50 px-4 py-3"}>
+               <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                 {t("Summary")}
+               </h3>

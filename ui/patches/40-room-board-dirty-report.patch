@@ -1,14 +1,14 @@
---- a/src/screens/HousekeepingBoard.tsx	2026-10-21 19:22:44.899044528 +0530
-+++ b/src/screens/HousekeepingBoard.tsx	2026-10-21 19:22:44.899736958 +0530
+--- a/src/screens/HousekeepingBoard.tsx	2026-10-25 15:33:29.228921554 +0530
++++ b/src/screens/HousekeepingBoard.tsx	2026-10-25 15:33:29.229623953 +0530
 @@ -11,6 +11,7 @@
  import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
  import { cn } from "../lib/utils"
- import { useT } from "../lib/i18n"
+ import { useT, t as translate } from "../lib/i18n"
 +import { DirtyRoomLine, DirtyRoomsButton, useDirtyReport } from "../custom/DirtyRooms"
  
+ 
  // Ready: passed its inspection when the turnover profile requires one
- type HkStatus = "Clean" | "Dirty" | "Inspected" | "Ready" | "Out of Order"
-@@ -67,6 +68,7 @@
+@@ -68,6 +69,7 @@
    const [open, setOpen] = useState<string | null>(null)
    const [floor, setFloor] = useState("All")
    const [filter, setFilter] = useState<Filter>("All")
@@ -16,7 +16,7 @@
    // housekeepers a supervisor can hand a task to (hk_assign_task)
    const [staff, setStaff] = useState<{ user: string; full_name: string }[]>([])
  
-@@ -157,10 +159,13 @@
+@@ -158,10 +160,13 @@
                : t("Every room at a glance. You can mark rooms Clean or Dirty.")}
            </p>
          </div>
@@ -34,7 +34,7 @@
        </div>
  
        {error && (
-@@ -264,6 +269,7 @@
+@@ -265,6 +270,7 @@
                          <div className="mt-0.5 text-[11px] font-medium uppercase tracking-wide opacity-80">
                            {t(r.housekeeping_status)}
                          </div>

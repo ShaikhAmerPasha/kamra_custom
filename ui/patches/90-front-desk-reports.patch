@@ -1,0 +1,38 @@
+--- a/src/App.tsx	2026-10-25 20:32:33.903549659 +0530
++++ b/src/App.tsx	2026-10-25 20:32:33.904227599 +0530
+@@ -49,6 +49,7 @@
+ const Reports = lazy(() => import("./screens/Reports"))
+ const ReportsHub = lazy(() => import("./screens/ReportsHub"))
+ const InHouse = lazy(() => import("./screens/InHouse"))
++const DeskReports = lazy(() => import("./custom/DeskReports"))
+ const RateCalendar = lazy(() => import("./screens/RateCalendar"))
+ const RevenueReports = lazy(() => import("./screens/RevenueReports"))
+ const OpsSLA = lazy(() => import("./screens/OpsSLA"))
+@@ -325,6 +326,8 @@
+           <Route path="reports/flash" element={<Reports initialTab="flash" />} />
+           <Route path="reports/custom" element={<Reports />} />
+           <Route path="in-house" element={<InHouse />} />
++          <Route path="desk-reports" element={<DeskReports />} />
++          <Route path="desk-reports/:report" element={<DeskReports />} />
+           <Route path="arrivals" element={<Navigate to="/in-house?tab=arrivals" replace />} />
+           <Route path="departures" element={<Navigate to="/in-house?tab=departures" replace />} />
+           <Route path="voids-allowances" element={<VoidAllowanceReport />} />
+--- a/src/screens/ReportsHub.tsx	2026-10-25 20:32:33.907761432 +0530
++++ b/src/screens/ReportsHub.tsx	2026-10-25 20:32:33.908446725 +0530
+@@ -43,6 +43,16 @@
+     ],
+   },
+   {
++    title: "Front desk",
++    items: [
++      { to: "/desk-reports/arrivals", label: "Expected arrivals", blurb: "Everyone due in on a day or between dates, with who has already arrived. Excel.", icon: FileSpreadsheet, app: "front-desk" },
++      { to: "/desk-reports/departures", label: "Expected departures", blurb: "Everyone due out on a day or between dates, with who has left. Excel.", icon: FileSpreadsheet, app: "front-desk" },
++      { to: "/desk-reports/in_house", label: "In-house guests", blurb: "Who is in which room, with packs, plan and dates. Excel.", icon: FileSpreadsheet, app: "front-desk" },
++      { to: "/desk-reports/plan", label: "Meal plan report", blurb: "Guests, rooms, packs and plan for a day, for the kitchen. Excel.", icon: FileSpreadsheet, app: "front-desk" },
++      { to: "/desk-reports/agreed_rates", label: "Agreed rates by approver", blurb: "Bookings at an agreed rate, by who approved them, by day or month. Excel.", icon: FileSpreadsheet, app: "front-desk" },
++    ],
++  },
++  {
+     title: "Daily",
+     items: [
+       { to: "/reports/flash", label: "Manager flash", blurb: "Occupancy, ADR, RevPAR, revenue and collections for a day, with the month to date.", icon: ChartLine, app: "finance" },

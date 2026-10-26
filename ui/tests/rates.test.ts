@@ -21,8 +21,8 @@ describe("agreedRates", () => {
 })
 
 describe("customRate", () => {
-  it("carries the rates and the trimmed reason", () =>
-    expect(customRate(agree({ reason: " bargain " }), 2)).toEqual({ rates: [2100, 2100], reason: "bargain" }))
+  it("carries the rates, the trimmed note and the approver", () =>
+    expect(customRate(agree({ reason: " bargain ", approver: " MD Sir " }), 2)).toEqual({ rates: [2100, 2100], reason: "bargain", approver: "MD Sir", all_in: true }))
   it("is undefined when nothing was agreed", () => expect(customRate(emptyRate(), 2)).toBeUndefined())
 })
 
@@ -36,9 +36,11 @@ describe("rateProblem", () => {
   it("asks for a manager when the discount is too large", () =>
     expect(rateProblem(agree(), 2, { discount_pct: 30, needs_manager: true, can_approve: false })).toContain("manager"))
   it("lets a manager go on", () =>
-    expect(rateProblem(agree({ reason: "x" }), 2, { discount_pct: 30, needs_manager: true, can_approve: true })).toBe(""))
-  it("needs a reason for a discount", () => {
-    expect(rateProblem(agree(), 2, { ...ok, discount_pct: 5 })).toBe("Say why the rate was reduced.")
-    expect(rateProblem(agree({ reason: "regular" }), 2, { ...ok, discount_pct: 5 })).toBe("")
+    expect(rateProblem(agree({ approver: "GM Sir" }), 2, { discount_pct: 30, needs_manager: true, can_approve: true })).toBe(""))
+  it("needs an approver for a discount, and the note is optional", () => {
+    expect(rateProblem(agree(), 2, { ...ok, discount_pct: 5 })).toBe("Choose who approved this rate.")
+    expect(rateProblem(agree({ reason: "regular guest" }), 2, { ...ok, discount_pct: 5 })).toBe("Choose who approved this rate.")
+    expect(rateProblem(agree({ approver: "Front Office" }), 2, { ...ok, discount_pct: 5 })).toBe("")
   })
+  it("needs no approver when the rate is not lower", () => expect(rateProblem(agree(), 2, ok)).toBe(""))
 })

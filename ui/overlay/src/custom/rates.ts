@@ -7,10 +7,13 @@ export interface RoomRate {
   perNight: boolean
   rate: string
   nightly: string[]
+  /** An optional note beside the approver. */
   reason: string
+  /** Who agreed the lower rate: MD Sir, GM Sir, Front Office ... */
+  approver: string
 }
 
-export const emptyRate = (): RoomRate => ({ agree: false, perNight: false, rate: "", nightly: [], reason: "" })
+export const emptyRate = (): RoomRate => ({ agree: false, perNight: false, rate: "", nightly: [], reason: "", approver: "" })
 
 export function nightsBetween(from: string, to: string): number {
   if (!from || !to) return 0
@@ -31,13 +34,19 @@ export function agreedRates(r: RoomRate, nights: number): number[] | undefined {
 }
 
 /** What is sent for one room: undefined when nothing was agreed. */
-export function customRate(r: RoomRate, nights: number): { rates: number[]; reason: string } | undefined {
+export function customRate(
+  r: RoomRate,
+  nights: number,
+): { rates: number[]; reason: string; approver: string; all_in: boolean } | undefined {
   const rates = agreedRates(r, nights)
-  return rates ? { rates, reason: r.reason.trim() } : undefined
+  // with a meal plan the agreed price covers the room and the meal; the server ignores all_in without one
+  return rates ? { rates, reason: r.reason.trim(), approver: r.approver.trim(), all_in: true } : undefined
 }
 
 export interface PreviewInfo {
   discount_pct: number
+  /** What the meal plan adds per night (0 for room only). */
+  meal_per_night?: number
   needs_manager: boolean
   can_approve: boolean
   rule_error?: string
@@ -50,6 +59,6 @@ export function rateProblem(r: RoomRate, nights: number, p: PreviewInfo | undefi
   if (!p) return "Checking the rate."
   if (p.rule_error) return p.rule_error
   if (p.needs_manager && !p.can_approve) return "A manager must approve a discount this large."
-  if (p.discount_pct > 0 && !r.reason.trim()) return "Say why the rate was reduced."
+  if (p.discount_pct > 0 && !r.approver.trim()) return "Choose who approved this rate."
   return ""
 }

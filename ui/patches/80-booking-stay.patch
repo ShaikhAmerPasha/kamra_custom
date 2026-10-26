@@ -1,0 +1,45 @@
+--- a/src/components/BookingDialog.tsx	2026-10-25 19:40:19.481836527 +0530
++++ b/src/components/BookingDialog.tsx	2026-10-25 19:40:19.482675019 +0530
+@@ -30,6 +30,7 @@
+ import { useCashierAuth } from "../lib/cashierAuth"
+ import DepositPanel, { type DepositState } from "./DepositPanel"
+ import { CustomBookingFields, customGuestSearch, useCustomBooking } from "../custom/CustomBooking"
++import { StayLength } from "../custom/CustomStay"
+ import CheckInDialog from "./CheckInDialog"
+ import TillCard, { useTill } from "./TillCard"
+ 
+@@ -1408,7 +1409,7 @@
+                   ))}
+                 </div>
+ 
+-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
++                <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+                   <Field label={t("Check-in")}>
+                     <input
+                       type="date"
+@@ -1457,17 +1458,14 @@
+                       </Field>
+                     </div>
+                   ) : (
+-                    <Field label={t("Nights")}>
+-                      <input
+-                        type="number"
+-                        min={1}
+-                        className={inputCls}
+-                        value={form.nights}
+-                        onChange={(e) =>
+-                          set("nights", Math.max(1, Number(e.target.value)))
+-                        }
+-                      />
+-                    </Field>
++                    <StayLength
++                      checkIn={form.check_in_date}
++                      nights={form.nights}
++                      onNights={(n) => set("nights", n)}
++                      Field={Field}
++                      inputCls={inputCls}
++                      t={t}
++                    />
+                   )}
+                   <Field label={t("Adults")}>
+                     <input

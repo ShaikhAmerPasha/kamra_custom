@@ -139,12 +139,12 @@ def create_stay(
 			changed = True
 		outcome = None
 		if spec.get("rates"):
-			outcome = negotiation.apply_rates(doc, spec["rates"], spec.get("reason") or "")
+			outcome = negotiation.apply_rates(doc, spec["rates"], spec.get("reason") or "", spec.get("approver"), bool(spec.get("all_in")))
 			changed = True
 		if changed:
 			doc.save()
 		if outcome:
-			negotiation.log_change(doc, outcome, spec.get("reason") or "")
+			negotiation.log_change(doc, outcome, spec.get("reason") or "", doc.get("rate_approved_by"))
 		made.append({
 			"reservation": name, "room": doc.room, "room_type": doc.room_type,
 			"amount_after_tax": doc.amount_after_tax, "negotiated": bool(outcome),

@@ -281,6 +281,11 @@ after_migrate = ["kamra_custom.setup.after_migrate"]
 # Keep each guest's phone key in step with the phone number.
 doc_events = {
 	"Guest": {"before_save": "kamra_custom.guests.set_phone_key"},
+	"POS Order": {"before_save": "kamra_custom.complimentary.restaurant_nc"},
+	"Reservation": {
+		"before_insert": "kamra_custom.assign.release_room",
+		"validate": "kamra_custom.assign.require_clean_room",
+	},
 }
 
 # Serve Kamra's own app, built with our patches (ui/), in place of the stock build.
@@ -291,4 +296,5 @@ override_whitelisted_methods = {
 	"kamra.api.create_booking": "kamra_custom.overrides.create_booking",
 	"kamra.api.create_group_booking": "kamra_custom.overrides.create_group_booking",
 	"kamra.api.walk_in": "kamra_custom.overrides.walk_in",
+	"kamra.api.amend_stay": "kamra_custom.overrides.amend_stay",
 }

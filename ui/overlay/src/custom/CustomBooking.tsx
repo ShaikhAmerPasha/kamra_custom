@@ -5,6 +5,7 @@
 import { useEffect, useState } from "react"
 import { call, getCurrentProperty, type GuestHit } from "../lib/api"
 import { fmtMoney } from "../lib/money"
+import { ApproverSelect } from "./ApproverSelect"
 import { agreedRates, customRate, emptyRate, nightsBetween, rateProblem, type PreviewInfo, type RoomRate } from "./rates"
 
 const field =
@@ -47,7 +48,7 @@ export interface CustomBooking {
   /** Extra arguments for the booking call of a single room. */
   single: () => Record<string, unknown>
   /** The agreed rate of room i, for a multi-room booking. */
-  rateFor: (i: number) => { rates: number[]; reason: string } | undefined
+  rateFor: (i: number) => ReturnType<typeof customRate>
   /** Extra arguments for a multi-room booking. */
   group: () => Record<string, unknown>
 }
@@ -119,7 +120,7 @@ export function CustomBookingFields(props: {
         const rt = custom.rates[i] ?? emptyRate()
         call<Preview>("kamra_custom.negotiation.preview", {
           property, room_type: r.room_type, check_in_date: checkIn, check_out_date: checkOut,
-          adults: r.adults, children: r.children, meal_plan: r.meal_plan || undefined, rates: agreedRates(rt, nights),
+          adults: r.adults, children: r.children, meal_plan: r.meal_plan || undefined, rates: agreedRates(rt, nights), all_in: 1,
         })
           .then((p) => alive && setPreviews((all) => ({ ...all, [i]: p })))
           .catch((e) => alive && setPreviews((all) => ({ ...all, [i]: rule(e) || "This room cannot be priced." })))
@@ -151,6 +152,7 @@ export function CustomBookingFields(props: {
             const p = custom.previews[i]
             const info = typeof p === "object" ? p : undefined
             const rt = custom.rates[i] ?? emptyRate()
+            const meal = info?.meal_per_night ?? 0
             const problem = rateProblem(rt, nights, info)
             return (
               <div key={i} className="space-y-2 rounded-xl border border-zinc-200 bg-zinc-50/50 p-3 text-sm">
@@ -159,7 +161,8 @@ export function CustomBookingFields(props: {
                     Room {i + 1}
                     {info ? (
                       <span className="font-normal text-zinc-500">
-                        {" "}· system rate {fmtMoney(info.entry_rates[0])} per night {info.inclusive ? "with" : "before"} tax
+                        {" "}· system rate {fmtMoney(info.entry_rates[0] + meal)} per night {info.inclusive ? "with" : "before"} tax
+                        {meal > 0 ? ` (room ${fmtMoney(info.entry_rates[0])} + meal ${fmtMoney(meal)})` : ""}
                       </span>
                     ) : null}
                   </span>
@@ -171,8 +174,8 @@ export function CustomBookingFields(props: {
                         custom.setRate(i, {
                           agree: e.target.checked,
                           perNight: false,
-                          rate: info?.entry_rates[0] !== undefined ? String(info.entry_rates[0]) : rt.rate,
-                          nightly: (info?.entry_rates ?? []).map(String),
+                          rate: info?.entry_rates[0] !== undefined ? String(info.entry_rates[0] + meal) : rt.rate,
+                          nightly: (info?.entry_rates ?? []).map((x) => String(x + meal)),
                         })
                       }
                     />
@@ -185,7 +188,7 @@ export function CustomBookingFields(props: {
                     {!rt.perNight ? (
                       <div className="flex flex-wrap items-end gap-3">
                         <div>
-                          <label className={label} htmlFor={`custom-rate-${i}`}>Rate per night</label>
+                          <label className={label} htmlFor={`custom-rate-${i}`}>{meal > 0 ? "Rate per night (room + meal)" : "Rate per night"}</label>
                           <input id={`custom-rate-${i}`} inputMode="decimal" className={`${field} w-40`} value={rt.rate}
                             onChange={(e) => custom.setRate(i, { rate: e.target.value })} />
                         </div>
@@ -216,7 +219,8 @@ export function CustomBookingFields(props: {
                     {info && info.discount_pct > 0 ? (
                       <div>
                         <p className="text-zinc-600">{info.discount_pct.toFixed(1)}% below the system rate.</p>
-                        <label className={label} htmlFor={`custom-why-${i}`}>Reason for the discount</label>
+                        <ApproverSelect id={`custom-approver-${i}`} value={rt.approver} onChange={(v) => custom.setRate(i, { approver: v })} />
+                        <label className={`${label} mt-2`} htmlFor={`custom-why-${i}`}>Note (optional)</label>
                         <input id={`custom-why-${i}`} className={field} value={rt.reason}
                           onChange={(e) => custom.setRate(i, { reason: e.target.value })} />
                       </div>
