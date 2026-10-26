@@ -296,5 +296,4 @@ override_whitelisted_methods = {
 	"kamra.api.create_booking": "kamra_custom.overrides.create_booking",
 	"kamra.api.create_group_booking": "kamra_custom.overrides.create_group_booking",
 	"kamra.api.walk_in": "kamra_custom.overrides.walk_in",
-	"kamra.api.amend_stay": "kamra_custom.overrides.amend_stay",
 }
