@@ -117,6 +117,10 @@ def unmark(reservation: str) -> dict:
 	system = quote(**_inputs(res), check_voucher_limits=False)
 	_price(res, system, meal=True)
 	res.auto_price = 1
+	# the price is the system price again, so no agreed rate or approver is left on the stay
+	res.rate_negotiated = 0
+	res.rate_all_in = 0
+	res.rate_approved_by = None
 	res.is_complimentary = 0
 	res.complimentary_approver = None
 	res.complimentary_reason = None

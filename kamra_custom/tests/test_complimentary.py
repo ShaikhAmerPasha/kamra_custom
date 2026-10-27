@@ -90,6 +90,13 @@ class TestComplimentary(IntegrationTestCase):
 		self.assertEqual((r.is_complimentary, r.complimentary_approver), (0, None))
 		self.assertGreater(r.night_rates[0].meal_amount, 0)
 
+	def test_undo_drops_the_agreed_rate_and_its_approver(self):
+		ref = self.book(custom_rate={"rates": [5000], "approver": "GM Sir", "all_in": True})
+		complimentary.mark(ref, "MD Sir", "Owner's guest")
+		complimentary.unmark(ref)
+		r = frappe.get_doc("Reservation", ref)
+		self.assertEqual((r.rate_approved_by, r.rate_all_in, r.rate_negotiated), (None, 0, 0))
+
 	def test_a_desk_user_cannot_undo_it(self):
 		ref = self.book()
 		complimentary.mark(ref, "MD Sir", "Owner's guest")

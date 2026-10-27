@@ -21,6 +21,7 @@ class TestCancelAndAmendRules(IntegrationTestCase):
 		if not frappe.db.exists("Room Type", DLX):
 			self.skipTest("demo property not on this site")
 		frappe.db.set_single_value("Kamra Custom Settings", "assign_room_at_checkin", 0)
+		frappe.db.set_single_value("Kamra Custom Settings", "clean_rooms_only", 0)
 
 	def tearDown(self):
 		frappe.db.rollback()

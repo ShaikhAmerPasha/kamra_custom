@@ -92,7 +92,7 @@
          // book, assign and take the money now; the guided check-in
 @@ -776,7 +787,8 @@
      return (
-       quote.amount_after_tax +
+       (otaTotal > 0 ? otaTotal : quote.amount_after_tax) +
        moreQuotes.reduce((s, q) => s + (q?.amount_after_tax ?? 0), 0) +
 -      addonsGross
 +      addonsGross +
@@ -151,8 +151,8 @@
                        className={`${inputCls} !w-auto`}
                        aria-label={translate("Room {v0} meal plan", { v0: String(i + 2) })}
 @@ -1808,6 +1847,18 @@
-                   {t("Add another room")}
-                 </button>}
+                   </div>
+                 )}
  
 +                {!dayUse && (
 +                  <CustomBookingFields
