@@ -1,0 +1,11 @@
+--- a/src/lib/i18n.ts
++++ b/src/lib/i18n.ts
+@@ -63,6 +63,8 @@
+   const lang = useUILanguage()
+   const t = useCallback(
+     (s: string, vars?: Vars) => {
++      // a blank database value (null) is shown as nothing, as the plain t() does
++      if (typeof s !== "string") return s
+       return interpolate(translated(s, lang), vars)
+     },
+     [lang],
