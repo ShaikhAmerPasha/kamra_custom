@@ -3,7 +3,7 @@
     It uses Kamra's own check-in calls, one after another, so the records are the same as the
     six-step check-in leaves: nothing is skipped silently, steps not asked are marked as skipped with a reason. */
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { CircleCheck, Printer } from "lucide-react"
 import { call } from "../lib/api"
 import { serverError } from "../lib/resource"
@@ -13,13 +13,15 @@ import { cn } from "../lib/utils"
 import { Button } from "../components/ui/button"
 import { Sheet } from "../components/ui/sheet"
 import { SignaturePad } from "../components/SignaturePad"
+import CheckInGuests, { type GuestOccupant } from "../components/CheckInGuests"
 import { ComplimentaryBox } from "./CustomComplimentary"
 import { useFlags } from "./flags"
-import { checkInProblems, isCleanRoom } from "./expressCheckIn"
+import { checkInProblems, defaultRoom, isCleanRoom } from "./expressCheckIn"
 
 interface Flow {
   reservation: { name: string; guest_name: string; room_type: string; check_in_date: string; check_out_date: string; nights: number; adults: number; children: number }
-  guest: { phone: string | null; nationality: string | null; id_type: string | null; id_on_file: boolean; id_number: string | null }
+  guest: { name: string | null; full_name: string; has_photo: boolean; phone: string | null; nationality: string | null; id_type: string | null; id_on_file: boolean; id_number: string | null }
+  ids: { ok: boolean; missing: string[]; occupants: GuestOccupant[] }
   vocabulary: { id_types: string[] }
   steps: { step_key: string; relevant: 0 | 1; state: string }[]
   rooms: { name: string; room_number: string; housekeeping_status: string }[]
@@ -42,6 +44,8 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
   const [idType, setIdType] = useState("")
   const [idNumber, setIdNumber] = useState("")
   const [room, setRoom] = useState("")
+  const flagsRef = useRef(flags.clean_rooms_only)
+  flagsRef.current = flags.clean_rooms_only
   const [signature, setSignature] = useState("")
   const [onPaper, setOnPaper] = useState(false)
 
@@ -50,6 +54,8 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
       const f = await call<Flow>("kamra.checkin.checkin_flow", { reservation: props.reservation })
       setFlow(f)
       setIdType((v) => v || f.guest.id_type || "")
+      // the desk only confirms: the first clean room is already chosen
+      if (!f.room.room) setRoom((v) => v || defaultRoom(f.rooms, flagsRef.current))
     } catch (e) {
       setError(serverError(e))
     }
@@ -71,6 +77,7 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
   const problems = checkInProblems({
     name: r.guest_name, idOnFile: flow.guest.id_on_file, idType, idNumber,
     hasRoom, pickedRoom: room, signed: !!signature || onPaper || flow.grc.signed,
+    othersMissing: flow.ids.missing.filter((n) => n !== r.guest_name),
   })
   const page1Problem = problems.find((p) => p.page === 1)
   const title = t("Check in {name}", { name: r.guest_name })
@@ -174,6 +181,25 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
               </div>
             </div>
           </section>
+
+          {r.adults + r.children > 1 && (
+            <section className="space-y-3">
+              <h3 className="text-sm font-semibold text-zinc-800">{t("Other guests")}</h3>
+              <CheckInGuests
+                key={flow.ids.occupants.map((o) => o.row).join(",")}
+                reservation={r.name}
+                guest={flow.guest.name}
+                guestName={flow.guest.full_name ?? r.guest_name}
+                guestHasPhoto={flow.guest.has_photo}
+                adults={r.adults}
+                children={r.children}
+                occupants={flow.ids.occupants}
+                idTypes={flow.vocabulary.id_types}
+                onChanged={load}
+                onMainRead={() => {}}
+              />
+            </section>
+          )}
 
           <section className="space-y-3">
             <h3 className="text-sm font-semibold text-zinc-800">{t("Room")}</h3>

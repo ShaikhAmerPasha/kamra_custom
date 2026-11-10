@@ -1,0 +1,27 @@
+{
+ "actions": [],
+ "autoname": "hash",
+ "creation": "2026-11-10 09:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": ["usage_date", "action", "count"],
+ "fields": [
+  {"fieldname": "usage_date", "fieldtype": "Date", "in_list_view": 1, "in_standard_filter": 1, "label": "Date", "reqd": 1},
+  {"fieldname": "action", "fieldtype": "Data", "in_list_view": 1, "in_standard_filter": 1, "label": "Action", "reqd": 1, "description": "A shortcut pressed (key:F4), a button clicked (click:Check in) or a screen opened (view:/in-house)."},
+  {"default": "0", "fieldname": "count", "fieldtype": "Int", "in_list_view": 1, "label": "Times"}
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-10 09:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Kamra Custom",
+ "name": "Desk Usage",
+ "owner": "Administrator",
+ "permissions": [
+  {"read": 1, "report": 1, "export": 1, "role": "System Manager"},
+  {"read": 1, "report": 1, "export": 1, "role": "Hotel Admin"}
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

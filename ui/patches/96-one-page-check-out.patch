@@ -1,0 +1,33 @@
+--- a/src/components/CheckOutDialog.tsx	2026-11-10 08:37:09.689533080 +0530
++++ b/src/components/CheckOutDialog.tsx	2026-11-10 08:37:09.690310906 +0530
+@@ -1,3 +1,5 @@
++import ExpressCheckOut from "../custom/ExpressCheckOut"
++import { useFlags } from "../custom/flags"
+ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
+ import { Check, ExternalLink, Lightbulb, Loader2, Printer, TriangleAlert } from "lucide-react"
+ import { call } from "../lib/api"
+@@ -274,14 +276,22 @@
+   )
+ }
+ 
+-export default function CheckOutDialog(props: {
++type CheckOutProps = {
+   reservation: string
+   /** After a check-out: the desk is done (also called on close once checked out). */
+   onDone: () => void
+   onClose: () => void
+   /** Open another stay's check-out (group companions). */
+   onOpenReservation?: (reservation: string) => void
+-}) {
++}
++
++/** The one-page check-out when the hotel switches it on (Kamra Custom Settings); Kamra's steps otherwise. */
++export default function CheckOutDialog(props: CheckOutProps) {
++  const customFlags = useFlags()
++  return customFlags.express_checkout ? <ExpressCheckOut {...props} Fallback={StepCheckOutDialog} /> : <StepCheckOutDialog {...props} />
++}
++
++function StepCheckOutDialog(props: CheckOutProps) {
+   const { t } = useT()
+   const loc = useLocale()
+   const { ensureUnlocked } = useCashierAuth()

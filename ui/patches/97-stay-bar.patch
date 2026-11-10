@@ -1,0 +1,18 @@
+--- a/src/screens/ReservationDetail.tsx	2026-11-10 08:53:49.880103188 +0530
++++ b/src/screens/ReservationDetail.tsx	2026-11-10 08:53:49.882158669 +0530
+@@ -43,6 +43,7 @@
+ import { cur, moneyLocale } from "../lib/money"
+ import { t as translate, useUILanguage } from "../lib/i18n"
+ import { CustomReservationPanel } from "../custom/CustomReservation"
++import { StayBar } from "../custom/StayBar"
+ 
+ const inr = (n: number) =>
+   `${cur()}` + Number(n || 0).toLocaleString(moneyLocale(), { maximumFractionDigits: 0 })
+@@ -304,6 +305,7 @@
+   return (
+     <div className="space-y-4">
+             <LinkedRecords doctype="Reservation" name={String(row.name)} />
++      <StayBar d={d} busy={busy} onCheckIn={() => setCheckingIn(true)} onCheckOut={() => setCheckingOut(true)} />
+       {/* status + provenance */}
+       <div className="flex flex-wrap items-center gap-2">
+         <span

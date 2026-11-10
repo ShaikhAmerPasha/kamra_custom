@@ -8,10 +8,11 @@ export interface Flags {
   checkout_date_on_booking: boolean
   merge_meal_in_room_line: boolean
   express_checkin: boolean
+  express_checkout: boolean
   clean_rooms_only: boolean
 }
 
-const ON: Flags = { grc_staff_name: true, checkout_date_on_booking: true, merge_meal_in_room_line: false, express_checkin: false, clean_rooms_only: false }
+const ON: Flags = { grc_staff_name: true, checkout_date_on_booking: true, merge_meal_in_room_line: false, express_checkin: false, express_checkout: false, clean_rooms_only: false }
 let loaded: Promise<Flags> | null = null
 
 export function useFlags(): Flags {

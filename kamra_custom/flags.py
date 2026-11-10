@@ -8,6 +8,7 @@ DEFAULTS = {
 	"checkout_date_on_booking": True,
 	"merge_meal_in_room_line": False,
 	"express_checkin": False,
+	"express_checkout": False,
 	"clean_rooms_only": False,
 }
 FLAGS = tuple(DEFAULTS)

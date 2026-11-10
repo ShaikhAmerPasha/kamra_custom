@@ -1,5 +1,5 @@
---- a/src/components/BookingDialog.tsx	2026-10-25 19:40:19.431675808 +0530
-+++ b/src/components/BookingDialog.tsx	2026-10-25 19:40:19.432425249 +0530
+--- a/src/components/BookingDialog.tsx	2026-11-10 08:07:46.882520225 +0530
++++ b/src/components/BookingDialog.tsx	2026-11-10 08:07:46.883275104 +0530
 @@ -10,7 +10,6 @@
    getCurrentProperty,
    getQuote,
@@ -8,7 +8,7 @@
    type BookingOptions,
    type GuestAlert,
    type GuestHit,
-@@ -30,6 +29,7 @@
+@@ -26,6 +25,7 @@
  import { petChargeBasis } from "../lib/pets"
  import { useCashierAuth } from "../lib/cashierAuth"
  import DepositPanel, { type DepositState } from "./DepositPanel"
@@ -16,15 +16,15 @@
  import CheckInDialog from "./CheckInDialog"
  import TillCard, { useTill } from "./TillCard"
  
-@@ -219,6 +219,7 @@
+@@ -199,6 +199,7 @@
      : {}
    const [moreOpen, setMoreOpen] = useState(false)
    const [moreRooms, setMoreRooms] = useState<ExtraRoom[]>([])
 +  const custom = useCustomBooking()
+   const [groupName, setGroupName] = useState("")
    const [moreQuotes, setMoreQuotes] = useState<(Quote | null)[]>([])
    const [addonQty, setAddonQty] = useState<Record<string, number>>({})
-   const [extra, setExtra] = useState({
-@@ -328,16 +329,19 @@
+@@ -312,16 +313,19 @@
  
    // profile typeahead - find the returning guest before creating a dupe
    useEffect(() => {
@@ -47,7 +47,7 @@
  
    useEffect(() => {
      const guest = profile?.name
-@@ -592,13 +596,15 @@
+@@ -583,14 +587,16 @@
              adults: form.adults,
              children: form.children,
              meal_plan: form.meal_plan || undefined,
@@ -56,25 +56,26 @@
 -          ...moreRooms.map((r) => ({
 +          ...moreRooms.map((r, i) => ({
              room_type: r.room_type,
-             count: 1,
+             count: r.count,
              adults: r.adults,
              children: r.children,
              meal_plan: r.meal_plan || undefined,
+             guest_name: (r.count === 1 && r.guest_name.trim()) || undefined,
 +            custom_rate: custom.rateFor(i + 1),
            })),
          ]
-         const out = await call<{
-@@ -615,6 +621,9 @@
+         const roomCount = rooms.reduce((s, r) => s + r.count, 0)
+@@ -609,6 +615,9 @@
            phone: form.phone || undefined,
            company: form.company || undefined,
            rate_plan: form.rate_plan || undefined,
 +          guest: profile?.name,
 +          special_requests: extra.special_requests.trim() || undefined,
 +          ...custom.group(),
+           ...viaArgs,
          })
          if (out.skipped.length > 0) {
-           setError(
-@@ -631,6 +640,7 @@
+@@ -626,6 +635,7 @@
          over_capacity_reason: form.over_capacity_reason || undefined,
            over_capacity_guests: form.over_capacity_guests || undefined,
            over_capacity_charge: extraCharge || undefined,
@@ -89,18 +90,18 @@
 +        ...(dayUse ? {} : custom.single()),
          ...slotArgs,
          blacklist_override_reason: blacklistOverride,
-         // book, assign and take the money now; the guided check-in
-@@ -776,7 +787,8 @@
-     return (
-       (otaTotal > 0 ? otaTotal : quote.amount_after_tax) +
-       moreQuotes.reduce((s, q) => s + (q?.amount_after_tax ?? 0), 0) +
+         ...viaArgs,
+@@ -804,7 +815,8 @@
+               s + (q?.amount_after_tax ?? 0) * (moreRooms[i]?.count ?? 1),
+             0,
+           )) +
 -      addonsGross
 +      addonsGross +
 +      custom.adjust
      )
    })()
  
-@@ -801,7 +813,8 @@
+@@ -830,7 +842,8 @@
      badSlot ||
      !walk.room ||
      payAmount < 0 ||
@@ -110,7 +111,7 @@
  
    // the server judges the terms from today (season, tiers, free window);
    // a window that has already closed reads as non-refundable, never as a
-@@ -1638,6 +1651,15 @@
+@@ -1681,6 +1694,15 @@
                    />
                  )}
  
@@ -126,7 +127,7 @@
                  {walkIn && (
                    <div className="space-y-3 rounded-xl border border-zinc-200 p-4">
                      <h3 className="text-sm font-semibold text-zinc-800">
-@@ -1757,6 +1779,23 @@
+@@ -1851,6 +1873,23 @@
                          )
                        }
                      />
@@ -150,9 +151,9 @@
                      <select
                        className={`${inputCls} !w-auto`}
                        aria-label={translate("Room {v0} meal plan", { v0: String(i + 2) })}
-@@ -1808,6 +1847,18 @@
-                   </div>
-                 )}
+@@ -1981,6 +2020,18 @@
+                   )}
+                 </div>
  
 +                {!dayUse && (
 +                  <CustomBookingFields
@@ -169,7 +170,7 @@
                  <div className="border-t border-zinc-100 pt-2">
                    <button
                      type="button"
-@@ -2199,6 +2250,17 @@
+@@ -2403,6 +2454,17 @@
                        </div>
                      )}
  
@@ -187,21 +188,21 @@
                      <div className="mt-3 rounded-xl border border-zinc-200 bg-white px-4 py-3.5 shadow-sm">
                        <div className="flex items-baseline justify-between gap-2">
                          <span>{t("Total")}{moreRooms.length > 0 ? t(" · all rooms") : ""}</span>
-@@ -2274,7 +2336,7 @@
+@@ -2492,7 +2554,7 @@
                  <>
                  <Button
                    className="w-full justify-center py-2.5 text-base"
--                  disabled={busy || !form.guest_name || !quote || pastCheckIn || badPhone || badSlot || blacklistBlocked || creditBlocked || extraNeedsReason}
-+                  disabled={busy || !form.guest_name || !quote || pastCheckIn || badPhone || badSlot || blacklistBlocked || creditBlocked || extraNeedsReason || (!dayUse && custom.blocked)}
+-                  disabled={busy || !form.guest_name || !quote || badDate || pastCheckIn || badPhone || badSlot || blacklistBlocked || creditBlocked || extraNeedsReason}
++                  disabled={busy || !form.guest_name || !quote || badDate || pastCheckIn || badPhone || badSlot || blacklistBlocked || creditBlocked || extraNeedsReason || (!dayUse && custom.blocked)}
                    onClick={() => submit()}
                  >
                    {busy ? t("Booking…") : t("Confirm booking")}
-@@ -2290,7 +2352,7 @@
+@@ -2508,7 +2570,7 @@
                    <Button
                      variant="outline"
                      className="justify-center"
--                    disabled={busy || !form.guest_name || pastCheckIn || badPhone || badSlot || blacklistBlocked || extraNeedsReason}
-+                    disabled={busy || !form.guest_name || pastCheckIn || badPhone || badSlot || blacklistBlocked || extraNeedsReason || (!dayUse && custom.blocked)}
+-                    disabled={busy || !form.guest_name || badDate || pastCheckIn || badPhone || badSlot || blacklistBlocked || extraNeedsReason}
++                    disabled={busy || !form.guest_name || badDate || pastCheckIn || badPhone || badSlot || blacklistBlocked || extraNeedsReason || (!dayUse && custom.blocked)}
                      onClick={() => submit(true)}
                      title={t("Park this stay with no room; promote when inventory frees")}
                    >

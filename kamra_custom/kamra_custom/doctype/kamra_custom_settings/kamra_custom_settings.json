@@ -16,7 +16,8 @@
   "clean_rooms_only",
   "complimentary_pos_nc",
   "merge_meal_in_room_line",
-  "express_checkin"
+  "express_checkin",
+  "express_checkout"
  ],
  "fields": [
   {
@@ -96,6 +97,13 @@
    "fieldname": "express_checkin",
    "fieldtype": "Check",
    "label": "Two-page check-in"
+  },
+  {
+   "default": "0",
+   "description": "Check out on one page: the bill, how the guest pays, one button. A stay with anything unusual (early leaving, company bill, refund, deposit, bills not on the folio, group) opens the normal steps.",
+   "fieldname": "express_checkout",
+   "fieldtype": "Check",
+   "label": "One-page check-out"
   }
  ],
  "index_web_pages_for_search": 0,

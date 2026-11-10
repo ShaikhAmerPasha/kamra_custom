@@ -1,6 +1,6 @@
---- a/src/screens/FolioView.tsx	2026-10-19 12:27:35.598952157 +0530
-+++ b/src/screens/FolioView.tsx	2026-10-19 12:27:35.600672165 +0530
-@@ -1073,19 +1073,18 @@
+--- a/src/screens/FolioView.tsx	2026-11-10 08:06:08.399061510 +0530
++++ b/src/screens/FolioView.tsx	2026-11-10 08:06:08.399766099 +0530
+@@ -1273,19 +1273,18 @@
                        { label: "CGST", rate: g.rate / 2, amount: g.cgst },
                        { label: "SGST", rate: g.rate / 2, amount: g.sgst },
                      ],
@@ -26,4 +26,4 @@
 +                  )))}
                  </tbody>
                </table>
-             </div>
+             </div> : <div />}

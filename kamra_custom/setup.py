@@ -76,8 +76,23 @@ def after_install():
 	after_migrate()
 
 
+# Starting passwords for staff the setup app creates. Set once, only while the
+# user has no password, so a password the user chose is never overwritten.
+INITIAL_PASSWORDS = {"kavita@srcontinental.com": "123"}
+
+
+def set_initial_passwords():
+	from frappe.utils.password import update_password
+
+	for user, password in INITIAL_PASSWORDS.items():
+		has_password = frappe.db.exists("__Auth", {"doctype": "User", "name": user, "fieldname": "password"})
+		if frappe.db.exists("User", user) and not has_password:
+			update_password(user, password)  # skips the strength rule, unlike the form
+
+
 def after_migrate():
 	from kamra_custom.guests import backfill_phone_keys
 
 	ensure_schema()
+	set_initial_passwords()
 	backfill_phone_keys()  # guests added while this app was missing

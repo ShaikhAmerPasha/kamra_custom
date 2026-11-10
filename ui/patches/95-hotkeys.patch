@@ -1,0 +1,18 @@
+--- a/src/AppShell.tsx	2026-11-10 08:06:53.038306170 +0530
++++ b/src/AppShell.tsx	2026-11-10 08:06:53.039025534 +0530
+@@ -44,6 +44,7 @@
+ import { cn } from "./lib/utils"
+ import { useKiosk } from "./lib/kiosk"
+ import { CUSTOM_NAV, TopNav } from "./custom/TopNav"
++import { Hotkeys } from "./custom/Hotkeys"
+ import { getSiteInfo, versionLabel } from "./lib/siteInfo"
+ import AlertSettings from "./components/AlertSettings"
+ import NotificationHost from "./components/NotificationHost"
+@@ -765,6 +766,7 @@
+         <Suspense fallback={null}>
+           <HelpPanel />
+           <CommandPalette />
++          <Hotkeys onNewBooking={() => canBook && setBooking({})} />
+         </Suspense>
+       )}
+ 

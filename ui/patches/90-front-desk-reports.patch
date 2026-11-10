@@ -1,6 +1,6 @@
---- a/src/App.tsx	2026-10-25 20:32:33.903549659 +0530
-+++ b/src/App.tsx	2026-10-25 20:32:33.904227599 +0530
-@@ -49,6 +49,7 @@
+--- a/src/App.tsx	2026-11-10 08:08:05.794680107 +0530
++++ b/src/App.tsx	2026-11-10 08:08:05.795408002 +0530
+@@ -54,6 +54,7 @@
  const Reports = lazy(() => import("./screens/Reports"))
  const ReportsHub = lazy(() => import("./screens/ReportsHub"))
  const InHouse = lazy(() => import("./screens/InHouse"))
@@ -8,7 +8,7 @@
  const RateCalendar = lazy(() => import("./screens/RateCalendar"))
  const RevenueReports = lazy(() => import("./screens/RevenueReports"))
  const OpsSLA = lazy(() => import("./screens/OpsSLA"))
-@@ -325,6 +326,8 @@
+@@ -338,6 +339,8 @@
            <Route path="reports/custom" element={<Reports />} />
            <Route path="reports/packs" element={<Reports key="packs" initialTab="packs" />} />
            <Route path="in-house" element={<InHouse />} />
@@ -17,9 +17,9 @@
            <Route path="arrivals" element={<Navigate to="/in-house?tab=arrivals" replace />} />
            <Route path="departures" element={<Navigate to="/in-house?tab=departures" replace />} />
            <Route path="voids-allowances" element={<VoidAllowanceReport />} />
---- a/src/screens/ReportsHub.tsx	2026-10-25 20:32:33.907761432 +0530
-+++ b/src/screens/ReportsHub.tsx	2026-10-25 20:32:33.908446725 +0530
-@@ -43,6 +43,16 @@
+--- a/src/screens/ReportsHub.tsx	2026-11-10 08:24:27.170154338 +0530
++++ b/src/screens/ReportsHub.tsx	2026-11-10 08:24:27.170227002 +0530
+@@ -51,6 +51,16 @@
      ],
    },
    {
@@ -35,4 +35,4 @@
 +  {
      title: "Daily",
      items: [
-       { to: "/reports/flash", label: "Manager flash", blurb: "Occupancy, ADR, RevPAR, revenue and collections for a day, with the month to date.", icon: ChartLine, app: "finance" },
+       { to: "/owner", label: "Owner view", blurb: "Today, yesterday or the month on your phone: revenue, occupancy, money owed, the next 7 days and the last night audits.", icon: Smartphone, roles: FIGURE_ROLES },

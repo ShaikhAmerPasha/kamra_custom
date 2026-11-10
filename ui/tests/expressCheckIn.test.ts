@@ -25,3 +25,24 @@ describe("isCleanRoom", () => {
   it("accepts clean, inspected and ready", () => ["Clean", "Inspected", "Ready"].forEach((s) => expect(isCleanRoom(s)).toBe(true)))
   it("refuses the rest", () => ["Dirty", "Out of Order", "", null, undefined].forEach((s) => expect(isCleanRoom(s)).toBe(false)))
 })
+
+describe("other guests", () => {
+  it("blocks page 1 until every other adult has an ID", async () => {
+    const { checkInProblems } = await import("../overlay/src/custom/expressCheckIn")
+    const base = { name: "A", idOnFile: true, idType: "", idNumber: "", hasRoom: true, pickedRoom: "", signed: true }
+    expect(checkInProblems({ ...base, othersMissing: ["1 more adult"] }).map((p) => p.page)).toEqual([1])
+    expect(checkInProblems({ ...base, othersMissing: [] })).toEqual([])
+    expect(checkInProblems(base)).toEqual([])
+  })
+})
+
+describe("default room", () => {
+  it("picks the first clean room, else the first free one unless only clean rooms may be used", async () => {
+    const { defaultRoom } = await import("../overlay/src/custom/expressCheckIn")
+    const rooms = [{ name: "A", housekeeping_status: "Dirty" }, { name: "B", housekeeping_status: "Clean" }]
+    expect(defaultRoom(rooms, false)).toBe("B")
+    expect(defaultRoom([rooms[0]], false)).toBe("A")
+    expect(defaultRoom([rooms[0]], true)).toBe("")
+    expect(defaultRoom([], false)).toBe("")
+  })
+})
