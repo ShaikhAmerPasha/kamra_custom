@@ -1,5 +1,5 @@
---- a/src/components/BookingDialog.tsx	2026-11-10 14:28:19.015302168 +0530
-+++ b/src/components/BookingDialog.tsx	2026-11-10 14:28:19.015993620 +0530
+--- a/src/components/BookingDialog.tsx	2026-11-10 18:00:49.620591280 +0530
++++ b/src/components/BookingDialog.tsx	2026-11-10 18:00:49.621438173 +0530
 @@ -27,6 +27,8 @@
  import DepositPanel, { type DepositState } from "./DepositPanel"
  import { CustomBookingFields, customGuestSearch, useCustomBooking } from "../custom/CustomBooking"
@@ -26,7 +26,7 @@
                    </Field>
                  </div>
 +                {!dayUse && (
-+                  <StayTimes times={stayTimes} onChange={setStayTimes} Field={Field} inputCls={inputCls} t={t} />
++                  <StayTimes times={stayTimes} onChange={setStayTimes} Field={Field} inputCls={inputCls} t={t} walkIn={walkIn} />
 +                )}
  
                  {options?.property.pets_allowed ? (

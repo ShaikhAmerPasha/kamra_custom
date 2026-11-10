@@ -9,8 +9,10 @@ export function StayTimes(props: {
   Field: ComponentType<{ label: string; children: ReactNode }>
   inputCls: string
   t: (s: string) => string
+  /** A walk-in always gets a room at once. */
+  walkIn?: boolean
 }) {
-  const { times, onChange, Field, inputCls, t } = props
+  const { times, onChange, Field, inputCls, t, walkIn } = props
   const flags = useFlags()
   return (
     <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -36,7 +38,7 @@ export function StayTimes(props: {
         {times.arrive || times.depart
           ? `${clock12(times.arrive) || t("Standard time")} to ${clock12(times.depart) || t("standard time")}. `
           : t("Optional. Blank uses the standard check-in and check-out time. ")}
-        {flags.assign_room_at_checkin ? t("The room is chosen at check-in.") : t("A room is assigned now.")}
+        {flags.assign_room_at_checkin && !walkIn ? t("The room is chosen at check-in.") : t("A room is assigned now.")}
       </p>
     </div>
   )
