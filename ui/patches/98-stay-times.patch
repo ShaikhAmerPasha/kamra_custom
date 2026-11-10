@@ -1,0 +1,33 @@
+--- a/src/components/BookingDialog.tsx	2026-11-10 14:28:19.015302168 +0530
++++ b/src/components/BookingDialog.tsx	2026-11-10 14:28:19.015993620 +0530
+@@ -27,6 +27,8 @@
+ import DepositPanel, { type DepositState } from "./DepositPanel"
+ import { CustomBookingFields, customGuestSearch, useCustomBooking } from "../custom/CustomBooking"
+ import { StayLength } from "../custom/CustomStay"
++import { StayTimes } from "../custom/StayTimes"
++import { NO_TIMES, stayTimeArgs } from "../custom/stayTimes"
+ import CheckInDialog from "./CheckInDialog"
+ import TillCard, { useTill } from "./TillCard"
+ 
+@@ -195,9 +197,10 @@
+   const [dayUse, setDayUse] = useState(false)
+   const [slot, setSlot] = useState({ from: "10:00", to: "18:00" })
+   const badSlot = dayUse && (!slot.from || !slot.to || slot.to <= slot.from)
++  const [stayTimes, setStayTimes] = useState(NO_TIMES)
+   const slotArgs = dayUse
+     ? { check_in_time: slot.from, check_out_time: slot.to }
+-    : {}
++    : stayTimeArgs(stayTimes)
+   const [moreOpen, setMoreOpen] = useState(false)
+   const [moreRooms, setMoreRooms] = useState<ExtraRoom[]>([])
+   const custom = useCustomBooking()
+@@ -1541,6 +1544,9 @@
+                     />
+                   </Field>
+                 </div>
++                {!dayUse && (
++                  <StayTimes times={stayTimes} onChange={setStayTimes} Field={Field} inputCls={inputCls} t={t} />
++                )}
+ 
+                 {options?.property.pets_allowed ? (
+                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

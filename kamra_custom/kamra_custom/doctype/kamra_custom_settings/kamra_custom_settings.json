@@ -65,10 +65,10 @@
   },
   {
    "default": "0",
-   "description": "A new reservation holds a room type, not a room. The room is chosen at check-in. Walk-ins still get a room at once.",
+   "description": "On: a new booking keeps only the room type and the room is chosen at check-in (walk-ins still get a room at once). Off: a room is assigned while making the reservation.",
    "fieldname": "assign_room_at_checkin",
    "fieldtype": "Check",
-   "label": "Assign the room at check-in"
+   "label": "Choose the room at check-in (not at booking)"
   },
   {
    "default": "0",

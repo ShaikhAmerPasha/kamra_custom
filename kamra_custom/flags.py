@@ -10,6 +10,7 @@ DEFAULTS = {
 	"express_checkin": False,
 	"express_checkout": False,
 	"clean_rooms_only": False,
+	"assign_room_at_checkin": False,
 }
 FLAGS = tuple(DEFAULTS)
 
