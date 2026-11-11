@@ -1,0 +1,132 @@
+--- a/src/screens/Billing.tsx	2026-11-11 18:53:12.871778619 +0530
++++ b/src/screens/Billing.tsx	2026-11-11 18:53:12.872413474 +0530
+@@ -3,9 +3,8 @@
+ import { MoonStar } from "lucide-react"
+ import { useNavigate } from "react-router-dom"
+ import { getCurrentProperty } from "../lib/api"
+-import { listResource, type Row } from "../lib/resource"
++import { FolioList } from "../custom/FolioList"
+ import { auditHistory, type RunRow } from "../lib/eod"
+-import { Badge } from "../components/ui/badge"
+ import { Button } from "../components/ui/button"
+ import { cur, moneyLocale } from "../lib/money"
+ import { useT, uiDateLocale } from "../lib/i18n"
+@@ -37,19 +36,10 @@
+ 
+ export default function Billing() {
+   const { t } = useT()
+-  const [folios, setFolios] = useState<Row[]>([])
+   const [auditRuns, setAuditRuns] = useState<RunRow[]>([])
+   const navigate = useNavigate()
+ 
+   const load = useCallback(() => {
+-    listResource("Folio", {
+-      fields: [
+-        "name", "guest_name", "reservation", "status", "invoice_number",
+-        "grand_total", "payments_total", "balance",
+-      ],
+-      filters: [["property", "=", getCurrentProperty()]],
+-      orderBy: "modified desc",
+-    }).then(setFolios)
+     auditHistory(getCurrentProperty(), 8)
+       .then(setAuditRuns)
+       .catch(() => setAuditRuns([]))
+@@ -141,67 +131,7 @@
+         </CardHeader>
+       </Card>
+ 
+-      <Card>
+-        <CardHeader>
+-          <CardTitle>{t("Folios")}</CardTitle>
+-          <span className="text-xs text-zinc-400">
+-            {t("Click a folio to post charges, settle and print the GST invoice")}
+-          </span>
+-        </CardHeader>
+-        <CardContent>
+-          <div className="overflow-x-auto">
+-            <table className="w-full text-sm">
+-              <thead>
+-                <tr className="border-b border-zinc-200 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">
+-                  <th className="py-2 pr-4">{t("Folio")}</th>
+-                  <th className="py-2 pr-4">{t("Guest")}</th>
+-                  <th className="py-2 pr-4">{t("Status")}</th>
+-                  <th className="py-2 pr-4">{t("Invoice")}</th>
+-                  <th className="py-2 pr-4">{t("Total {cur}", { cur: cur() })}</th>
+-                  <th className="py-2 pr-4">{t("Paid {cur}", { cur: cur() })}</th>
+-                  <th className="py-2 pr-4">{t("Balance {cur}", { cur: cur() })}</th>
+-                </tr>
+-              </thead>
+-              <tbody className="divide-y divide-zinc-100">
+-                {folios.map((f) => (
+-                  <tr
+-                    key={f.name}
+-                    className="cursor-pointer hover:bg-zinc-50"
+-                    onClick={() => navigate(`/billing/${encodeURIComponent(f.name)}`)}
+-                  >
+-                    <td className="py-2.5 pr-4 font-medium">{f.name}</td>
+-                    <td className="py-2.5 pr-4">{String(f.guest_name ?? "-")}</td>
+-                    <td className="py-2.5 pr-4">
+-                      <Badge tone={f.status === "Open" ? "amber" : "green"}>
+-                        {t(String(f.status))}
+-                      </Badge>
+-                    </td>
+-                    <td className="py-2.5 pr-4 text-zinc-500">
+-                      {String(f.invoice_number ?? "-")}
+-                    </td>
+-                    <td className="py-2.5 pr-4">{cur()}{inr(f.grand_total)}</td>
+-                    <td className="py-2.5 pr-4">{cur()}{inr(f.payments_total)}</td>
+-                    <td className="py-2.5 pr-4 font-medium">
+-                      {Number(f.balance) > 0 ? (
+-                        <span className="text-amber-600">{cur()}{inr(f.balance)}</span>
+-                      ) : (
+-                        <span className="text-emerald-600">{cur()}0</span>
+-                      )}
+-                    </td>
+-                  </tr>
+-                ))}
+-                {folios.length === 0 && (
+-                  <tr>
+-                    <td colSpan={7} className="py-6 text-center text-zinc-400">
+-                      {t("No folios yet - they open automatically at check-in.")}
+-                    </td>
+-                  </tr>
+-                )}
+-              </tbody>
+-            </table>
+-          </div>
+-        </CardContent>
+-      </Card>
++      <FolioList />
+     </div>
+   )
+ }
+--- a/src/screens/FolioView.tsx	2026-11-11 18:53:12.875489161 +0530
++++ b/src/screens/FolioView.tsx	2026-11-11 18:53:12.876139418 +0530
+@@ -1,8 +1,8 @@
+ import { PrintBillLines } from "../custom/PrintBillLines"
+ import { useFlags } from "../custom/flags"
+-import { Fragment, useCallback, useEffect, useState } from "react"
++import { Fragment, useCallback, useEffect, useRef, useState } from "react"
+ import { ArrowLeft, ArrowRightLeft, Printer, Trash2, X } from "lucide-react"
+-import { Link, useNavigate, useParams } from "react-router-dom"
++import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
+ import { call, getCurrentProperty } from "../lib/api"
+ import EditableNationality from "../components/EditableNationality"
+ import LinkedRecords from "../components/LinkedRecords"
+@@ -348,6 +348,16 @@
+   }, [name])
+ 
+   useEffect(load, [load])
++  // /billing/<folio>?print=1 opens the browser's print box once the bill is on screen, so "Save as PDF" makes the file (Kamra Custom)
++  const [query] = useSearchParams()
++  const autoPrinted = useRef(false)
++  useEffect(() => {
++    if (data && query.get("print") === "1" && !autoPrinted.current) {
++      autoPrinted.current = true
++      const t = setTimeout(() => window.print(), 700)
++      return () => clearTimeout(t)
++    }
++  }, [data, query])
+   useEffect(() => {
+     call<{ name: string; description: string }[]>("kamra.ledger.list_reason_codes", { category: "Adjust" })
+       .then(setAdjustCodes).catch(() => {})
