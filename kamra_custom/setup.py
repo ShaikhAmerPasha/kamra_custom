@@ -90,9 +90,22 @@ def set_initial_passwords():
 			update_password(user, password)  # skips the strength rule, unlike the form
 
 
+def ensure_standard_times():
+	"""Standard check-in 2 PM and check-out 12 PM.
+
+	A property still on the times the demo data carries (12:00 in, 11:00 out) is moved to the
+	hotel's times. One the hotel has set to anything else is left alone.
+	"""
+	for name in frappe.get_all("Property", pluck="name"):
+		cur = frappe.db.get_value("Property", name, ["checkin_time", "checkout_time"], as_dict=True)
+		if (str(cur.checkin_time)[:5], str(cur.checkout_time)[:5]) in (("12:00", "11:00"), ("None", "None"), ("", "")):
+			frappe.db.set_value("Property", name, {"checkin_time": "14:00:00", "checkout_time": "12:00:00"})
+
+
 def after_migrate():
 	from kamra_custom.guests import backfill_phone_keys
 
+	ensure_standard_times()
 	ensure_schema()
 	set_initial_passwords()
 	backfill_phone_keys()  # guests added while this app was missing
