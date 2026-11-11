@@ -62,7 +62,7 @@ def _finish(name: str, special_requests: str = "", internal_remarks: str = "", c
 	if custom_rate:
 		reason = (custom_rate.get("reason") or "").strip()
 		approver = custom_rate.get("approver")
-		outcome = negotiation.apply_rates(doc, custom_rate["rates"], reason, approver, bool(custom_rate.get("all_in")))
+		outcome = negotiation.apply_rates(doc, custom_rate["rates"], reason, approver, bool(custom_rate.get("all_in")), tax_in=bool(custom_rate.get("tax_in")))
 	doc.save()
 	if outcome:
 		negotiation.log_change(doc, outcome, reason, doc.get("rate_approved_by"))

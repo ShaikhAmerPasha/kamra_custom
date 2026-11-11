@@ -264,3 +264,48 @@ class TestOnAReservation(_Site):
 		for attr in ("set_night_rates", "quote_inputs", "rate_lock_key_for", "_apply_commission"):
 			self.assertTrue(hasattr(Reservation, attr), attr)
 		self.assertTrue(callable(api._assert_within_guardrails))
+
+
+class TestTaxIncludedAmount(_Site):
+	"""The desk types one price per night with every tax in it. The bill must come to that price."""
+
+	def check(self, typed, meal_plan=None, nights=2):
+		q = quote(**_inputs(nights=nights, meal_plan=meal_plan), check_voucher_limits=False)
+		room, all_in = negotiation.tax_included_to_room_rates(q, PROP, RT, [typed] * nights)
+		neg = negotiation.reprice(q, PROP, RT, room)
+		self.assertAlmostEqual(neg["amount_after_tax"], typed * nights, delta=0.05 * nights)
+		return neg, all_in
+
+	def test_room_only_comes_to_the_typed_price(self):
+		neg, all_in = self.check(3150)
+		self.assertFalse(all_in)
+
+	def test_typed_price_on_the_other_side_of_a_tax_slab(self):
+		for typed in (1000, 2625, 6000, 7875, 9000, 12000):
+			self.check(typed)
+
+	def test_with_a_meal_plan_the_price_covers_room_and_meal(self):
+		mp = frappe.db.get_value("Meal Plan", {}, "name")
+		if not mp:
+			self.skipTest("no meal plan on this site")
+		neg, all_in = self.check(5000, meal_plan=mp)
+		self.assertTrue(all_in)
+
+	def test_a_price_below_the_meal_is_refused(self):
+		mp = frappe.db.get_value("Meal Plan", {}, "name")
+		if not mp:
+			self.skipTest("no meal plan on this site")
+		q = quote(**_inputs(meal_plan=mp), check_voucher_limits=False)
+		with self.assertRaises(frappe.ValidationError):
+			negotiation.tax_included_to_room_rates(q, PROP, RT, [10, 10, 10])
+
+	def test_the_preview_says_what_the_system_charges_with_tax(self):
+		p = negotiation.preview(PROP, RT, add_days(nowdate(), 60), add_days(nowdate(), 62))
+		self.assertEqual(len(p["tax_included_rates"]), 2)
+		q = p["system"]
+		self.assertAlmostEqual(sum(p["tax_included_rates"]), q["amount_after_tax"], delta=1.0)
+
+	def test_preview_with_tax_in_prices_at_the_typed_amount(self):
+		start, end = add_days(nowdate(), 60), add_days(nowdate(), 62)
+		p = negotiation.preview(PROP, RT, start, end, rates=[3000, 3000], tax_in=1)
+		self.assertAlmostEqual(p["negotiated"]["amount_after_tax"], 6000, delta=0.2)

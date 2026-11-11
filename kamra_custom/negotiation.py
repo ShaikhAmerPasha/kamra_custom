@@ -39,13 +39,63 @@ def meal_per_night(q: dict) -> Decimal:
 	return _dec(q.get("meal_total") or 0) / Decimal(nights) if nights else Decimal(0)
 
 
-def to_room_rates(q: dict, property: str, entered: list, all_in: bool) -> tuple[list, bool]:
+def net_room_rate(property: str, room_type: str, room_incl: Decimal) -> Decimal:
+	"""The room rate before tax that comes to `room_incl` once the room GST is added.
+
+	The GST rate follows the room's tariff (an Indian slab), so the rate and the tax depend on
+	each other. Try each rate the slab gives near the answer and keep the one that agrees with
+	itself.
+	"""
+	rt = frappe.get_doc("Room Type", room_type)
+	tried = []
+	for guess in (room_incl, room_incl / Decimal("1.05"), room_incl / Decimal("1.12"), room_incl / Decimal("1.18")):
+		gst = room_gst_rate(property, rt, guess)
+		if gst in tried:
+			continue
+		tried.append(gst)
+		net = room_incl / (Decimal(1) + gst / Decimal(100))
+		if room_gst_rate(property, rt, net) == gst:
+			return net
+	# a rate that sits on a slab edge: the lower tax keeps the price the guest was quoted
+	gst = min(tried) if tried else Decimal(0)
+	return room_incl / (Decimal(1) + gst / Decimal(100))
+
+
+def tax_included_to_room_rates(q: dict, property: str, room_type: str, entered: list) -> tuple[list, bool]:
+	"""Rates typed as one price per night with every tax in it (room and meal together).
+
+	The meal and its tax are taken off, which leaves the room with its tax. The room part is
+	then written the way the property writes its rates: with tax when `rates_include_tax` is
+	on, else without.
+	"""
+	from kamra.folio import _fnb_gst
+
+	meal = meal_per_night(q)
+	meal_incl = meal * (Decimal(1) + _dec(_fnb_gst(property)) / Decimal(100))
+	inclusive = rates_include_tax(property)
+	room = []
+	for e in entered:
+		room_incl = _dec(e) - meal_incl
+		if room_incl < 0:
+			frappe.throw(_("The amount must be more than the meal with its tax, {0} a night.").format(round(float(meal_incl), 2)))
+		room.append(float(room_incl if inclusive else net_room_rate(property, room_type, room_incl)))
+	return room, meal > 0
+
+
+def to_room_rates(q: dict, property: str, entered: list, all_in: bool, tax_in: bool = False,
+                  room_type: str | None = None) -> tuple[list, bool]:
 	"""The room rate for each night, and whether the entered rates were all-in.
 
 	With a meal plan the desk can agree one price for room and meal together. The system
 	prices the room and the meal apart, so the meal is taken off each night to find the room
 	part. Without a meal there is nothing to take off.
+
+	`tax_in`: the entered price has all taxes in it (see `tax_included_to_room_rates`).
 	"""
+	if tax_in:
+		if not room_type:
+			frappe.throw(_("Choose the room type first."))
+		return tax_included_to_room_rates(q, property, room_type, entered)
 	meal = meal_per_night(q)
 	if not all_in or meal <= 0:
 		return list(entered), False
@@ -58,6 +108,16 @@ def to_room_rates(q: dict, property: str, entered: list, all_in: bool) -> tuple[
 			frappe.throw(_("The rate must be more than the meal, {0} a night.").format(round(float(meal), 2)))
 		room.append(float(part))
 	return room, True
+
+
+def system_prices_with_tax(q: dict, property: str) -> list[float]:
+	"""Each night's system price with room tax, meal and meal tax in it."""
+	from kamra.folio import _fnb_gst
+
+	meal = meal_per_night(q)
+	meal_incl = meal * (Decimal(1) + _dec(_fnb_gst(property)) / Decimal(100))
+	return [round(float(_dec(n["rate"]) * (Decimal(1) + _dec(n["gst_rate"]) / Decimal(100)) + meal_incl), 2)
+	        for n in q["nightly"]]
 
 
 def reprice(q: dict, property: str, room_type: str, entered: list) -> dict:
@@ -204,7 +264,7 @@ def quote_inputs_for(res) -> dict:
 @require_roles("Front Desk", "Revenue Manager", "Kamra Agent")
 def preview(property: str, room_type: str, check_in_date: str, check_out_date: str,
             adults: int = 2, children: int = 0, meal_plan: str | None = None,
-            rates=None, all_in: int = 0) -> dict:
+            rates=None, all_in: int = 0, tax_in: int = 0) -> dict:
 	"""The system price, and the price at the given nightly rates, without saving."""
 	inputs = {
 		"property": property, "room_type": room_type,
@@ -223,10 +283,12 @@ def preview(property: str, room_type: str, check_in_date: str, check_out_date: s
 	          "entry_rates": [
 		          round(n["rate"] * (1 + n["gst_rate"] / 100) if inclusive else n["rate"], 2)
 		          for n in system["nightly"]
-	          ]}
+	          ],
+	          # the system's price for each night with every tax in it (room and meal): what a desk quotes
+	          "tax_included_rates": system_prices_with_tax(system, property)}
 	rates = frappe.parse_json(rates) if isinstance(rates, str) else rates
 	if rates:
-		room_rates, _all_in = to_room_rates(system, property, rates, bool(int(all_in or 0)))
+		room_rates, _all_in = to_room_rates(system, property, rates, bool(int(all_in or 0)), bool(int(tax_in or 0)), room_type)
 		neg = reprice(system, property, room_type, room_rates)
 		pct = discount_pct(system, neg)
 		result.update(negotiated=neg, discount_pct=pct, all_in=_all_in,
@@ -240,7 +302,7 @@ def preview(property: str, room_type: str, check_in_date: str, check_out_date: s
 
 
 def apply_rates(res, rates: list, reason: str = "", approver: str | None = None, all_in: bool = False,
-                enforce: bool = True) -> dict:
+                enforce: bool = True, tax_in: bool = False) -> dict:
 	"""Agree `rates` on a saved reservation (a document).
 
 	Checks the rules, holds the price (`auto_price` off), stores the nightly
@@ -251,7 +313,7 @@ def apply_rates(res, rates: list, reason: str = "", approver: str | None = None,
 	reason = (reason or "").strip()
 	inputs = quote_inputs_for(res)
 	system = quote(**inputs, check_voucher_limits=False)
-	rates, all_in = to_room_rates(system, res.property, rates, bool(all_in))
+	rates, all_in = to_room_rates(system, res.property, rates, bool(all_in), bool(tax_in), res.room_type)
 	neg = reprice(system, res.property, res.room_type, rates)
 	pct = discount_pct(system, neg)
 	if enforce:

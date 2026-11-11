@@ -1,0 +1,23 @@
+--- a/src/AppShell.tsx	2026-11-11 18:28:57.311798630 +0530
++++ b/src/AppShell.tsx	2026-11-11 18:28:57.312523494 +0530
+@@ -13,6 +13,7 @@
+   Sun,
+   UserRound,
+   X,
++  Users,
+ } from "lucide-react"
+ import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom"
+ import UpdateNag from "./components/UpdateNag"
+@@ -721,6 +722,12 @@
+             <LanguageToggle />
+             {user ? <AccountMenu user={user} onSignOut={signOut} /> : null}
+             {canBook && (
++              <Button variant="outline" onClick={() => navigate("/groups?new=1")} aria-label={t("Group booking")}>
++                <Users className="size-4" aria-hidden />
++                <span className="hidden sm:inline">{t("Group booking")}</span>
++              </Button>
++            )}
++            {canBook && (
+               <Button onClick={() => setBooking({})} aria-label={t("New booking")}>
+                 <Plus className="size-4" aria-hidden />
+                 <span className="hidden sm:inline">{t("New booking")}</span>

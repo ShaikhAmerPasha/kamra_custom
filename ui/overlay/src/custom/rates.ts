@@ -37,16 +37,18 @@ export function agreedRates(r: RoomRate, nights: number): number[] | undefined {
 export function customRate(
   r: RoomRate,
   nights: number,
-): { rates: number[]; reason: string; approver: string; all_in: boolean } | undefined {
+): { rates: number[]; reason: string; approver: string; all_in: boolean; tax_in: boolean } | undefined {
   const rates = agreedRates(r, nights)
-  // with a meal plan the agreed price covers the room and the meal; the server ignores all_in without one
-  return rates ? { rates, reason: r.reason.trim(), approver: r.approver.trim(), all_in: true } : undefined
+  // the desk types one price per night with every tax in it; with a meal plan it covers room and meal
+  return rates ? { rates, reason: r.reason.trim(), approver: r.approver.trim(), all_in: true, tax_in: true } : undefined
 }
 
 export interface PreviewInfo {
   discount_pct: number
   /** What the meal plan adds per night (0 for room only). */
   meal_per_night?: number
+  /** The system's price for each night with every tax in it: what a desk quotes. */
+  tax_included_rates?: number[]
   needs_manager: boolean
   can_approve: boolean
   rule_error?: string

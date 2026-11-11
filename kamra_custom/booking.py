@@ -139,7 +139,7 @@ def create_stay(
 			changed = True
 		outcome = None
 		if spec.get("rates"):
-			outcome = negotiation.apply_rates(doc, spec["rates"], spec.get("reason") or "", spec.get("approver"), bool(spec.get("all_in")))
+			outcome = negotiation.apply_rates(doc, spec["rates"], spec.get("reason") or "", spec.get("approver"), bool(spec.get("all_in")), tax_in=bool(spec.get("tax_in")))
 			changed = True
 		if changed:
 			doc.save()

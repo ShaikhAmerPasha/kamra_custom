@@ -31,6 +31,8 @@ interface Preview extends PreviewInfo {
   inclusive: boolean
 }
 
+export const NIGHT_PRICE = "Amount per night (tax included)"
+
 export interface CustomBooking {
   remarks: string
   setRemarks: (v: string) => void
@@ -120,7 +122,7 @@ export function CustomBookingFields(props: {
         const rt = custom.rates[i] ?? emptyRate()
         call<Preview>("kamra_custom.negotiation.preview", {
           property, room_type: r.room_type, check_in_date: checkIn, check_out_date: checkOut,
-          adults: r.adults, children: r.children, meal_plan: r.meal_plan || undefined, rates: agreedRates(rt, nights), all_in: 1,
+          adults: r.adults, children: r.children, meal_plan: r.meal_plan || undefined, rates: agreedRates(rt, nights), tax_in: 1,
         })
           .then((p) => alive && setPreviews((all) => ({ ...all, [i]: p })))
           .catch((e) => alive && setPreviews((all) => ({ ...all, [i]: rule(e) || "This room cannot be priced." })))
@@ -161,41 +163,45 @@ export function CustomBookingFields(props: {
                     Room {i + 1}
                     {info ? (
                       <span className="font-normal text-zinc-500">
-                        {" "}· system rate {fmtMoney(info.entry_rates[0] + meal)} per night {info.inclusive ? "with" : "before"} tax
-                        {meal > 0 ? ` (room ${fmtMoney(info.entry_rates[0])} + meal ${fmtMoney(meal)})` : ""}
+                        {" "}· system price {fmtMoney(info.tax_included_rates?.[0] ?? info.entry_rates[0] + meal)} per night, tax included
                       </span>
                     ) : null}
                   </span>
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={rt.agree}
-                      onChange={(e) =>
-                        custom.setRate(i, {
-                          agree: e.target.checked,
-                          perNight: false,
-                          rate: info?.entry_rates[0] !== undefined ? String(info.entry_rates[0] + meal) : rt.rate,
-                          nightly: (info?.entry_rates ?? []).map((x) => String(x + meal)),
-                        })
-                      }
-                    />
-                    Agree a different rate
-                  </label>
+                  {i > 0 ? (
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={rt.agree}
+                        onChange={(e) => {
+                          const sys = info?.tax_included_rates ?? []
+                          custom.setRate(i, {
+                            agree: e.target.checked,
+                            perNight: false,
+                            rate: sys[0] !== undefined ? String(sys[0]) : rt.rate,
+                            nightly: sys.map(String),
+                          })
+                        }}
+                      />
+                      Agree a different amount
+                    </label>
+                  ) : null}
                 </div>
                 {typeof p === "string" ? <p className="text-rose-700">{p}</p> : null}
                 {rt.agree ? (
                   <div className="space-y-2">
                     {!rt.perNight ? (
                       <div className="flex flex-wrap items-end gap-3">
-                        <div>
-                          <label className={label} htmlFor={`custom-rate-${i}`}>{meal > 0 ? "Rate per night (room + meal)" : "Rate per night"}</label>
-                          <input id={`custom-rate-${i}`} inputMode="decimal" className={`${field} w-40`} value={rt.rate}
-                            onChange={(e) => custom.setRate(i, { rate: e.target.value })} />
-                        </div>
+                        {i > 0 ? (
+                          <div>
+                            <label className={label} htmlFor={`custom-rate-${i}`}>{NIGHT_PRICE}</label>
+                            <input id={`custom-rate-${i}`} inputMode="decimal" className={`${field} w-40`} value={rt.rate}
+                              onChange={(e) => custom.setRate(i, { rate: e.target.value })} />
+                          </div>
+                        ) : null}
                         {nights > 1 ? (
                           <button type="button" className="text-xs underline"
                             onClick={() => custom.setRate(i, { perNight: true, nightly: Array.from({ length: nights }, () => rt.rate) })}>
-                            Different rate each night
+                            Different amount each night
                           </button>
                         ) : null}
                       </div>
@@ -212,7 +218,7 @@ export function CustomBookingFields(props: {
                         </div>
                         <button type="button" className="mt-1 text-xs underline"
                           onClick={() => custom.setRate(i, { perNight: false, rate: rt.nightly[0] ?? rt.rate })}>
-                          Same rate every night
+                          Same amount every night
                         </button>
                       </div>
                     )}
@@ -228,7 +234,7 @@ export function CustomBookingFields(props: {
                     {problem ? <p role="alert" className="text-rose-700">{problem}</p> : null}
                     {info ? (
                       <p className="text-right">
-                        Room total with tax <b>{fmtMoney(info.negotiated?.amount_after_tax ?? info.system.amount_after_tax)}</b>
+                        Room total (tax included) <b>{fmtMoney(info.negotiated?.amount_after_tax ?? info.system.amount_after_tax)}</b>
                         {info.negotiated ? <span className="text-zinc-500"> (system {fmtMoney(info.system.amount_after_tax)})</span> : null}
                       </p>
                     ) : null}
@@ -238,6 +244,33 @@ export function CustomBookingFields(props: {
             )
           })
         : null}
+    </div>
+  )
+}
+
+/** The amount for room 1, beside the room type: one price per night with every tax in it.
+    Left blank, the system price stands. */
+export function RateAmount(props: { custom: CustomBooking; inputCls: string; disabled?: boolean }) {
+  const { custom, inputCls } = props
+  const rt = custom.rates[0] ?? emptyRate()
+  const p = custom.previews[0]
+  const system = typeof p === "object" ? p.tax_included_rates?.[0] : undefined
+  return (
+    <div>
+      <label className={label} htmlFor="custom-amount-0">{NIGHT_PRICE}</label>
+      <input
+        id="custom-amount-0"
+        inputMode="decimal"
+        className={inputCls}
+        disabled={props.disabled}
+        value={rt.perNight ? "" : rt.agree ? rt.rate : ""}
+        placeholder={rt.perNight ? "Each night below" : system !== undefined ? String(system) : "System price"}
+        onChange={(e) => {
+          const v = e.target.value
+          if (v.trim() === "") custom.setRate(0, { agree: false, perNight: false, rate: "", nightly: [] })
+          else custom.setRate(0, { agree: true, perNight: false, rate: v })
+        }}
+      />
     </div>
   )
 }

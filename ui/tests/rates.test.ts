@@ -22,7 +22,7 @@ describe("agreedRates", () => {
 
 describe("customRate", () => {
   it("carries the rates, the trimmed note and the approver", () =>
-    expect(customRate(agree({ reason: " bargain ", approver: " MD Sir " }), 2)).toEqual({ rates: [2100, 2100], reason: "bargain", approver: "MD Sir", all_in: true }))
+    expect(customRate(agree({ reason: " bargain ", approver: " MD Sir " }), 2)).toEqual({ rates: [2100, 2100], reason: "bargain", approver: "MD Sir", all_in: true, tax_in: true }))
   it("is undefined when nothing was agreed", () => expect(customRate(emptyRate(), 2)).toBeUndefined())
 })
 

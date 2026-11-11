@@ -5,6 +5,9 @@ export type StayTimes = { arrive: string; depart: string }
 
 export const NO_TIMES: StayTimes = { arrive: "", depart: "" }
 
+/** The hotel's usual times. The desk can change both. */
+export const DEFAULT_TIMES: StayTimes = { arrive: "14:00", depart: "12:00" }
+
 /** Arguments for Kamra's booking call. Kamra stores them as the planned check-in and check-out time. */
 export function stayTimeArgs(t: StayTimes): { check_in_time?: string; check_out_time?: string } {
   return {
