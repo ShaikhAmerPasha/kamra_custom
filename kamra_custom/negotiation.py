@@ -44,21 +44,45 @@ def net_room_rate(property: str, room_type: str, room_incl: Decimal) -> Decimal:
 
 	The GST rate follows the room's tariff (an Indian slab), so the rate and the tax depend on
 	each other. Try each rate the slab gives near the answer and keep the one that agrees with
-	itself.
+	itself. The rate is a whole number of paise, and one whose tax is not a half paisa, so every
+	screen rounds it the same way: a rate like 2261.90 at 5% has a tax of 113.095, which one
+	screen shows as 113.09 and another as 113.10.
 	"""
 	rt = frappe.get_doc("Room Type", room_type)
 	tried = []
+	gst = None
 	for guess in (room_incl, room_incl / Decimal("1.05"), room_incl / Decimal("1.12"), room_incl / Decimal("1.18")):
-		gst = room_gst_rate(property, rt, guess)
-		if gst in tried:
+		g = room_gst_rate(property, rt, guess)
+		if g in tried:
 			continue
-		tried.append(gst)
-		net = room_incl / (Decimal(1) + gst / Decimal(100))
-		if room_gst_rate(property, rt, net) == gst:
-			return net
-	# a rate that sits on a slab edge: the lower tax keeps the price the guest was quoted
-	gst = min(tried) if tried else Decimal(0)
-	return room_incl / (Decimal(1) + gst / Decimal(100))
+		tried.append(g)
+		net = room_incl / (Decimal(1) + g / Decimal(100))
+		if room_gst_rate(property, rt, net) == g:
+			gst = g
+			break
+	if gst is None:
+		# a rate on a slab edge: the lower tax keeps the price the guest was quoted
+		gst = min(tried) if tried else Decimal(0)
+	exact = room_incl / (Decimal(1) + gst / Decimal(100))
+	return clean_paise(exact, gst, room_incl)
+
+
+def clean_paise(exact: Decimal, gst: Decimal, target: Decimal) -> Decimal:
+	"""The paise value nearest `exact` whose tax is not a half paisa and whose total is closest to `target`."""
+	cent = Decimal("0.01")
+	base = (exact / cent).to_integral_value() * cent
+	best = None
+	for k in range(-3, 4):
+		n = base + cent * k
+		if n <= 0:
+			continue
+		tax_paise = n * gst  # tax in paise-hundredths: n * gst / 100 / 0.01
+		half = (tax_paise % 1) == Decimal("0.5")
+		err = abs(n * (Decimal(1) + gst / Decimal(100)) - target)
+		key = (half, err, abs(n - exact))
+		if best is None or key < best[0]:
+			best = (key, n)
+	return best[1] if best else base
 
 
 def tax_included_to_room_rates(q: dict, property: str, room_type: str, entered: list) -> tuple[list, bool]:

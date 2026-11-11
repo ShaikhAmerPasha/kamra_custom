@@ -309,3 +309,23 @@ class TestTaxIncludedAmount(_Site):
 		start, end = add_days(nowdate(), 60), add_days(nowdate(), 62)
 		p = negotiation.preview(PROP, RT, start, end, rates=[3000, 3000], tax_in=1)
 		self.assertAlmostEqual(p["negotiated"]["amount_after_tax"], 6000, delta=0.2)
+
+
+class TestCleanPaise(_Site):
+	def test_the_tax_is_never_a_half_paisa(self):
+		from decimal import Decimal as D
+
+		for typed in range(1500, 9000, 25):
+			room_incl = D(typed)
+			n = negotiation.net_room_rate(PROP, RT, room_incl)
+			gst = negotiation.room_gst_rate(PROP, frappe.get_doc("Room Type", RT), n)
+			self.assertNotEqual((n * gst) % 1, D("0.5"), msg=f"{typed} -> {n}")
+			self.assertEqual(n, n.quantize(D("0.01")))
+
+	def test_the_total_is_within_a_paisa_of_the_typed_price(self):
+		from decimal import Decimal as D
+
+		for typed in (2375, 2775, 3150, 4200, 6000, 12000):
+			n = negotiation.net_room_rate(PROP, RT, D(typed))
+			gst = negotiation.room_gst_rate(PROP, frappe.get_doc("Room Type", RT), n)
+			self.assertLessEqual(abs(n * (1 + gst / 100) - D(typed)), D("0.02"), msg=str(typed))
