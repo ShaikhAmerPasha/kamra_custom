@@ -44,26 +44,27 @@ import { allocate, isCash, tenderAmounts, tenderProblem } from "../overlay/src/c
 
 describe("paying in more than one way", () => {
   const cash = { mode: "Cash", amount: "", reference: "" }
-  it("cash needs no reference, the others do", () => {
+  it("every payment needs a reference, cash too", () => {
     expect(isCash("Cash")).toBe(true)
     expect(isCash("Card")).toBe(false)
-    expect(tenderProblem([cash], 3675)).toBe("")
+    expect(tenderProblem([cash], 3675)).toMatch(/reference/)
+    expect(tenderProblem([{ ...cash, reference: "RCPT-12" }], 3675)).toBe("")
     expect(tenderProblem([{ mode: "UPI", amount: "", reference: "" }], 3675)).toMatch(/reference/)
     expect(tenderProblem([{ mode: "UPI", amount: "", reference: "UTR123" }], 3675)).toBe("")
   })
   it("a blank last line takes the rest", () => {
-    const lines = [{ mode: "Cash", amount: "1000", reference: "" }, { mode: "Card", amount: "", reference: "x" }]
+    const lines = [{ mode: "Cash", amount: "1000", reference: "r" }, { mode: "Card", amount: "", reference: "x" }]
     expect(tenderAmounts(lines, 3675)).toEqual([1000, 2675])
     expect(tenderProblem(lines, 3675)).toBe("")
   })
   it("the payments must add up to what is due", () => {
-    const low = [{ mode: "Cash", amount: "1000", reference: "" }, { mode: "Card", amount: "1000", reference: "x" }]
+    const low = [{ mode: "Cash", amount: "1000", reference: "r" }, { mode: "Card", amount: "1000", reference: "x" }]
     expect(tenderProblem(low, 3675)).toMatch(/less/)
-    const high = [{ mode: "Cash", amount: "4000", reference: "" }]
+    const high = [{ mode: "Cash", amount: "4000", reference: "r" }]
     expect(tenderProblem(high, 3675)).toMatch(/more/)
   })
   it("asks for an amount on every line", () => {
-    expect(tenderProblem([{ mode: "Cash", amount: "0", reference: "" }], 100)).toMatch(/amount/)
+    expect(tenderProblem([{ mode: "Cash", amount: "0", reference: "r" }], 100)).toMatch(/amount/)
   })
   it("nothing is asked when nothing is due", () => expect(tenderProblem([], 0)).toBe(""))
   it("shares the payments over the folios", () => {

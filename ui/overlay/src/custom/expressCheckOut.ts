@@ -38,7 +38,7 @@ export function whyNotExpress(c: CheckoutLike): string {
 
 // --- paying in more than one way -------------------------------------------------------------
 
-/** Cash has no reference to write down. Card, UPI and bank transfer do. */
+/** Cash, for the screens that still tell it apart. Every payment needs a reference now, cash too. */
 export const isCash = (mode: string) => /^cash$/i.test(mode.trim())
 
 export interface Tender {
@@ -68,7 +68,7 @@ export function tenderProblem(lines: Tender[], due: number): string {
     const a = amounts[i]
     if (!Number.isFinite(a) || a <= 0) return "Enter an amount for each payment."
     if (!lines[i].mode) return "Choose how the guest pays."
-    if (!isCash(lines[i].mode) && lines[i].reference.trim() === "") return `Write the reference for the ${lines[i].mode} payment.`
+    if (lines[i].reference.trim() === "") return `Write the reference for the ${lines[i].mode} payment.`
   }
   const total = amounts.reduce((s, a) => s + cents(a), 0)
   if (total > cents(due)) return "The payments are more than the amount to collect."

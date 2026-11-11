@@ -201,7 +201,7 @@ export default function ExpressCheckOut(props: Props & { Fallback: ComponentType
                     ) : null}
                     <input aria-label={t("Reference")}
                       className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-base focus:outline-2 focus:outline-offset-1 focus:outline-brand-600"
-                      placeholder={isCash(l.mode) ? t("Reference (not needed for cash)") : t("Reference (required)")}
+                      placeholder={isCash(l.mode) ? t("Reference (required): receipt number") : t("Reference (required)")}
                       value={l.reference} onChange={(e) => setLine(i, { reference: e.target.value })} autoComplete="off" />
                   </div>
                   {lines.length > 1 ? (

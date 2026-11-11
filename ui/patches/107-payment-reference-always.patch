@@ -1,0 +1,48 @@
+--- a/src/screens/FolioView.tsx	2026-11-11 20:10:01.613506270 +0530
++++ b/src/screens/FolioView.tsx	2026-11-11 20:10:01.614138391 +0530
+@@ -1765,7 +1765,7 @@
+               />
+               <input
+                 className={`${inputCls} flex-1`}
+-                placeholder={t("Reference (optional)")}
++                placeholder={t("Reference (required)")}
+                 value={payment.reference}
+                 onChange={(e) =>
+                   setPayment({ ...payment, reference: e.target.value })
+@@ -1779,7 +1779,7 @@
+                 </span>
+               )}
+               <Button
+-                disabled={busy || !payment.amount}
++                disabled={busy || !payment.amount || !payment.reference.trim()}
+                 onClick={() =>
+                   act(() =>
+                     call("kamra.api.add_folio_payment", withPin({
+--- a/src/components/CheckOutDialog.tsx	2026-11-11 20:10:01.617339599 +0530
++++ b/src/components/CheckOutDialog.tsx	2026-11-11 20:10:01.617958708 +0530
+@@ -497,7 +497,7 @@
+       ? t("Enter the amount.")
+       : payNow > collectTotal + 0.005
+         ? t("That is more than the guest owes.")
+-        : !isCash(payMode) && payRef.trim() === ""
++        : payRef.trim() === ""
+           ? t("Write the reference for this payment.")
+           : ""
+ 
+@@ -1280,14 +1280,14 @@
+                         placeholder={String(collectTotal)} onChange={(e) => setPayAmount(e.target.value)} />
+                     </label>
+                     <label className="block text-xs">
+-                      <span className="mb-1 block text-zinc-500">{isCash(payMode) ? t("Reference (not needed for cash)") : t("Reference (required)")}</span>
++                      <span className="mb-1 block text-zinc-500">{isCash(payMode) ? t("Reference (required): receipt number") : t("Reference (required)")}</span>
+                       <input className={inputCls} value={payRef} onChange={(e) => setPayRef(e.target.value)} />
+                     </label>
+                   </div>
+                   {payAmount.trim() !== "" && payNow < collectTotal - 0.005 && !payProblem ? (
+                     <p className="mt-2 text-xs text-zinc-500">{t("The rest, {amount}, stays to collect: pay it another way next.", { amount: fmt(collectTotal - payNow) })}</p>
+                   ) : null}
+-                  {payProblem && (payAmount.trim() !== "" || !isCash(payMode)) ? <p className="mt-2 text-xs text-amber-700">{payProblem}</p> : null}
++                  {payProblem && (payAmount.trim() !== "" || payRef.trim() === "") ? <p className="mt-2 text-xs text-amber-700">{payProblem}</p> : null}
+                   <Button className="mt-3 w-full sm:w-auto" disabled={busy || !ctx.till_open || payProblem !== ""} onClick={() => void collect()}>
+                     {t("Collect {amount}", { amount: fmt(payNow > 0 && Number.isFinite(payNow) ? payNow : collectTotal) })}
+                   </Button>
