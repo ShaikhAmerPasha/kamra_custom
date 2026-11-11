@@ -39,8 +39,38 @@ def modes_text(rows: list[dict]) -> str:
 	return ", ".join(m for m, _a in sorted(by_mode.items(), key=lambda kv: -kv[1]))
 
 
-def build_rows(folios: list[dict], payments: list[dict]) -> list[dict]:
+def company_dues(folio_names: list[str]) -> dict[str, dict]:
+	"""What each folio billed to a company or OTA still owes, from Kamra's city ledger.
+
+	A bill moved to a company at check-out shows a zero balance on the folio, because the company
+	now owes it. This is the other half of the picture: who owes it, how much, and from when.
+	"""
+	if not folio_names:
+		return {}
+	from kamra.ledger import city_ledger_open_folios
+
+	pairs = frappe.db.sql(
+		"select distinct folio, account from `tabCity Ledger Entry` where folio in %(f)s and ifnull(folio, '') != ''",
+		{"f": tuple(folio_names)},
+		as_dict=True,
+	)
+	out: dict[str, dict] = {}
+	for account in {p.account for p in pairs}:
+		company = frappe.db.get_value("City Ledger Account", account, "company") or account
+		for x in city_ledger_open_folios(account):
+			if x["folio"] in folio_names and x["outstanding"] > 0.005:
+				out[x["folio"]] = {
+					"account": account,
+					"company": company,
+					"outstanding": x["outstanding"],
+					"due_date": x["due_date"],
+				}
+	return out
+
+
+def build_rows(folios: list[dict], payments: list[dict], dues: dict[str, dict] | None = None) -> list[dict]:
 	"""Group folios into one row per stay. A folio with no stay stands alone."""
+	dues = dues or {}
 	pay_by_folio: dict[str, list[dict]] = {}
 	for p in payments:
 		pay_by_folio.setdefault(p["parent"], []).append(p)
@@ -61,6 +91,9 @@ def build_rows(folios: list[dict], payments: list[dict]) -> list[dict]:
 				"balance": 0.0,
 				"booked_through": booked_through(f),
 				"booking_id": f.get("ota_ref") or f.get("reservation") or "",
+				"company": "",
+				"company_due": 0.0,
+				"company_due_date": "",
 				"folios": [],
 				"_pay": [],
 			}
@@ -70,8 +103,15 @@ def build_rows(folios: list[dict], payments: list[dict]) -> list[dict]:
 		row["paid"] += flt(f.get("payments_total"))
 		row["balance"] += flt(f.get("balance"))
 		row["_pay"] += pay_by_folio.get(f["name"], [])
+		due = dues.get(f["name"])
+		if due:
+			row["company"] = due["company"]
+			row["company_due"] += due["outstanding"]
+			row["company_due_date"] = min(filter(None, [row["company_due_date"], due["due_date"]]))
 		row["folios"].append(
 			{
+				"account": due["account"] if due else "",
+				"company_due": due["outstanding"] if due else 0.0,
 				"name": f["name"],
 				"type": f.get("folio_type") or "Guest",
 				"status": f.get("status"),
@@ -83,7 +123,11 @@ def build_rows(folios: list[dict], payments: list[dict]) -> list[dict]:
 	rows = list(out.values())
 	for r in rows:
 		r["payment_modes"] = modes_text(r.pop("_pay"))
-		r["status"] = "Open" if any(x["status"] == "Open" for x in r["folios"]) else "Closed"
+		r["status"] = (
+			"Open" if any(x["status"] == "Open" for x in r["folios"])
+			else "Company to pay" if r["company_due"] > 0.005
+			else "Closed"
+		)
 	return rows
 
 
@@ -131,6 +175,8 @@ def stays(property: str, q: str = "", date_from: str | None = None, date_to: str
 		payments = frappe.get_all(
 			"Folio Payment", filters={"parent": ("in", [f["name"] for f in folios])}, fields=["parent", "mode", "amount"]
 		)
-	rows = build_rows(folios, payments)
+	rows = build_rows(folios, payments, company_dues([f["name"] for f in folios]))
+	if status == "Company to pay":
+		rows = [r for r in rows if r["company_due"] > 0.005]
 	start, limit = max(0, int(start or 0)), max(1, min(int(limit or 50), 200))
 	return {"rows": rows[start : start + limit], "total": len(rows), "start": start}

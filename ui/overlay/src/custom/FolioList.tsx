@@ -9,6 +9,7 @@ import { call, getCurrentProperty } from "../lib/api"
 import { toFullPath } from "../lib/routing"
 import { fmtMoney } from "../lib/money"
 import { Button } from "../components/ui/button"
+import CityLedgerPayment from "../screens/CityLedgerPayment"
 import { foliosLabel, folioPath, pdfPath, rangeProblem, type BillRow } from "./billingList"
 
 const input =
@@ -32,6 +33,8 @@ export function FolioList() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
   const [open, setOpen] = useState<string | null>(null)
+  // the company or OTA account a payment is being received from
+  const [receiving, setReceiving] = useState<string | null>(null)
   const problem = rangeProblem(from, to)
 
   const load = useCallback(
@@ -87,6 +90,7 @@ export function FolioList() {
               <option value="">All</option>
               <option value="Open">Open</option>
               <option value="Closed">Closed</option>
+              <option value="Company to pay">Company to pay</option>
             </select>
           </div>
           {(q || from || to || status) && (
@@ -136,7 +140,15 @@ export function FolioList() {
                     <td className="py-2.5 pr-3 text-right tabular-nums">{fmtMoney(r.amount)}</td>
                     <td className="py-2.5 pr-3">{r.payment_modes || "-"}</td>
                     <td className="py-2.5 pr-3 text-right tabular-nums">{fmtMoney(r.paid)}</td>
-                    <td className={"py-2.5 pr-3 text-right font-medium tabular-nums " + (r.balance > 0.005 ? "text-amber-600" : "text-emerald-600")}>{fmtMoney(r.balance)}</td>
+                    <td className={"py-2.5 pr-3 text-right font-medium tabular-nums " + (r.balance > 0.005 ? "text-amber-600" : "text-emerald-600")}>
+                      {fmtMoney(r.balance)}
+                      {r.company_due > 0.005 ? (
+                        <div className="text-xs font-normal text-sky-800">
+                          {r.company} owes {fmtMoney(r.company_due)}
+                          {r.company_due_date ? ` · due ${r.company_due_date}` : ""}
+                        </div>
+                      ) : null}
+                    </td>
                     <td className="py-2.5 pr-3">{r.booked_through}</td>
                     <td className="py-2.5 pr-3 font-mono text-xs">{r.booking_id || "-"}</td>
                     <td className="py-2.5 pr-4">
@@ -145,6 +157,12 @@ export function FolioList() {
                       ) : (
                         <span className="inline-flex items-center gap-2">
                           <span className="text-zinc-500">{r.folios[0].invoice_number || "-"}</span>
+                          {r.folios[0].company_due > 0.005 ? (
+                            <button type="button" className="rounded border border-sky-300 bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-800 hover:bg-sky-100"
+                              onClick={(e) => { e.stopPropagation(); setReceiving(r.folios[0].account) }}>
+                              Receive payment
+                            </button>
+                          ) : null}
                           <button type="button" aria-label={`PDF of ${r.folios[0].name}`} title="Open and print or save as PDF"
                             className="rounded p-1 text-zinc-500 hover:bg-zinc-100" onClick={(e) => { e.stopPropagation(); pdf(r.folios[0].name) }}>
                             <FileText className="size-4" aria-hidden />
@@ -168,6 +186,9 @@ export function FolioList() {
                           <td className="py-2 pr-4">
                             <span className="inline-flex gap-2">
                               <button type="button" className="font-medium text-brand-700 hover:underline" onClick={() => navigate(folioPath(f.name))}>Open</button>
+                              {f.company_due > 0.005 ? (
+                                <button type="button" className="font-medium text-sky-800 hover:underline" onClick={() => setReceiving(f.account)}>Receive payment</button>
+                              ) : null}
                               <button type="button" className="inline-flex items-center gap-1 font-medium text-brand-700 hover:underline" onClick={() => pdf(f.name)}>
                                 <FileText className="size-3.5" aria-hidden /> PDF
                               </button>
@@ -195,6 +216,9 @@ export function FolioList() {
           <Button variant="outline" disabled={busy} onClick={() => void load(rows.length)}>{busy ? "Loading…" : "Show more"}</Button>
         ) : null}
       </div>
+      {receiving ? (
+        <CityLedgerPayment account={receiving} onClose={() => setReceiving(null)} onPosted={() => void load(0)} />
+      ) : null}
     </div>
   )
 }

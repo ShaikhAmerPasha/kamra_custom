@@ -13,6 +13,7 @@ import { cn } from "../lib/utils"
 import { Button } from "../components/ui/button"
 import { Sheet } from "../components/ui/sheet"
 import { checkOutWithCredit } from "../components/CreditCheckout"
+import ChangeCompany from "../components/ChangeCompany"
 import { Settlements } from "./Settlements"
 import { allocate, isCash, tenderAmounts, tenderProblem, whyNotExpress, type CheckoutLike, type Tender } from "./expressCheckOut"
 
@@ -43,6 +44,8 @@ export default function ExpressCheckOut(props: Props & { Fallback: ComponentType
   // how the guest pays: one line, or several when the guest pays part in cash and part by card
   const [lines, setLines] = useState<Tender[]>([{ mode: "", amount: "", reference: "" }])
   const [steps, setSteps] = useState(false)
+  // a company or an OTA pays this bill later: pick it, and the full steps take over to bill it
+  const [whoPays, setWhoPays] = useState(false)
   const [done, setDone] = useState<string[] | null>(null)
 
   const load = useCallback(async () => {
@@ -216,6 +219,18 @@ export default function ExpressCheckOut(props: Props & { Fallback: ComponentType
             {problem ? <p role="status" className="text-sm text-amber-700">{t(problem)}</p> : null}
           </section>
         )}
+
+        <section className="space-y-2">
+          {whoPays ? (
+            <ChangeCompany reservation={props.reservation} current={ctx.reservation.company}
+              onCancel={() => setWhoPays(false)}
+              onDone={() => { setWhoPays(false); void load() }} />
+          ) : (
+            <button type="button" className="text-sm font-medium text-brand-700 hover:underline" onClick={() => setWhoPays(true)}>
+              {t("A company or OTA pays this bill later")}
+            </button>
+          )}
+        </section>
         {error ? <p role="alert" className="text-sm text-rose-700">{error}</p> : null}
       </div>
     </Sheet>

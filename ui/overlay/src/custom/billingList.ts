@@ -1,6 +1,10 @@
 /* The Billing list (Kamra Custom): the rows the server sends, and small helpers for the screen. */
 
 export interface BillFolio {
+  /** The company or OTA account that owes this bill, when it was billed to one. */
+  account: string
+  /** What that account still owes on this folio. */
+  company_due: number
   name: string
   type: string
   status: string
@@ -22,7 +26,11 @@ export interface BillRow {
   payment_modes: string
   booked_through: string
   booking_id: string
-  status: "Open" | "Closed"
+  /** The company or OTA that owes part or all of the stay, and how much, and from when. */
+  company: string
+  company_due: number
+  company_due_date: string
+  status: "Open" | "Closed" | "Company to pay"
   folios: BillFolio[]
 }
 

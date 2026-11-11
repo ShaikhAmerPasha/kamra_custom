@@ -54,6 +54,20 @@ class TestBillingRows(IntegrationTestCase):
 		self.assertEqual(r["booking_id"], "R1")
 		self.assertEqual(r["booked_through"], "Direct" if not self.folios[0]["company"] else "Acme")
 
+	def test_a_bill_the_company_still_owes(self):
+		dues = {"F2": {"account": "AC1", "company": "Acme", "outstanding": 500.0, "due_date": "2026-11-20"}}
+		r = {x["key"]: x for x in billing.build_rows(self.folios, self.payments, dues)}["R1"]
+		self.assertEqual(r["company"], "Acme")
+		self.assertEqual(r["company_due"], 500.0)
+		self.assertEqual(r["company_due_date"], "2026-11-20")
+		self.assertEqual([f["account"] for f in r["folios"]], ["", "AC1"])
+
+	def test_a_closed_bill_with_a_company_due_says_company_to_pay(self):
+		folios = [dict(self.folios[0], status="Closed")]
+		dues = {"F1": {"account": "AC1", "company": "Acme", "outstanding": 1000.0, "due_date": "2026-11-20"}}
+		self.assertEqual(billing.build_rows(folios, [], dues)[0]["status"], "Company to pay")
+		self.assertEqual(billing.build_rows(folios, [], {})[0]["status"], "Closed")
+
 	def test_the_bill_date_is_the_latest_of_the_stay(self):
 		self.assertEqual(self.rows()["R1"]["bill_date"], "2026-11-12")
 
@@ -89,6 +103,10 @@ class TestBillingList(IntegrationTestCase):
 	def test_from_after_to_is_refused(self):
 		with self.assertRaises(frappe.ValidationError):
 			billing.stays(PROP, date_from="2026-11-12", date_to="2026-11-01")
+
+	def test_company_to_pay_filter(self):
+		for r in billing.stays(PROP, status="Company to pay")["rows"]:
+			self.assertGreater(r["company_due"], 0)
 
 	def test_status_filter(self):
 		for r in billing.stays(PROP, status="Open")["rows"]:
