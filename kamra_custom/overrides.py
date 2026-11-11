@@ -186,3 +186,21 @@ def amend_stay(*args, **kwargs):
 		negotiation.apply_rates(doc, rates, doc.get("negotiated_reason") or "", doc.get("rate_approved_by"), bool(doc.get("rate_all_in")), enforce=False)
 	doc.save()
 	return {**out, "nights": doc.nights, "amount_after_tax": doc.amount_after_tax}
+
+
+@frappe.whitelist(methods=["POST"])
+def set_actual_times(reservation: str, actual_check_in: str | None = None, actual_check_out: str | None = None):
+	"""Kamra's call, except that the check-in time cannot be changed once the guest is checked in.
+
+	The check-out time can still be corrected. A stay that has no check-in time yet (checked in
+	before the time was kept) may be given one.
+	"""
+	from kamra.api import set_actual_times as kamra_set_actual_times
+
+	if actual_check_in:
+		stay = frappe.db.get_value("Reservation", reservation, ["actual_check_in", "status"], as_dict=True)
+		if stay and stay.actual_check_in:
+			frappe.throw(
+				_("The check-in time is locked once the guest is checked in."), title=_("Check-in time is locked")
+			)
+	return kamra_set_actual_times(reservation, actual_check_in, actual_check_out)

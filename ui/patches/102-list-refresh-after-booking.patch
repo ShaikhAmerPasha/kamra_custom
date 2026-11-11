@@ -1,0 +1,23 @@
+--- a/src/components/ResourceScreen.tsx	2026-11-11 18:36:48.625413358 +0530
++++ b/src/components/ResourceScreen.tsx	2026-11-11 18:36:48.626057548 +0530
+@@ -6,7 +6,7 @@
+   type ComponentType,
+   type ReactNode,
+ } from "react"
+-import { useSearchParams } from "react-router-dom"
++import { useOutletContext, useSearchParams } from "react-router-dom"
+ import { Columns3, Download, Plus, Search, Trash2 } from "lucide-react"
+ import { Sheet } from "./ui/sheet"
+ import { call, getCurrentProperty } from "../lib/api"
+@@ -548,7 +548,10 @@
+     // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [config.doctype, debounced, filterVals, page, dateFrom, dateTo])
+ 
+-  useEffect(load, [load])
++  // a booking made from the shell sheet must show in the list behind it (Kamra Custom)
++  const shell = useOutletContext<{ refreshKey?: number } | null>()
++  const shellRefresh = shell?.refreshKey
++  useEffect(load, [load, shellRefresh])
+ 
+   // ?open=<name> - a link from another record opens that row's panel
+   const [searchParams, setSearchParams] = useSearchParams()

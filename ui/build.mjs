@@ -55,7 +55,11 @@ symlinkSync(path.join(deps, "node_modules"), path.join(work, "node_modules"), "d
 
 // 2. our patches, in order. Dry run first so a failure leaves nothing half applied.
 const patchDir = path.join(here, "patches")
-const patches = readdirSync(patchDir).filter((f) => f.endsWith(".patch")).sort()
+// by the number in front of the name, so 100 comes after 99
+const patchNumber = (f) => Number.parseInt(f, 10)
+const patches = readdirSync(patchDir)
+  .filter((f) => f.endsWith(".patch"))
+  .sort((a, b) => patchNumber(a) - patchNumber(b) || a.localeCompare(b))
 for (const p of patches) {
   const file = path.join(patchDir, p)
   // --fuzz=0: a hunk must match its context exactly. A loose match could land in the
