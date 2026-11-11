@@ -1,0 +1,84 @@
+--- a/src/components/CheckOutDialog.tsx	2026-11-11 18:39:54.961026879 +0530
++++ b/src/components/CheckOutDialog.tsx	2026-11-11 18:39:54.961752088 +0530
+@@ -1,3 +1,4 @@
++import { allocate, isCash } from "../custom/expressCheckOut"
+ import ExpressCheckOut from "../custom/ExpressCheckOut"
+ import { useFlags } from "../custom/flags"
+ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
+@@ -304,6 +305,8 @@
+   // per-step desk input
+   const [payMode, setPayMode] = useState("")
+   const [payRef, setPayRef] = useState("")
++  // part of the bill, for a guest who pays part in cash and part another way (Kamra Custom)
++  const [payAmount, setPayAmount] = useState("")
+   const [refundModes, setRefundModes] = useState<Record<string, string>>({})
+   const [refundReason, setRefundReason] = useState("")
+   const [discountOn, setDiscountOn] = useState(false)
+@@ -487,15 +490,30 @@
+   const collectTotal = (ctx?.collect ?? []).reduce((s, c) => s + c.amount, 0)
+   const refundTotal = (ctx?.refunds ?? []).reduce((s, r) => s + r.amount, 0)
+ 
++  const payNow = payAmount.trim() === "" ? collectTotal : Number(payAmount)
++  const payProblem =
++    !Number.isFinite(payNow) || payNow <= 0.005
++      ? t("Enter the amount.")
++      : payNow > collectTotal + 0.005
++        ? t("That is more than the guest owes.")
++        : !isCash(payMode) && payRef.trim() === ""
++          ? t("Write the reference for this payment.")
++          : ""
++
+   function collect() {
+     return run(async () => {
+-      for (const c of ctx?.collect ?? []) {
++      const payments = allocate(
++        [{ mode: payMode, amount: payNow, reference: payRef.trim() }],
++        (ctx?.collect ?? []).filter((c) => c.amount > 0.005),
++      )
++      for (const p of payments) {
+         await call("kamra.api.add_folio_payment", {
+-          folio: c.folio, mode: payMode, amount: c.amount, kind: "Payment",
+-          reference: payRef.trim() || undefined,
++          folio: p.folio, mode: p.mode, amount: p.amount, kind: "Payment",
++          reference: p.reference || undefined,
+         })
+       }
+       setPayRef("")
++      setPayAmount("")
+     })
+   }
+ 
+@@ -1246,7 +1264,7 @@
+                       {t("Give a discount before collecting")}
+                     </button>
+                   )}
+-                  <div className="grid gap-2 sm:grid-cols-2">
++                  <div className="grid gap-2 sm:grid-cols-3">
+                     <label className="block text-xs">
+                       <span className="mb-1 block text-zinc-500">{t("Payment mode")}</span>
+                       <select className={inputCls} value={payMode} onChange={(e) => setPayMode(e.target.value)}>
+@@ -1254,12 +1272,21 @@
+                       </select>
+                     </label>
+                     <label className="block text-xs">
+-                      <span className="mb-1 block text-zinc-500">{t("Reference (optional)")}</span>
++                      <span className="mb-1 block text-zinc-500">{t("Amount")}</span>
++                      <input className={inputCls} inputMode="decimal" value={payAmount}
++                        placeholder={String(collectTotal)} onChange={(e) => setPayAmount(e.target.value)} />
++                    </label>
++                    <label className="block text-xs">
++                      <span className="mb-1 block text-zinc-500">{isCash(payMode) ? t("Reference (not needed for cash)") : t("Reference (required)")}</span>
+                       <input className={inputCls} value={payRef} onChange={(e) => setPayRef(e.target.value)} />
+                     </label>
+                   </div>
+-                  <Button className="mt-3 w-full sm:w-auto" disabled={busy || !ctx.till_open} onClick={() => void collect()}>
+-                    {t("Collect {amount}", { amount: fmt(collectTotal) })}
++                  {payAmount.trim() !== "" && payNow < collectTotal - 0.005 && !payProblem ? (
++                    <p className="mt-2 text-xs text-zinc-500">{t("The rest, {amount}, stays to collect: pay it another way next.", { amount: fmt(collectTotal - payNow) })}</p>
++                  ) : null}
++                  {payProblem && (payAmount.trim() !== "" || !isCash(payMode)) ? <p className="mt-2 text-xs text-amber-700">{payProblem}</p> : null}
++                  <Button className="mt-3 w-full sm:w-auto" disabled={busy || !ctx.till_open || payProblem !== ""} onClick={() => void collect()}>
++                    {t("Collect {amount}", { amount: fmt(payNow > 0 && Number.isFinite(payNow) ? payNow : collectTotal) })}
+                   </Button>
+                 </Section>
+               )}

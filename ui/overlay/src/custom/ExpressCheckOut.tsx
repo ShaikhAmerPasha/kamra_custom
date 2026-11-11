@@ -13,7 +13,8 @@ import { cn } from "../lib/utils"
 import { Button } from "../components/ui/button"
 import { Sheet } from "../components/ui/sheet"
 import { checkOutWithCredit } from "../components/CreditCheckout"
-import { whyNotExpress, type CheckoutLike } from "./expressCheckOut"
+import { Settlements } from "./Settlements"
+import { allocate, isCash, tenderAmounts, tenderProblem, whyNotExpress, type CheckoutLike, type Tender } from "./expressCheckOut"
 
 type Props = {
   reservation: string
@@ -39,8 +40,8 @@ export default function ExpressCheckOut(props: Props & { Fallback: ComponentType
   const [ctx, setCtx] = useState<Ctx | null>(null)
   const [error, setError] = useState("")
   const [busy, setBusy] = useState(false)
-  const [mode, setMode] = useState("")
-  const [reference, setReference] = useState("")
+  // how the guest pays: one line, or several when the guest pays part in cash and part by card
+  const [lines, setLines] = useState<Tender[]>([{ mode: "", amount: "", reference: "" }])
   const [steps, setSteps] = useState(false)
   const [done, setDone] = useState<string[] | null>(null)
 
@@ -48,7 +49,7 @@ export default function ExpressCheckOut(props: Props & { Fallback: ComponentType
     try {
       const c = await call<Ctx>("kamra.api.checkout_context", { reservation: props.reservation })
       setCtx(c)
-      setMode((m) => m || c.payment_modes[0] || "")
+      setLines((ls) => ls.map((l, i) => (i === 0 && !l.mode ? { ...l, mode: c.payment_modes[0] || "" } : l)))
       return c
     } catch (e) {
       setError(serverError(e))
@@ -73,6 +74,8 @@ export default function ExpressCheckOut(props: Props & { Fallback: ComponentType
   const cur = ctx.currency_symbol
   const money = (n: number) => `${cur}${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   const due = ctx.collect.reduce((s, c) => s + c.amount, 0)
+  const problem = tenderProblem(lines, due)
+  const setLine = (i: number, patch: Partial<Tender>) => setLines((ls) => ls.map((l, n) => (n === i ? { ...l, ...patch } : l)))
   const title = t("Check out {name}", { name: r.guest_name })
   const description = `${t("Room {n}", { n: r.room_number ?? "" })} · ${r.room_type_name ?? ""} · ${r.check_in_date} → ${r.check_out_date}`
 
@@ -81,12 +84,15 @@ export default function ExpressCheckOut(props: Props & { Fallback: ComponentType
     setBusy(true)
     setError("")
     try {
-      for (const c of ctx.collect) {
-        if (c.amount > EPS) {
-          await call("kamra.api.add_folio_payment", {
-            folio: c.folio, mode, amount: c.amount, kind: "Payment", reference: reference.trim() || undefined,
-          })
-        }
+      const amounts = tenderAmounts(lines, due)
+      const payments = allocate(
+        lines.map((l, i) => ({ mode: l.mode, amount: amounts[i], reference: l.reference.trim() })),
+        ctx.collect.filter((c) => c.amount > EPS),
+      )
+      for (const p of payments) {
+        await call("kamra.api.add_folio_payment", {
+          folio: p.folio, mode: p.mode, amount: p.amount, kind: "Payment", reference: p.reference || undefined,
+        })
       }
       await checkOutWithCredit(props.reservation, undefined)
       const fresh = await load()
@@ -141,7 +147,7 @@ export default function ExpressCheckOut(props: Props & { Fallback: ComponentType
         <div className="flex w-full items-center gap-2">
           <button type="button" className="text-sm text-zinc-500 underline" onClick={() => setSteps(true)}>{t("Use the full steps")}</button>
           <Button variant="outline" className="ms-auto" onClick={props.onClose}>{t("Cancel")}</Button>
-          <Button className="px-6 py-2.5 text-base" disabled={busy} onClick={checkOut}>
+          <Button className="px-6 py-2.5 text-base" disabled={busy || problem !== ""} onClick={checkOut}>
             {busy ? t("Checking out…") : due > EPS ? t("Collect {amount} and check out", { amount: money(due) }) : t("Check out")}
           </Button>
         </div>
@@ -165,19 +171,49 @@ export default function ExpressCheckOut(props: Props & { Fallback: ComponentType
           </div>
         </section>
 
+        <Settlements reservation={props.reservation} money={money} version={ctx.totals.paid} />
+
         {due > EPS && (
           <section className="space-y-3">
             <h3 className="text-sm font-semibold text-zinc-800">{t("Payment")}</h3>
-            <div className="flex flex-wrap gap-2">
-              {ctx.payment_modes.map((m) => (
-                <button key={m} type="button" aria-pressed={mode === m} onClick={() => setMode(m)}
-                  className={cn("rounded-lg border px-4 py-2 text-sm", mode === m ? "border-brand-500 bg-brand-50 font-medium text-brand-700" : "border-zinc-300 bg-white hover:bg-zinc-50")}>
-                  {t(m)}
-                </button>
-              ))}
-            </div>
-            <input className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-base focus:outline-2 focus:outline-offset-1 focus:outline-brand-600"
-              placeholder={t("Reference (optional)")} value={reference} onChange={(e) => setReference(e.target.value)} autoComplete="off" />
+            {lines.map((l, i) => {
+              const rest = i === lines.length - 1
+              const amounts = tenderAmounts(lines, due)
+              return (
+                <div key={i} className="space-y-2 rounded-xl border border-zinc-200 p-3">
+                  <div className="flex flex-wrap gap-2">
+                    {ctx.payment_modes.map((m) => (
+                      <button key={m} type="button" aria-pressed={l.mode === m} onClick={() => setLine(i, { mode: m })}
+                        className={cn("rounded-lg border px-4 py-2 text-sm", l.mode === m ? "border-brand-500 bg-brand-50 font-medium text-brand-700" : "border-zinc-300 bg-white hover:bg-zinc-50")}>
+                        {t(m)}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {lines.length > 1 ? (
+                      <input inputMode="decimal" aria-label={t("Amount")}
+                        className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-base focus:outline-2 focus:outline-offset-1 focus:outline-brand-600"
+                        placeholder={rest ? t("Rest: {amount}", { amount: money(amounts[i] || 0) }) : t("Amount")}
+                        value={l.amount} onChange={(e) => setLine(i, { amount: e.target.value })} autoComplete="off" />
+                    ) : null}
+                    <input aria-label={t("Reference")}
+                      className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-base focus:outline-2 focus:outline-offset-1 focus:outline-brand-600"
+                      placeholder={isCash(l.mode) ? t("Reference (not needed for cash)") : t("Reference (required)")}
+                      value={l.reference} onChange={(e) => setLine(i, { reference: e.target.value })} autoComplete="off" />
+                  </div>
+                  {lines.length > 1 ? (
+                    <button type="button" className="text-xs text-zinc-500 underline" onClick={() => setLines((ls) => ls.filter((_, n) => n !== i))}>
+                      {t("Remove this payment")}
+                    </button>
+                  ) : null}
+                </div>
+              )
+            })}
+            <button type="button" className="text-sm font-medium text-brand-700 hover:underline"
+              onClick={() => setLines((ls) => [...ls, { mode: ctx.payment_modes.find((m) => !isCash(m)) || ctx.payment_modes[0] || "", amount: "", reference: "" }])}>
+              {t("Split the payment: pay part another way")}
+            </button>
+            {problem ? <p role="status" className="text-sm text-amber-700">{t(problem)}</p> : null}
           </section>
         )}
         {error ? <p role="alert" className="text-sm text-rose-700">{error}</p> : null}

@@ -71,3 +71,23 @@ class TestCheckInTimeLock(IntegrationTestCase):
 
 		out = overrides.set_actual_times(self.name, actual_check_out="2026-01-02 11:00:00")
 		self.assertTrue(out["ok"])
+
+
+class TestSettlements(IntegrationTestCase):
+	def setUp(self):
+		frappe.set_user("Administrator")
+		rows = frappe.db.sql(
+			"select f.reservation from `tabFolio` f join `tabFolio Payment` p on p.parent = f.name where f.reservation is not null limit 1"
+		)
+		if not rows:
+			self.skipTest("no payment on this site")
+		self.name = rows[0][0]
+
+	def test_lists_what_was_paid(self):
+		from kamra_custom import checkout
+
+		lines = checkout.settlements(self.name)
+		self.assertTrue(lines)
+		for line in lines:
+			self.assertIn("mode", line)
+			self.assertIn("amount", line)

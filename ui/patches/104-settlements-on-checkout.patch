@@ -1,0 +1,25 @@
+--- a/src/components/CheckOutDialog.tsx	2026-11-11 18:43:35.128584876 +0530
++++ b/src/components/CheckOutDialog.tsx	2026-11-11 18:43:35.129357252 +0530
+@@ -1,4 +1,5 @@
+ import { allocate, isCash } from "../custom/expressCheckOut"
++import { Settlements } from "../custom/Settlements"
+ import ExpressCheckOut from "../custom/ExpressCheckOut"
+ import { useFlags } from "../custom/flags"
+ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
+@@ -929,6 +930,8 @@
+                 )}
+               </Section>
+ 
++              <Settlements reservation={props.reservation} money={fmt} version={ctx.totals.paid} />
++
+               {ctx.pending_bills.length > 0 && (
+                 <Section title={t("Restaurant & other bills to check")} tone="warn">
+                   <ul className="space-y-3 text-sm">
+@@ -1496,6 +1499,7 @@
+                   <ul className="list-disc ps-5 text-sm">{creditWarnings.map((w) => <li key={w}>{translate(w)}</li>)}</ul>
+                 </Section>
+               )}
++              {checkedOut && <Settlements reservation={props.reservation} money={fmt} version={ctx.totals.paid} />}
+               {checkedOut && (() => {
+                 const own = ctx.folios.filter((f) => f.side !== "group")
+                 return (
