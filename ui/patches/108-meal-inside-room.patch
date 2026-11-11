@@ -1,0 +1,127 @@
+--- a/src/components/BookingDialog.tsx	2026-11-11 20:28:51.853757718 +0530
++++ b/src/components/BookingDialog.tsx	2026-11-11 20:28:51.854561076 +0530
+@@ -28,6 +28,7 @@
+ import { CustomBookingFields, RateAmount, customGuestSearch, useCustomBooking } from "../custom/CustomBooking"
+ import { StayLength } from "../custom/CustomStay"
+ import { StayTimes } from "../custom/StayTimes"
++import { useFlags } from "../custom/flags"
+ import { DEFAULT_TIMES, stayTimeArgs } from "../custom/stayTimes"
+ import CheckInDialog from "./CheckInDialog"
+ import TillCard, { useTill } from "./TillCard"
+@@ -205,6 +206,8 @@
+   const [moreOpen, setMoreOpen] = useState(false)
+   const [moreRooms, setMoreRooms] = useState<ExtraRoom[]>([])
+   const custom = useCustomBooking()
++  // the meal is part of the room rate: the quote shows no separate meal charge (Kamra Custom)
++  const mealInside = useFlags().merge_meal_in_room_line
+   const [groupName, setGroupName] = useState("")
+   const [moreQuotes, setMoreQuotes] = useState<(Quote | null)[]>([])
+   const [addonQty, setAddonQty] = useState<Record<string, number>>({})
+@@ -2345,7 +2348,7 @@
+                       </span>
+                       <span className="shrink-0 tabular-nums">
+                         {cur()}
+-                        {inr(quote.room_total)}
++                        {inr(quote.room_total + (mealInside ? quote.meal_total : 0))}
+                       </span>
+                     </div>
+                     {(quote.over_capacity_total ?? 0) > 0 && (
+@@ -2357,7 +2360,7 @@
+                         </span>
+                       </div>
+                     )}
+-                    {quote.meal_total > 0 && (
++                    {!mealInside && quote.meal_total > 0 && (
+                       <div className="flex justify-between text-zinc-600">
+                         <span>{t("Meals")}</span>
+                         <span className="tabular-nums">
+--- a/src/screens/FolioView.tsx	2026-11-11 20:28:51.858026520 +0530
++++ b/src/screens/FolioView.tsx	2026-11-11 20:28:51.859058880 +0530
+@@ -1,3 +1,4 @@
++import { foldMealHead, foldMealIntoRoom, type Folded } from "../custom/mealInside"
+ import { PrintBillLines } from "../custom/PrintBillLines"
+ import { useFlags } from "../custom/flags"
+ import { Fragment, useCallback, useEffect, useRef, useState } from "react"
+@@ -1121,12 +1122,12 @@
+                     </tr>
+                   </thead>
+                   <tbody className="divide-y divide-zinc-100">
+-                    {folio.charges.map((c, i) => (
++                    {(customFlags.merge_meal_in_room_line ? foldMealIntoRoom(folio.charges) : (folio.charges as Folded<(typeof folio.charges)[number]>[])).map((c, i) => (
+                       <Fragment key={c.name ?? i}>
+                         <tr>
+                           {open && (
+                             <td className="py-2 pr-2 print:hidden">
+-                              <input
++                              {c.merged ? null : <input
+                                 type="checkbox"
+                                 className="size-3.5 accent-brand-600"
+                                 aria-label={t("Select charge")}
+@@ -1139,7 +1140,7 @@
+                                     return next
+                                   })
+                                 }
+-                              />
++                              />}
+                             </td>
+                           )}
+                           <td className="py-2 pr-3 text-zinc-500">{c.posting_date}</td>
+@@ -1161,12 +1162,12 @@
+                             {lines.find((l) => l.row === c.name)?.service_code ?? ""}
+                           </td>
+                           <td className="py-2 pr-3 text-right">{inr(c.amount)}</td>
+-                          {taxed && <td className="py-2 pr-3 text-right">{c.gst_rate}%</td>}
++                          {taxed && <td className="py-2 pr-3 text-right">{c.mixedTax ? t("mixed") : `${c.gst_rate}%`}</td>}
+                           {taxed && <td className="py-2 pr-3 text-right">{inr(c.gst_amount)}</td>}
+                           <td className="py-2 text-right font-medium">{inr(c.total)}</td>
+                           {editable && (
+                             <td className="relative whitespace-nowrap py-2 pl-3 text-right print:hidden">
+-                              {c.charge_type !== "Allowance" &&
++                              {c.charge_type !== "Allowance" && !c.merged &&
+                                 (voidFor === c.name ? (
+                                   <span className="mr-1.5 inline-flex items-center gap-1">
+                                     <input
+@@ -1248,7 +1249,7 @@
+               </h3>
+               <table className="w-full text-sm">
+                 <tbody>
+-                  {data.summary_by_head.map((h) => (
++                  {(customFlags.merge_meal_in_room_line ? foldMealHead(data.summary_by_head) : data.summary_by_head).map((h) => (
+                     <tr key={h.head}>
+                       <td className="py-1">
+                         {translate(h.head)}
+--- a/src/components/CheckOutDialog.tsx	2026-11-11 20:28:51.862631769 +0530
++++ b/src/components/CheckOutDialog.tsx	2026-11-11 20:28:51.863326751 +0530
+@@ -1,4 +1,5 @@
+ import { allocate, isCash } from "../custom/expressCheckOut"
++import { foldMealIntoRoom } from "../custom/mealInside"
+ import { Settlements } from "../custom/Settlements"
+ import ExpressCheckOut from "../custom/ExpressCheckOut"
+ import { useFlags } from "../custom/flags"
+@@ -295,6 +296,8 @@
+ 
+ function StepCheckOutDialog(props: CheckOutProps) {
+   const { t } = useT()
++  // the meal is part of the room line, never a charge of its own (Kamra Custom)
++  const mealInside = useFlags().merge_meal_in_room_line
+   const loc = useLocale()
+   const { ensureUnlocked } = useCashierAuth()
+   const [ctx, setCtx] = useState<CheckoutContext | null>(null)
+@@ -892,7 +895,7 @@
+                   </dl>
+                   {ctx.bill_split.will_post_lines.length > 0 && (
+                     <ul className="mt-2 space-y-1 border-t border-amber-200/80 pt-2 text-xs text-zinc-600">
+-                      {ctx.bill_split.will_post_lines.map((l, i) => (
++                      {(mealInside ? foldMealIntoRoom(ctx.bill_split.will_post_lines) : ctx.bill_split.will_post_lines).map((l, i) => (
+                         <li key={`${l.folio}-${l.posting_date}-${i}`} className="flex justify-between gap-2">
+                           <span>
+                             {t(l.charge_type)}
+@@ -1001,7 +1004,7 @@
+                 return (
+                   <Section key={g} title={(`${t(g)} · ${fmt(grp.amount)}`)}>
+                     <ul className="divide-y divide-zinc-100 text-sm">
+-                      {grp.lines.map((line) => (
++                      {(mealInside ? foldMealIntoRoom(grp.lines) : grp.lines).map((line) => (
+                         <li key={line.name} className="flex items-start justify-between gap-3 py-1.5">
+                           <span className="min-w-0 text-zinc-700">
+                             <span className="font-medium">{t(line.charge_type)}</span>

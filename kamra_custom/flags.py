@@ -6,7 +6,7 @@ import frappe
 DEFAULTS = {
 	"grc_staff_name": True,
 	"checkout_date_on_booking": True,
-	"merge_meal_in_room_line": False,
+	"merge_meal_in_room_line": True,
 	"express_checkin": False,
 	"express_checkout": False,
 	"clean_rooms_only": False,

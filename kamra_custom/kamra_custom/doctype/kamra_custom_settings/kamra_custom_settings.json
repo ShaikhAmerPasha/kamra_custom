@@ -85,11 +85,11 @@
    "label": "Restaurant orders of complimentary guests are NC"
   },
   {
-   "default": "0",
-   "description": "On the printed bill, show the meal inside the room line of each night (Room with Continental Plan) instead of a separate Meal Plan line. The tax summary still lists every tax rate. Check with your accountant first.",
+   "default": "1",
+   "description": "On: every screen and the printed bill show one Room line a night with the meal inside it (Room with Continental Plan), and the booking quote shows no separate meal charge. Off: the meal is a line of its own. The tax summary still lists every tax rate. Check with your accountant first.",
    "fieldname": "merge_meal_in_room_line",
    "fieldtype": "Check",
-   "label": "Print the meal inside the room line"
+   "label": "Show the meal inside the room rate (never as a separate charge)"
   },
   {
    "default": "0",

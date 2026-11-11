@@ -162,7 +162,7 @@ export default function ExpressCheckOut(props: Props & { Fallback: ComponentType
           <div className="divide-y divide-zinc-100 rounded-xl border border-zinc-200 bg-white text-sm">
             {Object.values(ctx.groups).map((g) => (
               <div key={g.group} className="flex justify-between px-4 py-2">
-                <span className="text-zinc-700">{t(g.group)}{g.count > 1 ? ` × ${g.count}` : ""}</span>
+                <span className="text-zinc-700">{t(g.group)}{g.count > 1 && g.group !== "Room" ? ` × ${g.count}` : ""}</span>
                 <span>{money(g.amount)}</span>
               </div>
             ))}
