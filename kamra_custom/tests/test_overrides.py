@@ -50,14 +50,14 @@ class TestOverrides(IntegrationTestCase):
 		self.assertEqual(
 			set(hooks.override_whitelisted_methods),
 			{"kamra.api.create_booking", "kamra.api.create_group_booking", "kamra.api.walk_in", "kamra.api.amend_stay",
-			 "kamra.api.set_actual_times"},
+			 "kamra.api.set_actual_times", "kamra.api.set_housekeeping_status"},
 		)
 
 	def test_the_functions_are_whitelisted(self):
 		from frappe import is_whitelisted
 
 		for m in ("kamra.api.create_booking", "kamra.api.create_group_booking", "kamra.api.walk_in", "kamra.api.amend_stay",
-		          "kamra.api.set_actual_times"):
+		          "kamra.api.set_actual_times", "kamra.api.set_housekeeping_status"):
 			is_whitelisted(frappe.get_attr(frappe.override_whitelisted_method(m)))
 
 	def test_a_plain_booking_is_exactly_what_kamra_makes(self):

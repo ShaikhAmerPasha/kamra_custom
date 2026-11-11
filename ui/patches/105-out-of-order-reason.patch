@@ -1,0 +1,76 @@
+--- a/src/lib/api.ts	2026-11-11 18:49:16.046392920 +0530
++++ b/src/lib/api.ts	2026-11-11 18:49:16.046883986 +0530
+@@ -5,6 +5,7 @@
+ // The served boot page injects the session's CSRF token as window.csrf_token
+ // (see kamra/www/kamra.py). Frappe enforces it on POSTs from a logged-in
+ // session; guests and the dev server (ignore_csrf) don't need it.
++import { askOutOfOrder, oooListening } from "../custom/outOfOrder"
+ import { htmlToText } from "./utils"
+ import { t as translate } from "./i18n"
+ 
+@@ -1693,8 +1694,16 @@
+ export const checkOut = (reservation: string) =>
+   call("kamra.api.check_out", { reservation })
+ 
+-export const setHousekeepingStatus = (room: string, status: string) =>
+-  call("kamra.api.set_housekeeping_status", { room, status })
++/** Out of Order asks why and until when (Kamra Custom); `asked` says the caller has a hold with both already. */
++export const setHousekeepingStatus = async (room: string, status: string, opts?: { asked?: boolean }) => {
++  if (status === "Out of Order" && !opts?.asked && oooListening()) {
++    const a = await askOutOfOrder(room)
++    // the desk closed the form: nothing changes
++    if (!a) return { ok: true, room, status: "" }
++    return call("kamra_custom.rooms.take_out_of_order", { room, reason: a.reason, until: a.until })
++  }
++  return call("kamra.api.set_housekeeping_status", { room, status })
++}
+ 
+ export interface ReservationDetail {
+   name: string
+--- a/src/components/RoomDrawer.tsx	2026-11-11 18:49:16.050388584 +0530
++++ b/src/components/RoomDrawer.tsx	2026-11-11 18:49:16.050983992 +0530
+@@ -304,7 +304,7 @@
+       })
+       // a broken room is also flagged for housekeeping when the hold starts today
+       if (k.id === "ooo" && from <= today && d.can.supervise && status !== "Out of Order") {
+-        await setHousekeepingStatus(d.room.name, "Out of Order")
++        await setHousekeepingStatus(d.room.name, "Out of Order", { asked: true })
+       }
+       setFormOpen(false)
+       setNote("")
+@@ -451,7 +451,7 @@
+               </label>
+             </div>
+             <label className="mt-3 block text-sm text-zinc-600">
+-              {t("Note (what is wrong, who is fixing it)")}
++              {t("Note (what is wrong, who is fixing it)")}{kind === "ooo" || kind === "other" ? ` - ${t("required")}` : ""}
+               <textarea
+                 value={note}
+                 onChange={(e) => setNote(e.target.value)}
+@@ -462,7 +462,7 @@
+             <div className="mt-3 flex flex-wrap gap-2">
+               <Button
+                 className="min-h-11 px-4"
+-                disabled={busy || !from || !to || to <= from}
++                disabled={busy || !from || !to || to <= from || ((kind === "ooo" || kind === "other") && note.trim().length < 3)}
+                 onClick={takeOut}
+               >
+                 {t("Take out of service")}
+--- a/src/AppShell.tsx	2026-11-11 18:49:16.054089973 +0530
++++ b/src/AppShell.tsx	2026-11-11 18:49:16.054612602 +0530
+@@ -46,6 +46,7 @@
+ import { useKiosk } from "./lib/kiosk"
+ import { CUSTOM_NAV, TopNav } from "./custom/TopNav"
+ import { Hotkeys } from "./custom/Hotkeys"
++import { OutOfOrderAsk } from "./custom/OutOfOrderAsk"
+ import { getSiteInfo, versionLabel } from "./lib/siteInfo"
+ import AlertSettings from "./components/AlertSettings"
+ import NotificationHost from "./components/NotificationHost"
+@@ -774,6 +775,7 @@
+           <HelpPanel />
+           <CommandPalette />
+           <Hotkeys onNewBooking={() => canBook && setBooking({})} />
++          <OutOfOrderAsk />
+         </Suspense>
+       )}
+ 
