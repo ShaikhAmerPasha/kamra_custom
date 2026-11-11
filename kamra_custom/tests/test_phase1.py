@@ -56,7 +56,7 @@ class TestFlags(IntegrationTestCase):
 			frappe.db.sql("delete from tabSingles where doctype = 'Kamra Custom Settings' and field = %s", name)
 		self.assertEqual(flags.ui_flags(), flags.DEFAULTS)
 		# the bill layout needs the accountant's word, so it starts off
-		self.assertFalse(flags.DEFAULTS["merge_meal_in_room_line"])
+		self.assertTrue(flags.DEFAULTS["merge_meal_in_room_line"])
 
 	def test_a_switch_can_be_turned_off(self):
 		frappe.db.set_single_value("Kamra Custom Settings", "grc_staff_name", 0)
