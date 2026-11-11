@@ -6,3 +6,4 @@
 # Patches added in this section will be executed after doctypes are migrated
 kamra_custom.patches.seed_rate_approvers
 kamra_custom.patches.mark_complimentary_approvers
+kamra_custom.patches.standard_times_2pm_12pm
