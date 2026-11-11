@@ -144,14 +144,15 @@ export function CustomReservationPanel({ name, onChanged }: { name: string; onCh
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-xs uppercase tracking-wide text-zinc-500">
-              <th className="py-1">Night</th><th className="py-1 text-right">Room</th>
-              {hasMeal ? <th className="py-1 text-right">Rate</th> : null}<th className="py-1 text-right">Tax</th>
+              <th className="py-1">Night</th>
+              {/* the meal is part of the rate: one column, never room and meal apart */}
+              <th className="py-1 text-right">{hasMeal ? "Rate" : "Room"}</th><th className="py-1 text-right">Tax</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
             {d.night_rates.map((n) => (
-              <tr key={n.date}><td className="py-1">{n.date}</td><td className="py-1 text-right">{fmtMoney(n.rate)}</td>
-                {hasMeal ? <td className="py-1 text-right">{fmtMoney(n.rate + (n.meal ?? 0))}</td> : null}<td className="py-1 text-right">{n.gst_rate}%</td></tr>
+              <tr key={n.date}><td className="py-1">{n.date}</td><td className="py-1 text-right">{fmtMoney(n.rate + (n.meal ?? 0))}</td>
+                <td className="py-1 text-right">{n.gst_rate}%</td></tr>
             ))}
           </tbody>
         </table>
