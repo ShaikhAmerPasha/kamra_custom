@@ -18,6 +18,7 @@ import { ComplimentaryBox } from "./CustomComplimentary"
 import { useFlags } from "./flags"
 import { checkInProblems, defaultRoom, isCleanRoom } from "./expressCheckIn"
 import { cur } from "../lib/money"
+import { showStay } from "./showDate"
 import { StayChecklist, useStayInfo } from "./StayChecklist"
 import { checkInItems } from "./stayChecks"
 
@@ -85,7 +86,7 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
   })
   const page1Problem = problems.find((p) => p.page === 1)
   const title = t("Check in {name}", { name: r.guest_name })
-  const description = `${flow.room.room_type_name ?? r.room_type} · ${r.check_in_date} → ${r.check_out_date} · ${r.adults + r.children} ${t("guests")}`
+  const description = `${flow.room.room_type_name ?? r.room_type} · ${showStay(r.check_in_date, r.check_out_date)} · ${r.adults + r.children} ${t("guests")}`
 
   /** Each of Kamra's steps for this guest, in order. A step that fails stops the check-in with its own message. */
   async function checkIn() {
@@ -201,7 +202,6 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
 
           {r.adults + r.children > 1 && (
             <section className="space-y-3">
-              <h3 className="text-sm font-semibold text-zinc-800">{t("Other guests")}</h3>
               <CheckInGuests
                 key={flow.ids.occupants.map((o) => o.row).join(",")}
                 reservation={r.name}
@@ -260,7 +260,7 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
               [t("Guest"), r.guest_name],
               [t("ID"), flow.guest.id_on_file && !idNumber ? t("On file") : `${idType} ${idNumber ? "•••" + idNumber.slice(-4) : ""}`],
               [t("Room"), hasRoom ? flow.room.room_number : flow.rooms.find((x) => x.name === room)?.room_number],
-              [t("Stay"), `${r.check_in_date} → ${r.check_out_date}`],
+              [t("Stay"), showStay(r.check_in_date, r.check_out_date)],
             ].map(([k, v]) => (
               <div key={k} className="flex justify-between gap-3 py-2"><dt className="text-zinc-500">{k}</dt><dd className="font-medium">{v}</dd></div>
             ))}

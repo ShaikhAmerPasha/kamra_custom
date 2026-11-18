@@ -1,0 +1,28 @@
+--- a/src/screens/FolioView.tsx	2026-11-18 18:29:05.993928291 +0530
++++ b/src/screens/FolioView.tsx	2026-11-18 18:29:05.994713354 +0530
+@@ -1,6 +1,7 @@
+ import { foldMealHead, foldMealIntoRoom, type Folded } from "../custom/mealInside"
+ import { PrintBillLines } from "../custom/PrintBillLines"
+ import { BalanceStrip, PaymentLedger } from "../custom/FolioLedger"
++import { showStay } from "../custom/showDate"
+ import { useFlags } from "../custom/flags"
+ import { Fragment, useCallback, useEffect, useRef, useState } from "react"
+ import { ArrowLeft, ArrowRightLeft, Printer, Trash2, X } from "lucide-react"
+@@ -795,7 +796,7 @@
+         balance={folio.balance}
+         guest={folio.guest_name}
+         onTakePayment={open && folio.balance > 0 ? () => document.getElementById("record-payment")?.scrollIntoView({ behavior: "smooth", block: "center" }) : undefined}
+-        detail={[stay.room ? `${t("Room")} ${stay.room.split("-").pop()}` : "", stay.check_in && stay.check_out ? `${stay.check_in} → ${stay.check_out}` : ""].filter(Boolean).join(" · ") || folio.name}
++        detail={[stay.room ? `${t("Room")} ${stay.room.split("-").pop()}` : "", stay.check_in && stay.check_out ? showStay(stay.check_in, stay.check_out) : ""].filter(Boolean).join(" · ") || folio.name}
+         status={folio.status}
+         money={(n) => `${n < 0 ? "-" : ""}${cur()}${inr(Math.abs(n))}`}
+       />
+@@ -912,7 +913,7 @@
+               )}
+             </Fact>
+             <Fact label={t("Stay")}>
+-              {stay.check_in} → {stay.check_out} · {t("{n} night{s}", {
++              {showStay(stay.check_in, stay.check_out)} · {t("{n} night{s}", {
+                 n: stay.nights,
+                 s: stay.nights === 1 ? "" : "s",
+               })}

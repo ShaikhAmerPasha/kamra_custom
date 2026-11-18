@@ -382,7 +382,7 @@ export function Hotkeys({ onNewBooking }: { onNewBooking: () => void }) {
       {showBar && (
         <div
           {...{ [BAR_ATTR]: "" }}
-          className="fixed inset-x-0 bottom-0 z-40 flex h-8 items-center gap-1 overflow-x-auto border-t border-zinc-200 bg-white/95 px-2 text-xs backdrop-blur print:hidden"
+          className="fixed inset-x-0 bottom-0 z-40 hidden h-8 items-center sm:flex gap-1 overflow-x-auto border-t border-zinc-200 bg-white/95 px-2 text-xs backdrop-blur print:hidden"
           role="toolbar"
           aria-label={t("Keyboard shortcuts")}
         >

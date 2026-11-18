@@ -1,0 +1,14 @@
+--- a/src/screens/InHouse.tsx	2026-11-18 18:29:06.012638034 +0530
++++ b/src/screens/InHouse.tsx	2026-11-18 18:29:06.013380662 +0530
+@@ -63,8 +63,9 @@
+   const [snap, setSnap] = useState<Snapshot | null>(null)
+   const [rangeArrivals, setRangeArrivals] = useState<ReservationRow[] | null>(null)
+   const [error, setError] = useState<string | null>(null)
+-  const [checkingIn, setCheckingIn] = useState<string | null>(null)
+-  const [checkingOut, setCheckingOut] = useState<string | null>(null)
++  // a link such as ?checkout=RES-... (from Needs attention) opens that stay's panel at once
++  const [checkingIn, setCheckingIn] = useState<string | null>(params.get("checkin"))
++  const [checkingOut, setCheckingOut] = useState<string | null>(params.get("checkout"))
+ 
+   const load = useCallback(() => {
+     getSnapshot(date === today ? undefined : date)

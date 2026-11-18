@@ -1,0 +1,1 @@
+function a(e,n){if(!e)return"";const t=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(e));if(!t)return String(e);const r=new Date(Date.UTC(+t[1],+t[2]-1,+t[3]));return isNaN(r.getTime())?String(e):r.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric",timeZone:"UTC"})}function i(e,n,t){return`${a(e)} → ${a(n)}`}export{i as s};

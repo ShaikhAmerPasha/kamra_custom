@@ -16,6 +16,7 @@ import { checkOutWithCredit } from "../components/CreditCheckout"
 import ChangeCompany from "../components/ChangeCompany"
 import { Settlements } from "./Settlements"
 import { StayChecklist, useStayInfo } from "./StayChecklist"
+import { showStay } from "./showDate"
 import { checkOutItems } from "./stayChecks"
 import { allocate, isCash, tenderAmounts, tenderProblem, whyNotExpress, type CheckoutLike, type Tender } from "./expressCheckOut"
 
@@ -83,7 +84,7 @@ export default function ExpressCheckOut(props: Props & { Fallback: ComponentType
   const problem = tenderProblem(lines, due)
   const setLine = (i: number, patch: Partial<Tender>) => setLines((ls) => ls.map((l, n) => (n === i ? { ...l, ...patch } : l)))
   const title = t("Check out {name}", { name: r.guest_name })
-  const description = `${t("Room {n}", { n: r.room_number ?? "" })} · ${r.room_type_name ?? ""} · ${r.check_in_date} → ${r.check_out_date}`
+  const description = `${t("Room {n}", { n: r.room_number ?? "" })} · ${r.room_type_name ?? ""} · ${showStay(r.check_in_date, r.check_out_date)}`
 
   async function checkOut() {
     if (!ctx) return

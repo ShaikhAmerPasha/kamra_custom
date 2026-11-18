@@ -1,0 +1,31 @@
+--- a/src/components/ResourceScreen.tsx	2026-11-18 18:29:06.021438780 +0530
++++ b/src/components/ResourceScreen.tsx	2026-11-18 18:29:06.022173464 +0530
+@@ -131,6 +131,8 @@
+     field: string
+     label: string
+     badge?: boolean
++    /** Show only the part after the last dash (a room "SR Continental-401" reads "401"). */
++    short?: boolean
+     /** Map a Check field (0/1) to Active / Disabled badges. */
+     statusCheck?: boolean
+   }[]
+@@ -879,7 +881,7 @@
+                           {t(String(row[c.field]))}
+                         </Badge>
+                       ) : (
+-                        cellValue(row[c.field], t)
++                        c.short && typeof row[c.field] === "string" ? String(row[c.field]).split("-").pop() : cellValue(row[c.field], t)
+                       )}
+                     </td>
+                   ))}
+--- a/src/screens/configs.ts	2026-11-18 18:29:06.025652965 +0530
++++ b/src/screens/configs.ts	2026-11-18 18:29:06.026386320 +0530
+@@ -638,7 +638,7 @@
+   orderBy: "creation desc",
+   columns: [
+     { field: "name", label: "Task" },
+-    { field: "room", label: "Room" },
++    { field: "room", label: "Room", short: true },
+     { field: "task_type", label: "Type", badge: true },
+     { field: "priority", label: "Priority" },
+     { field: "assigned_to_user", label: "Assigned to" },

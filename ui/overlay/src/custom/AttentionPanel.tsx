@@ -62,6 +62,7 @@ export function AttentionPanel() {
 
   const go = async (i: Item) => {
     setOpen(false)
+    if (i.open === "check_out") return navigate(`/in-house?tab=in-house&checkout=${encodeURIComponent(i.reservation)}`)
     if (i.open === "bill") {
       try {
         const d = await call<{ folio_name?: string }>("kamra.api.reservation_detail", { reservation: i.reservation })

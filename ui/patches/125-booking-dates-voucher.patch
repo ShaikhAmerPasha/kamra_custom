@@ -1,0 +1,53 @@
+--- a/src/components/BookingDialog.tsx	2026-11-18 18:29:06.003227649 +0530
++++ b/src/components/BookingDialog.tsx	2026-11-18 18:29:06.003953123 +0530
+@@ -28,6 +28,7 @@
+ import { CustomBookingFields, RateAmount, customGuestSearch, useCustomBooking } from "../custom/CustomBooking"
+ import { StayLength } from "../custom/CustomStay"
+ import { StayTimes } from "../custom/StayTimes"
++import { showStay } from "../custom/showDate"
+ import { useFlags } from "../custom/flags"
+ import { DEFAULT_TIMES, stayTimeArgs } from "../custom/stayTimes"
+ import CheckInDialog from "./CheckInDialog"
+@@ -1653,18 +1654,21 @@
+                   </div>
+                 )}
+ 
+-                <div className="grid gap-3 sm:grid-cols-2">
+-                  <Field label={t("Voucher")}>
+-                    <input
+-                      className={inputCls}
+-                      value={form.voucher_code}
+-                      onChange={(e) =>
+-                        set("voucher_code", e.target.value.toUpperCase())
+-                      }
+-                      placeholder={t("Optional code")}
+-                    />
+-                  </Field>
+-                </div>
++                <details open={!!form.voucher_code} className="rounded-xl border border-zinc-200 px-3 py-2">
++                  <summary className="cursor-pointer text-sm font-medium text-zinc-700">{t("Have a voucher code?")}</summary>
++                  <div className="mt-2 grid gap-3 sm:grid-cols-2">
++                    <Field label={t("Voucher")}>
++                      <input
++                        className={inputCls}
++                        value={form.voucher_code}
++                        onChange={(e) =>
++                          set("voucher_code", e.target.value.toUpperCase())
++                        }
++                        placeholder={t("Optional code")}
++                      />
++                    </Field>
++                  </div>
++                </details>
+ 
+                 {false && form.room_type && (
+                   <RateOptions
+@@ -2462,7 +2466,7 @@
+                       <p className="mt-1 text-xs text-zinc-400">
+                         {dayUse
+                           ? `${form.check_in_date} · ${slot.from}-${slot.to}`
+-                          : `${form.check_in_date} → ${checkOut}`}
++                          : showStay(form.check_in_date, checkOut)}
+                       </p>
+                       {otaTotal > 0 && (
+                         <p className="mt-1 text-xs font-medium text-indigo-600">
