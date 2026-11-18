@@ -18,6 +18,7 @@ import { Settlements } from "./Settlements"
 import { StayChecklist, useStayInfo } from "./StayChecklist"
 import { StayDetails } from "./StayDetails"
 import { showStay } from "./showDate"
+import { ExtraCharges } from "./ExtraCharges"
 import { checkOutItems } from "./stayChecks"
 import { allocate, isCash, tenderAmounts, tenderProblem, whyNotExpress, type CheckoutLike, type Tender } from "./expressCheckOut"
 
@@ -185,6 +186,12 @@ export default function ExpressCheckOut(props: Props & { Fallback: ComponentType
             </div>
           </div>
         </section>
+
+        <ExtraCharges
+          folio={ctx.folios.find((f) => f.side === "guest" && f.status === "Open")?.folio ?? null}
+          money={money}
+          onPosted={() => void load()}
+        />
 
         <Settlements reservation={props.reservation} money={money} version={ctx.totals.paid} />
 
