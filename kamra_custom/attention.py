@@ -68,7 +68,17 @@ def attention(property: str):
 		no_show.append({"reservation": r.name, "guest": r.guest_name, "room": number(r.room),
 		                "detail": f"arrival was {r.check_in_date}", "open": "reservation"})
 
+	from kamra.business_date import get_business_date
+	from frappe.utils import date_diff
+
+	behind = date_diff(today, get_business_date(property))
+	audit = []
+	if behind > 0:
+		audit.append({"reservation": "", "guest": "Night audit", "room": "",
+		              "detail": f"business date is {behind} day{'s' if behind != 1 else ''} behind", "open": "night_audit"})
+
 	groups = [
+		("audit_behind", "Night audit not run", audit),
 		("overdue", "Past check-out time", overdue),
 		("not_ready", "Arrival, room not ready", not_ready),
 		("no_room", "Arrival, no room", no_room),

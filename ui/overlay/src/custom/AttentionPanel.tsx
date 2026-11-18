@@ -13,7 +13,7 @@ interface Item {
   guest: string
   room: string
   detail: string
-  open: "check_out" | "bill" | "reservation"
+  open: "check_out" | "bill" | "reservation" | "night_audit"
 }
 interface Group {
   key: string
@@ -62,6 +62,7 @@ export function AttentionPanel() {
 
   const go = async (i: Item) => {
     setOpen(false)
+    if (i.open === "night_audit") return navigate("/end-of-day")
     if (i.open === "check_out") return navigate(`/in-house?tab=in-house&checkout=${encodeURIComponent(i.reservation)}`)
     if (i.open === "bill") {
       try {

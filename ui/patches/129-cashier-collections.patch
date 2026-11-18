@@ -1,0 +1,19 @@
+--- a/src/screens/CashierBoard.tsx	2026-11-18 18:31:41.286903711 +0530
++++ b/src/screens/CashierBoard.tsx	2026-11-18 18:31:41.287553675 +0530
+@@ -1,6 +1,7 @@
+ /** All tills: who holds which, what is on its way to the cash office, tills
+  *  that closed over or short, and the terminals themselves (name, outlet,
+  *  which printer prints its bills). */
++import { Collections } from "../custom/Collections"
+ import { useCallback, useEffect, useState } from "react"
+ import { Link } from "react-router-dom"
+ import { Landmark, Lock, Plus, Unlock } from "lucide-react"
+@@ -188,6 +189,8 @@
+         </div>
+       ) : null}
+ 
++      <Collections />
++
+       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+         {(board?.tills ?? []).map((tl) => (
+           <Card key={tl.name ?? "default"}>
