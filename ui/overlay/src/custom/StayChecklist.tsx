@@ -6,11 +6,14 @@ import { call } from "../lib/api"
 import { useT } from "../lib/i18n"
 import { cn } from "../lib/utils"
 import type { CheckItem } from "./stayChecks"
+import type { DetailInput } from "./stayDetails"
 
 export interface StayInfo {
   idMissing: boolean
   due: number
   paid: number
+  /** The reservation as Kamra returns it, for the stay details card. */
+  detail: DetailInput & { folio_name?: string | null }
 }
 
 /** What the reservation says about ID and money. Null until it is known. */
@@ -18,7 +21,7 @@ export function useStayInfo(reservation: string): StayInfo | null {
   const [info, setInfo] = useState<StayInfo | null>(null)
   useEffect(() => {
     let live = true
-    call<{ warnings?: { id_document_missing?: boolean }; money?: { due?: number; paid?: number } }>(
+    call<{ warnings?: { id_document_missing?: boolean }; money?: { due?: number; paid?: number } } & StayInfo["detail"]>(
       "kamra.api.reservation_detail",
       { reservation },
     )
@@ -29,6 +32,7 @@ export function useStayInfo(reservation: string): StayInfo | null {
             idMissing: !!d.warnings?.id_document_missing,
             due: Number(d.money?.due ?? 0),
             paid: Number(d.money?.paid ?? 0),
+            detail: d,
           }),
       )
       .catch(() => {})

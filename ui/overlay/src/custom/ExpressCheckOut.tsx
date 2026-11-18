@@ -16,6 +16,7 @@ import { checkOutWithCredit } from "../components/CreditCheckout"
 import ChangeCompany from "../components/ChangeCompany"
 import { Settlements } from "./Settlements"
 import { StayChecklist, useStayInfo } from "./StayChecklist"
+import { StayDetails } from "./StayDetails"
 import { showStay } from "./showDate"
 import { checkOutItems } from "./stayChecks"
 import { allocate, isCash, tenderAmounts, tenderProblem, whyNotExpress, type CheckoutLike, type Tender } from "./expressCheckOut"
@@ -162,6 +163,7 @@ export default function ExpressCheckOut(props: Props & { Fallback: ComponentType
       }
     >
       <div className="space-y-5">
+        {info && <StayDetails detail={info.detail} />}
         <StayChecklist
           mode="out"
           items={checkOutItems({ due, folios: ctx.folios, idMissing: !!info?.idMissing })}

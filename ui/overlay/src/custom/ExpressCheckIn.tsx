@@ -20,6 +20,7 @@ import { checkInProblems, defaultRoom, isCleanRoom } from "./expressCheckIn"
 import { cur } from "../lib/money"
 import { showStay } from "./showDate"
 import { StayChecklist, useStayInfo } from "./StayChecklist"
+import { StayDetails } from "./StayDetails"
 import { checkInItems } from "./stayChecks"
 
 interface Flow {
@@ -173,6 +174,7 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
     >
       {page === 1 ? (
         <div className="space-y-5">
+          {info && <StayDetails detail={info.detail} />}
           {info && (
             <StayChecklist
               mode="in"
