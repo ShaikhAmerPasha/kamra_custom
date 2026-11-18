@@ -58,3 +58,27 @@ export function nightsOf(from: string, to: string): number {
   const b = Date.parse(to + "T00:00:00Z")
   return Math.max(1, Math.round((b - a) / 86_400_000))
 }
+
+export interface MoveBooking {
+  name: string
+  check_in_date: string
+  check_out_date: string
+}
+
+/** Arrivals and departures on each date, counting each stay once. */
+export function dayMovement(bookings: MoveBooking[], dates: string[]): Record<string, { arr: number; dep: number }> {
+  const seen = new Map<string, MoveBooking>()
+  for (const b of bookings) seen.set(b.name, b)
+  const out: Record<string, { arr: number; dep: number }> = {}
+  for (const d of dates) out[d] = { arr: 0, dep: 0 }
+  for (const b of seen.values()) {
+    if (out[b.check_in_date]) out[b.check_in_date].arr += 1
+    if (out[b.check_out_date]) out[b.check_out_date].dep += 1
+  }
+  return out
+}
+
+/** An arrival today into a room that is dirty or out of order: the desk should know before the guest does. */
+export function arrivalNotReady(b: { status: string; check_in_date: string }, roomStatus: string, today: string): boolean {
+  return b.status === "Confirmed" && b.check_in_date === today && (roomStatus === "Dirty" || roomStatus === "Out of Order")
+}

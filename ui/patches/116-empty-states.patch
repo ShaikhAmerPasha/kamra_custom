@@ -1,0 +1,12 @@
+--- a/src/screens/InHouse.tsx	2026-11-18 18:13:51.843158207 +0530
++++ b/src/screens/InHouse.tsx	2026-11-18 18:13:51.843892321 +0530
+@@ -206,6 +206,9 @@
+               : tab === "departures"
+                 ? t("No departures on this day.")
+                 : t("Nobody is in house.")}
++            <span className="mt-1 block text-xs text-zinc-500">
++              {tab === "arrivals" ? t("Guest at the desk without a booking? Press F3 for a walk-in. New reservation: F2.") : tab === "in-house" ? t("Check in an arrival from the Arrivals tab.") : t("Guests due out today appear here.")}
++            </span>
+           </p>
+         ) : (
+           <div className="overflow-x-auto">

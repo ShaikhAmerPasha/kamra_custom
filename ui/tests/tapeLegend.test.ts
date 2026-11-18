@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { legendCounts, matches, nightsOf } from "../overlay/src/custom/tapeLegend"
+import { arrivalNotReady, dayMovement, legendCounts, matches, nightsOf } from "../overlay/src/custom/tapeLegend"
 
 const today = "2026-11-18"
 const stays = [
@@ -28,5 +28,26 @@ describe("tape legend", () => {
   it("nights are whole and at least one", () => {
     expect(nightsOf("2026-11-18", "2026-11-20")).toBe(2)
     expect(nightsOf("2026-11-18", "2026-11-18")).toBe(1)
+  })
+
+  it("counts arrivals and departures per day, each stay once", () => {
+    const m = dayMovement(
+      [
+        { name: "A", check_in_date: "2026-11-18", check_out_date: "2026-11-19" },
+        { name: "A", check_in_date: "2026-11-18", check_out_date: "2026-11-19" },
+        { name: "B", check_in_date: "2026-11-19", check_out_date: "2026-11-21" },
+        { name: "C", check_in_date: "2026-11-10", check_out_date: "2026-11-30" },
+      ],
+      ["2026-11-18", "2026-11-19", "2026-11-20"],
+    )
+    expect(m).toEqual({ "2026-11-18": { arr: 1, dep: 0 }, "2026-11-19": { arr: 1, dep: 1 }, "2026-11-20": { arr: 0, dep: 0 } })
+  })
+  it("marks an arrival today into a dirty or out-of-order room", () => {
+    const b = { status: "Confirmed", check_in_date: today }
+    expect(arrivalNotReady(b, "Dirty", today)).toBe(true)
+    expect(arrivalNotReady(b, "Out of Order", today)).toBe(true)
+    expect(arrivalNotReady(b, "Clean", today)).toBe(false)
+    expect(arrivalNotReady({ ...b, check_in_date: "2026-11-25" }, "Dirty", today)).toBe(false)
+    expect(arrivalNotReady({ ...b, status: "Checked In" }, "Dirty", today)).toBe(false)
   })
 })

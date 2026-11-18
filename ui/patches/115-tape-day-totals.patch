@@ -1,0 +1,45 @@
+--- a/src/screens/TapeChart.tsx	2026-11-18 18:12:52.030300484 +0530
++++ b/src/screens/TapeChart.tsx	2026-11-18 18:12:52.031268968 +0530
+@@ -18,7 +18,7 @@
+ import CheckInDialog from "../components/CheckInDialog"
+ import RoomChangeDialog from "../components/RoomChangeDialog"
+ import { BookingCard, TapeLegend } from "../custom/TapeLegend"
+-import { matches, type LegendKey } from "../custom/tapeLegend"
++import { arrivalNotReady, dayMovement, matches, type LegendKey } from "../custom/tapeLegend"
+ 
+ 
+ /** The tape chart: rooms × dates, bookings as bars. Click a bar to open the
+@@ -233,6 +233,10 @@
+   const { refreshKey, canBook, openBooking: newBooking } = useOutletContext<ShellContext>()
+ 
+   // rooms grouped by room type, honoring the filter (rooms arrive ordered)
++  const moves = useMemo(
++    () => dayMovement((data?.rooms ?? []).flatMap((r) => r.bookings), data?.dates ?? []),
++    [data],
++  )
+   const groups = useMemo(() => {
+     const out: { key: string; label: string; rooms: TapeRoom[] }[] = []
+     for (const r of data?.rooms ?? []) {
+@@ -571,6 +575,9 @@
+                     : p.occupancy >= 80 ? "bg-emerald-50 font-semibold text-emerald-700"
+                       : p.occupancy >= 50 ? "text-amber-600" : "text-zinc-400")}>
+                 {p.sold}/{p.capacity}
++                <div className="text-[10px] font-normal text-zinc-500">
++                  ▲{moves[p.date]?.arr ?? 0} ▼{moves[p.date]?.dep ?? 0}
++                </div>
+                 {p.premium_pct > 0 && <span className="ms-0.5 text-emerald-600">▲</span>}
+                 {p.overbooked && translate(" OB")}
+               </div>
+@@ -688,10 +695,11 @@
+                                 b.status === "Checked In" ? "bg-brand-600 hover:bg-brand-700"
+                                   : "bg-sky-500 hover:bg-sky-600",
+                                 inConflict && "ring-2 ring-rose-500 ring-offset-1",
++                                arrivalNotReady(b, room.housekeeping_status, todayIso()) && "ring-2 ring-amber-400 ring-offset-1",
+                                 hl && !matches(hl, b, todayIso(), new Set((data.conflicts ?? []).flatMap((c) => [c.in_res, c.out_res]))) && "opacity-25",
+                                 dd && "pointer-events-none z-20 cursor-grabbing opacity-90 shadow-lg ring-2 ring-white",
+                               )}
+-                              aria-label={(`${b.guest_name} · ${t(seg.label)} · ${b.check_in_date}${eta ? ` ${eta}` : ""} → ${b.check_out_date}${etd ? ` ${etd}` : ""}` +
++                              aria-label={(arrivalNotReady(b, room.housekeeping_status, todayIso()) ? `${t("Room not ready")} · ` : "") + (`${b.guest_name} · ${t(seg.label)} · ${b.check_in_date}${eta ? ` ${eta}` : ""} → ${b.check_out_date}${etd ? ` ${etd}` : ""}` +
+                                 (inConflict ? ` · ${t("CHANGEOVER CONFLICT")}` : ""))}>
+                               {/* drag handles: arrival (not once checked in) and departure */}
+                               {resizable && b.status === "Confirmed" && s0 >= 0 && (
