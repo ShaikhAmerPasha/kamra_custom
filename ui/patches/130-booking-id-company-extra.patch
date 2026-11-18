@@ -1,0 +1,94 @@
+--- a/src/lib/api.ts	2026-11-18 18:52:46.319465178 +0530
++++ b/src/lib/api.ts	2026-11-18 18:52:46.320311075 +0530
+@@ -392,6 +392,9 @@
+     name: string
+     company_name: string
+     negotiated_rate_plan?: string | null
++    gstin?: string
++    contact_name?: string
++    contact_phone?: string
+   }[]
+   travel_agents: { name: string; agent_name: string; commission_pct: number }[]
+   ota_channels?: string[]
+--- a/src/components/BookingDialog.tsx	2026-11-18 18:52:46.323697915 +0530
++++ b/src/components/BookingDialog.tsx	2026-11-18 18:52:46.324352855 +0530
+@@ -29,6 +29,7 @@
+ import { StayLength } from "../custom/CustomStay"
+ import { StayTimes } from "../custom/StayTimes"
+ import { showStay } from "../custom/showDate"
++import { CompanyDetails } from "../custom/CompanyDetails"
+ import { useFlags } from "../custom/flags"
+ import { DEFAULT_TIMES, stayTimeArgs } from "../custom/stayTimes"
+ import CheckInDialog from "./CheckInDialog"
+@@ -700,6 +701,14 @@
+         marketing_consent: offers ? 1 : undefined,
+       })
+       await addOthers(res.reservation)
++      // an ID given at booking is kept, so check-in does not ask for it again
++      if (walk.id_type && walk.id_number.trim()) {
++        try {
++          await call("kamra.checkin.save_guest_details", { reservation: res.reservation, id_type: walk.id_type, id_number: walk.id_number.trim() })
++        } catch {
++          /* the booking stands; check-in will ask for the ID */
++        }
++      }
+       setDone({ ref: res.reservation, room: res.room })
+       props.onBooked()
+       call<{ deposit: DepositState }>("kamra.api.reservation_detail", {
+@@ -1212,6 +1221,26 @@
+                     onChange={(e) => setOthers(e.target.value)}
+                   />
+                 </Field>
++                {!walkIn && (
++                  <div className="grid gap-3 sm:grid-cols-2">
++                    <Field label={t("ID type")}>
++                      <select className={inputCls} value={walk.id_type} onChange={(e) => setW("id_type", e.target.value)}>
++                        <option value="">{t("Select")}</option>
++                        {loc.id_types.map((x) => (
++                          <option key={x} value={x}>
++                            {t(x)}
++                          </option>
++                        ))}
++                      </select>
++                    </Field>
++                    <Field label={t("ID number")}>
++                      <input className={inputCls} value={walk.id_number} onChange={(e) => setW("id_number", e.target.value)} autoComplete="off" />
++                      {!!walk.id_number.trim() && !walk.id_type && (
++                        <p className="mt-1.5 text-xs text-rose-600">{t("Pick the ID type too.")}</p>
++                      )}
++                    </Field>
++                  </div>
++                )}
+ 
+                 {blacklisted && (
+                   <div
+@@ -1626,7 +1655,7 @@
+                       {form.over_capacity_guests > 0 && (
+                         <label className="block">
+                           <span className="mb-1 block text-xs font-medium">
+-                            {t("Agreed charge / night, all of them")}
++                            {t("Agreed charge / night, all of them (GST included)")}
+                           </span>
+                           <input
+                             type="number"
+@@ -1636,7 +1665,7 @@
+                             onChange={(e) =>
+                               set("over_capacity_charge", Math.max(0, Number(e.target.value)))
+                             }
+-                            placeholder={t("What you agreed for them")}
++                            placeholder={t("What you agreed for them, GST included")}
+                           />
+                         </label>
+                       )}
+@@ -2056,6 +2085,11 @@
+                             ))}
+                           </select>
+                         </Field>
++                        {form.company ? (
++                          <div className="sm:col-span-2">
++                            <CompanyDetails company={options?.companies.find((c) => c.name === form.company)} />
++                          </div>
++                        ) : null}
+                         <Field label={translate("Travel agent")}>
+                           <select
+                             className={inputCls}

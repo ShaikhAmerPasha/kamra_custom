@@ -17,18 +17,20 @@ export interface CheckInForm {
 
 export interface Problem {
   page: 1 | 2
+  /** What the problem is about: the ID page asks for "id"; the stay page for the room and signature. */
+  topic: "id" | "room" | "sign"
   message: string
 }
 
 /** Name, ID, room and signature: the four things asked. Empty when all are there. */
 export function checkInProblems(f: CheckInForm): Problem[] {
   const out: Problem[] = []
-  if (!f.name.trim()) out.push({ page: 1, message: "The guest has no name." })
+  if (!f.name.trim()) out.push({ page: 1, topic: "id", message: "The guest has no name." })
   const idTyped = f.idType.trim() !== "" && f.idNumber.trim() !== ""
-  if (!f.idOnFile && !idTyped) out.push({ page: 1, message: "Choose the ID type and type the ID number." })
-  if (!f.hasRoom && !f.pickedRoom) out.push({ page: 1, message: "Choose a room." })
-  if (f.othersMissing?.length) out.push({ page: 1, message: `ID still needed for: ${f.othersMissing.join(", ")}.` })
-  if (!f.signed) out.push({ page: 2, message: "The guest must sign." })
+  if (!f.idOnFile && !idTyped) out.push({ page: 1, topic: "id", message: "Choose the ID type and type the ID number." })
+  if (!f.hasRoom && !f.pickedRoom) out.push({ page: 1, topic: "room", message: "Choose a room." })
+  if (f.othersMissing?.length) out.push({ page: 1, topic: "id", message: `ID still needed for: ${f.othersMissing.join(", ")}.` })
+  if (!f.signed) out.push({ page: 2, topic: "sign", message: "The guest must sign." })
   return out
 }
 

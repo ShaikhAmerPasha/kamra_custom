@@ -15,7 +15,7 @@ describe("checkInProblems", () => {
     expect(checkInProblems({ ...ok, hasRoom: false, pickedRoom: "R-201" })).toEqual([])
   })
   it("wants a signature, on screen, on paper or earlier", () => {
-    expect(checkInProblems({ ...ok, signed: false })).toEqual([{ page: 2, message: "The guest must sign." }])
+    expect(checkInProblems({ ...ok, signed: false })).toEqual([{ page: 2, topic: "sign", message: "The guest must sign." }])
   })
   it("wants a name", () => expect(checkInProblems({ ...ok, name: "  " })).toHaveLength(1))
   it("lists several problems together", () => expect(checkInProblems({ ...ok, idNumber: "", hasRoom: false, signed: false })).toHaveLength(3))
@@ -44,5 +44,13 @@ describe("default room", () => {
     expect(defaultRoom([rooms[0]], false)).toBe("A")
     expect(defaultRoom([rooms[0]], true)).toBe("")
     expect(defaultRoom([], false)).toBe("")
+  })
+
+  it("sorts each problem to the page that asks for it", () => {
+    const topics = (f: Partial<CheckInForm>) => checkInProblems({ ...ok, ...f }).map((p) => p.topic)
+    expect(topics({ idNumber: "" })).toEqual(["id"])
+    expect(topics({ hasRoom: false })).toEqual(["room"])
+    expect(topics({ signed: false })).toEqual(["sign"])
+    expect(topics({ othersMissing: ["B Guest"] })).toEqual(["id"])
   })
 })

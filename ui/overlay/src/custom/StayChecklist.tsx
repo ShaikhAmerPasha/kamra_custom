@@ -60,7 +60,8 @@ export function StayChecklist(props: {
       case "folios":
         return t("{n} bills still open", { n: i.count ?? 0 })
       case "id":
-        return i.ok ? t("ID on file") : t("No ID on file")
+        // at check-out the check is for the scanned ID document; at check-in it is for the ID itself
+        return props.mode === "out" ? (i.ok ? t("ID scan on file") : t("No ID scan on file")) : i.ok ? t("ID on file") : t("No ID on file")
     }
   }
   return (

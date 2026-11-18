@@ -42,7 +42,8 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
   const { t } = useT()
   const flags = useFlags()
   const [flow, setFlow] = useState<Flow | null>(null)
-  const [page, setPage] = useState<1 | 2>(1)
+  // the ID page comes first only while an ID is missing; once it is done the guest never sees it again
+  const [step, setStep] = useState<"id" | "stay" | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
   const [done, setDone] = useState<string | null | false>(false)
@@ -85,7 +86,28 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
     hasRoom, pickedRoom: room, signed: !!signature || onPaper || flow.grc.signed,
     othersMissing: flow.ids.missing.filter((n) => n !== r.guest_name),
   })
-  const page1Problem = problems.find((p) => p.page === 1)
+  const idProblems = problems.filter((p) => p.topic === "id")
+  const stayProblems = problems.filter((p) => p.topic !== "id")
+  const idDone = flow.guest.id_on_file && flow.ids.ok
+  const current: "id" | "stay" = step ?? (idDone ? "stay" : "id")
+  const shownProblem = (current === "id" ? idProblems : stayProblems)[0]
+
+  /** Keep the ID the desk typed, so it is done for good, then go on to the room and signature. */
+  async function saveIdAndContinue() {
+    setBusy(true)
+    setError("")
+    try {
+      if (idType && idNumber.trim()) {
+        await call("kamra.checkin.save_guest_details", { reservation: props.reservation, id_type: idType, id_number: idNumber.trim() })
+      }
+      await load()
+      setStep("stay")
+    } catch (e) {
+      setError(serverError(e))
+    } finally {
+      setBusy(false)
+    }
+  }
   const title = t("Check in {name}", { name: r.guest_name })
   const description = `${flow.room.room_type_name ?? r.room_type} · ${showStay(r.check_in_date, r.check_out_date)} · ${r.adults + r.children} ${t("guests")}`
 
@@ -156,14 +178,14 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
         <div className="flex w-full items-center gap-2">
           {error ? (
             <p role="alert" className="me-auto text-sm text-rose-700">{error}</p>
-          ) : (page === 1 ? page1Problem : problems[0]) ? (
-            <p role="status" className="me-auto text-sm font-medium text-amber-700">{(page === 1 ? page1Problem : problems[0])!.message}</p>
+          ) : shownProblem ? (
+            <p role="status" className="me-auto text-sm font-medium text-amber-700">{shownProblem.message}</p>
           ) : (
-            <span className="me-auto text-xs text-zinc-500">{t("Page {n} of 2", { n: page })}</span>
+            <span className="me-auto text-xs text-zinc-500">{current === "id" ? t("Step 1 of 2: ID") : step === "stay" ? t("Step 2 of 2: room and signature") : t("Room and signature")}</span>
           )}
-          {page === 2 ? <Button variant="outline" onClick={() => setPage(1)}>{t("Back")}</Button> : null}
-          {page === 1 ? (
-            <Button className="px-6 py-2.5 text-base" disabled={!!page1Problem} onClick={() => setPage(2)}>{t("Next")}</Button>
+          {current === "stay" && step === "stay" ? <Button variant="outline" onClick={() => setStep("id")}>{t("Back")}</Button> : null}
+          {current === "id" ? (
+            <Button className="px-6 py-2.5 text-base" disabled={busy || idProblems.length > 0} onClick={saveIdAndContinue}>{busy ? t("Saving…") : t("Next")}</Button>
           ) : (
             <Button className="px-6 py-2.5 text-base" disabled={busy || problems.length > 0} onClick={checkIn}>
               {busy ? t("Checking in…") : t("Check in")}
@@ -172,16 +194,17 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
         </div>
       }
     >
-      {page === 1 ? (
-        <div className="space-y-5">
+      <div className="space-y-5">
           {info && <StayDetails detail={info.detail} />}
           {info && (
             <StayChecklist
               mode="in"
-              items={checkInItems(info)}
+              items={checkInItems({ ...info, idMissing: !idDone })}
               money={(n) => `${cur()}${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
             />
           )}
+        {current === "id" && (
+          <>
           <section className="space-y-3">
             <h3 className="text-sm font-semibold text-zinc-800">{t("Guest ID")}</h3>
             <p className="text-sm text-zinc-600">{r.guest_name}{flow.guest.phone ? ` · ${flow.guest.phone}` : ""}</p>
@@ -220,6 +243,10 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
             </section>
           )}
 
+          </>
+        )}
+        {current === "stay" && (
+          <>
           <section className="space-y-3">
             <h3 className="text-sm font-semibold text-zinc-800">{t("Room")}</h3>
             {hasRoom ? (
@@ -254,9 +281,7 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
           </section>
 
           <ComplimentaryBox reservation={props.reservation} onChanged={load} />
-        </div>
-      ) : (
-        <div className="space-y-4">
+
           <dl className="divide-y divide-zinc-100 rounded-xl border border-zinc-200 bg-white px-4 text-sm">
             {[
               [t("Guest"), r.guest_name],
@@ -280,8 +305,9 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
             <input type="checkbox" className="size-5" checked={onPaper} onChange={(e) => setOnPaper(e.target.checked)} />
             {t("The guest signed the printed card")}
           </label>
-        </div>
-      )}
+          </>
+        )}
+      </div>
     </Sheet>
   )
 }

@@ -78,7 +78,9 @@ def create_booking(*args, internal_remarks=None, custom_rate=None, **kwargs):
 	if not kwargs.get("guest") and kwargs.get("phone") and kwargs.get("property"):
 		kwargs["guest"] = find_guest_by_phone(kwargs["phone"], kwargs["property"])
 
-	res = kamra_create_booking(*args, **_accepted(kamra_create_booking, kwargs))
+	from kamra_custom import extra_guest
+
+	res = kamra_create_booking(*args, **_accepted(kamra_create_booking, extra_guest.convert(kwargs)))
 	changed = _finish(res["reservation"], _text(kwargs.get("instructions")), internal_remarks, custom_rate)
 	if changed:
 		res = {**res, **changed}
@@ -263,4 +265,33 @@ def front_desk_snapshot(*args, **kwargs):
 		r["vip"] = 1 if e and e.guest in vip else 0
 		r["planned_check_in_time"] = str(e.planned_check_in_time)[:5] if e and e.planned_check_in_time else None
 		r["planned_check_out_time"] = str(e.planned_check_out_time)[:5] if e and e.planned_check_out_time else None
+	return out
+
+
+@frappe.whitelist()
+def get_quote(*args, **kwargs):
+	"""kamra.api.get_quote, with an extra-guest amount read as a final, GST-included figure."""
+	from kamra.api import get_quote as kamra_get_quote
+
+	from kamra_custom import extra_guest
+
+	return kamra_get_quote(*args, **_accepted(kamra_get_quote, extra_guest.convert(kwargs)))
+
+
+@frappe.whitelist()
+def booking_options(*args, **kwargs):
+	"""kamra.api.booking_options, with each company's GST number and contact so the form can show them."""
+	from kamra.api import booking_options as kamra_booking_options
+
+	out = kamra_booking_options(*args, **_accepted(kamra_booking_options, kwargs))
+	companies = out.get("companies") or []
+	if companies:
+		extra = {r.name: r for r in frappe.get_all(
+			"Corporate Account", filters={"name": ("in", [c["name"] for c in companies])},
+			fields=["name", "gstin", "contact_name", "contact_phone"])}
+		for c in companies:
+			e = extra.get(c["name"])
+			c["gstin"] = (e.gstin or "") if e else ""
+			c["contact_name"] = (e.contact_name or "") if e else ""
+			c["contact_phone"] = (e.contact_phone or "") if e else ""
 	return out
