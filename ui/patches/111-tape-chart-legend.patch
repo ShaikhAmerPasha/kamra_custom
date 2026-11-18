@@ -1,0 +1,76 @@
+--- a/src/screens/TapeChart.tsx	2026-11-18 17:01:34.602619885 +0530
++++ b/src/screens/TapeChart.tsx	2026-11-18 17:01:34.603316163 +0530
+@@ -17,6 +17,8 @@
+ import CheckOutDialog from "../components/CheckOutDialog"
+ import CheckInDialog from "../components/CheckInDialog"
+ import RoomChangeDialog from "../components/RoomChangeDialog"
++import { BookingCard, TapeLegend } from "../custom/TapeLegend"
++import { matches, type LegendKey } from "../custom/tapeLegend"
+ 
+ 
+ /** The tape chart: rooms × dates, bookings as bars. Click a bar to open the
+@@ -40,6 +42,11 @@
+   group_booking?: string | null
+   planned_check_in_time?: string | null
+   planned_check_out_time?: string | null
++  adults?: number
++  children?: number
++  meal_plan?: string
++  paid?: number
++  due?: number
+ }
+ 
+ /** "14:30:00" → "14:30" for display. */
+@@ -201,6 +208,8 @@
+   const [error, setError] = useState<string | null>(null)
+   const [busy, setBusy] = useState(false)
+   const [rtFilter, setRtFilter] = useState("")
++  const [hl, setHl] = useState<LegendKey | null>(null)
++  const [hover, setHover] = useState<{ b: TapeBooking; x: number; y: number } | null>(null)
+   const [mode, setMode] = useState<"day" | "hour">("day")
+   const [hourly, setHourly] = useState<HourlyData | null>(null)
+   const [alloc, setAlloc] = useState<AllocData | null>(null)
+@@ -511,6 +520,20 @@
+         </div>
+       )}
+ 
++      {mode === "day" && data && (
++        <TapeLegend
++          bookings={data.rooms.flatMap((r) => r.bookings)}
++          today={todayIso()}
++          conflicts={new Set((data.conflicts ?? []).flatMap((c) => [c.in_res, c.out_res]))}
++          active={hl}
++          onPick={setHl}
++        />
++      )}
++      {hover && (
++        <BookingCard b={hover.b} x={hover.x} y={hover.y}
++          money={(n) => `${cur()}${Math.round(n).toLocaleString(moneyLocale())}`} />
++      )}
++
+       {mode === "day" && (
+       <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white shadow-sm">
+         <div style={{ minWidth: 130 + DAYS * cellW }}>
+@@ -648,7 +671,9 @@
+                             <button key={b.name}
+                               type="button"
+                               data-stay={b.name}
+-                              onPointerDown={(ev) => beginDrag(ev, b, "move")}
++                              onMouseMove={(ev) => !drag && setHover({ b, x: ev.clientX, y: ev.clientY })}
++                              onMouseLeave={() => setHover(null)}
++                              onPointerDown={(ev) => { setHover(null); beginDrag(ev, b, "move") }}
+                               onClick={() => {
+                                 if (suppressClick.current) return
+                                 openBooking(b)
+@@ -663,9 +688,10 @@
+                                 b.status === "Checked In" ? "bg-brand-600 hover:bg-brand-700"
+                                   : "bg-sky-500 hover:bg-sky-600",
+                                 inConflict && "ring-2 ring-rose-500 ring-offset-1",
++                                hl && !matches(hl, b, todayIso(), new Set((data.conflicts ?? []).flatMap((c) => [c.in_res, c.out_res]))) && "opacity-25",
+                                 dd && "pointer-events-none z-20 cursor-grabbing opacity-90 shadow-lg ring-2 ring-white",
+                               )}
+-                              title={(`${b.guest_name} · ${t(seg.label)} · ${b.check_in_date}${eta ? ` ${eta}` : ""} → ${b.check_out_date}${etd ? ` ${etd}` : ""}` +
++                              aria-label={(`${b.guest_name} · ${t(seg.label)} · ${b.check_in_date}${eta ? ` ${eta}` : ""} → ${b.check_out_date}${etd ? ` ${etd}` : ""}` +
+                                 (inConflict ? ` · ${t("CHANGEOVER CONFLICT")}` : ""))}>
+                               {/* drag handles: arrival (not once checked in) and departure */}
+                               {resizable && b.status === "Confirmed" && s0 >= 0 && (

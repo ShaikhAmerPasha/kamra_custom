@@ -204,3 +204,32 @@ def set_actual_times(reservation: str, actual_check_in: str | None = None, actua
 				_("The check-in time is locked once the guest is checked in."), title=_("Check-in time is locked")
 			)
 	return kamra_set_actual_times(reservation, actual_check_in, actual_check_out)
+
+
+@frappe.whitelist(methods=["POST"])
+def tape_chart(*args, **kwargs):
+	"""kamra.api.tape_chart, with what the hover card on each booking bar shows.
+
+	Each booking also carries what it has paid and still owes, the children, and the meal
+	plan, read the way Kamra's own in-house list reads them. Nothing of the grid changes.
+	"""
+	from kamra.api import _stay_balances
+	from kamra.api import tape_chart as kamra_tape_chart
+
+	out = kamra_tape_chart(*args, **_accepted(kamra_tape_chart, kwargs))
+	bookings = [b for r in out.get("rooms", []) for b in r.get("bookings", [])]
+	if not bookings:
+		return out
+	names = [b["name"] for b in bookings]
+	extra = {r.name: r for r in frappe.get_all(
+		"Reservation", filters={"name": ("in", names)},
+		fields=["name", "children", "meal_plan"])}
+	money = _stay_balances(names)
+	for b in bookings:
+		e = extra.get(b["name"])
+		m = money.get(b["name"]) or {}
+		b["children"] = int(e.children or 0) if e else 0
+		b["meal_plan"] = (e.meal_plan or "") if e else ""
+		b["paid"] = float(m.get("paid") or 0)
+		b["due"] = float(m.get("due") or 0)
+	return out
