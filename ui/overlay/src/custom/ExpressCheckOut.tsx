@@ -15,6 +15,8 @@ import { Sheet } from "../components/ui/sheet"
 import { checkOutWithCredit } from "../components/CreditCheckout"
 import ChangeCompany from "../components/ChangeCompany"
 import { Settlements } from "./Settlements"
+import { StayChecklist, useStayInfo } from "./StayChecklist"
+import { checkOutItems } from "./stayChecks"
 import { allocate, isCash, tenderAmounts, tenderProblem, whyNotExpress, type CheckoutLike, type Tender } from "./expressCheckOut"
 
 type Props = {
@@ -47,6 +49,7 @@ export default function ExpressCheckOut(props: Props & { Fallback: ComponentType
   // a company or an OTA pays this bill later: pick it, and the full steps take over to bill it
   const [whoPays, setWhoPays] = useState(false)
   const [done, setDone] = useState<string[] | null>(null)
+  const info = useStayInfo(props.reservation)
 
   const load = useCallback(async () => {
     try {
@@ -149,6 +152,7 @@ export default function ExpressCheckOut(props: Props & { Fallback: ComponentType
       footer={
         <div className="flex w-full items-center gap-2">
           <button type="button" className="text-sm text-zinc-500 underline" onClick={() => setSteps(true)}>{t("Use the full steps")}</button>
+          {problem ? <p role="status" className="ms-3 text-sm font-medium text-amber-700">{t(problem)}</p> : null}
           <Button variant="outline" className="ms-auto" onClick={props.onClose}>{t("Cancel")}</Button>
           <Button className="px-6 py-2.5 text-base" disabled={busy || problem !== ""} onClick={checkOut}>
             {busy ? t("Checking out…") : due > EPS ? t("Collect {amount} and check out", { amount: money(due) }) : t("Check out")}
@@ -157,6 +161,11 @@ export default function ExpressCheckOut(props: Props & { Fallback: ComponentType
       }
     >
       <div className="space-y-5">
+        <StayChecklist
+          mode="out"
+          items={checkOutItems({ due, folios: ctx.folios, idMissing: !!info?.idMissing })}
+          money={money}
+        />
         <section className="space-y-2">
           <h3 className="text-sm font-semibold text-zinc-800">{t("Bill")}</h3>
           <div className="divide-y divide-zinc-100 rounded-xl border border-zinc-200 bg-white text-sm">
@@ -216,7 +225,6 @@ export default function ExpressCheckOut(props: Props & { Fallback: ComponentType
               onClick={() => setLines((ls) => [...ls, { mode: ctx.payment_modes.find((m) => !isCash(m)) || ctx.payment_modes[0] || "", amount: "", reference: "" }])}>
               {t("Split the payment: pay part another way")}
             </button>
-            {problem ? <p role="status" className="text-sm text-amber-700">{t(problem)}</p> : null}
           </section>
         )}
 

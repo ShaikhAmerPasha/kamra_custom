@@ -1,0 +1,18 @@
+--- a/src/AppShell.tsx	2026-11-18 18:05:25.446067411 +0530
++++ b/src/AppShell.tsx	2026-11-18 18:05:25.446811901 +0530
+@@ -52,6 +52,7 @@
+ import NotificationHost from "./components/NotificationHost"
+ import NotificationBell from "./components/NotificationBell"
+ import { HousePosition } from "./custom/HousePosition"
++import { AttentionPanel } from "./custom/AttentionPanel"
+ 
+ 
+ // On-demand UI kept out of the entry chunk: the booking dialog opens on
+@@ -721,6 +722,7 @@
+           </div>
+           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+             {!kiosk && <HousePosition />}
++            {!kiosk && <AttentionPanel />}
+             <NotificationBell property={property} />
+             <LanguageToggle />
+             {user ? <AccountMenu user={user} onSignOut={signOut} /> : null}

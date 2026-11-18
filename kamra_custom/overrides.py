@@ -233,3 +233,34 @@ def tape_chart(*args, **kwargs):
 		b["paid"] = float(m.get("paid") or 0)
 		b["due"] = float(m.get("due") or 0)
 	return out
+
+
+@frappe.whitelist()
+def front_desk_snapshot(*args, **kwargs):
+	"""kamra.api.front_desk_snapshot, with what the arrivals, in-house and departures rows show.
+
+	Each stay also says whether its ID is still missing, whether the guest is a VIP, and the
+	planned arrival and departure times, so a row shows what blocks the desk before anyone
+	opens it. Kamra's own rows and figures are unchanged.
+	"""
+	from kamra.api import front_desk_snapshot as kamra_snapshot
+
+	out = kamra_snapshot(*args, **_accepted(kamra_snapshot, kwargs))
+	rows = [r for key in ("arrivals", "in_house", "departures") for r in out.get(key, [])]
+	if not rows:
+		return out
+	names = list({r["name"] for r in rows})
+	extra = {r.name: r for r in frappe.get_all(
+		"Reservation", filters={"name": ("in", names)},
+		fields=["name", "guest", "id_document", "id_document_discarded",
+		        "planned_check_in_time", "planned_check_out_time"])}
+	guests = {e.guest for e in extra.values() if e.guest}
+	vip = set(frappe.get_all(
+		"Guest", filters={"name": ("in", list(guests)), "vip": 1}, pluck="name")) if guests else set()
+	for r in rows:
+		e = extra.get(r["name"])
+		r["id_missing"] = bool(e and not e.id_document and not e.id_document_discarded)
+		r["vip"] = 1 if e and e.guest in vip else 0
+		r["planned_check_in_time"] = str(e.planned_check_in_time)[:5] if e and e.planned_check_in_time else None
+		r["planned_check_out_time"] = str(e.planned_check_out_time)[:5] if e and e.planned_check_out_time else None
+	return out

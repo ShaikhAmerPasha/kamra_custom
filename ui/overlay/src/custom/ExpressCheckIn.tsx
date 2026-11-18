@@ -17,6 +17,9 @@ import CheckInGuests, { type GuestOccupant } from "../components/CheckInGuests"
 import { ComplimentaryBox } from "./CustomComplimentary"
 import { useFlags } from "./flags"
 import { checkInProblems, defaultRoom, isCleanRoom } from "./expressCheckIn"
+import { cur } from "../lib/money"
+import { StayChecklist, useStayInfo } from "./StayChecklist"
+import { checkInItems } from "./stayChecks"
 
 interface Flow {
   reservation: { name: string; guest_name: string; room_type: string; check_in_date: string; check_out_date: string; nights: number; adults: number; children: number }
@@ -48,6 +51,7 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
   flagsRef.current = flags.clean_rooms_only
   const [signature, setSignature] = useState("")
   const [onPaper, setOnPaper] = useState(false)
+  const info = useStayInfo(props.reservation)
 
   const load = useCallback(async () => {
     try {
@@ -148,7 +152,13 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
       onClose={props.onClose}
       footer={
         <div className="flex w-full items-center gap-2">
-          {error ? <p role="alert" className="me-auto text-sm text-rose-700">{error}</p> : <span className="me-auto text-xs text-zinc-500">{t("Page {n} of 2", { n: page })}</span>}
+          {error ? (
+            <p role="alert" className="me-auto text-sm text-rose-700">{error}</p>
+          ) : (page === 1 ? page1Problem : problems[0]) ? (
+            <p role="status" className="me-auto text-sm font-medium text-amber-700">{(page === 1 ? page1Problem : problems[0])!.message}</p>
+          ) : (
+            <span className="me-auto text-xs text-zinc-500">{t("Page {n} of 2", { n: page })}</span>
+          )}
           {page === 2 ? <Button variant="outline" onClick={() => setPage(1)}>{t("Back")}</Button> : null}
           {page === 1 ? (
             <Button className="px-6 py-2.5 text-base" disabled={!!page1Problem} onClick={() => setPage(2)}>{t("Next")}</Button>
@@ -162,6 +172,13 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
     >
       {page === 1 ? (
         <div className="space-y-5">
+          {info && (
+            <StayChecklist
+              mode="in"
+              items={checkInItems(info)}
+              money={(n) => `${cur()}${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            />
+          )}
           <section className="space-y-3">
             <h3 className="text-sm font-semibold text-zinc-800">{t("Guest ID")}</h3>
             <p className="text-sm text-zinc-600">{r.guest_name}{flow.guest.phone ? ` · ${flow.guest.phone}` : ""}</p>
@@ -235,7 +252,6 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
           </section>
 
           <ComplimentaryBox reservation={props.reservation} onChanged={load} />
-          {page1Problem ? <p className="text-sm text-zinc-500">{page1Problem.message}</p> : null}
         </div>
       ) : (
         <div className="space-y-4">
