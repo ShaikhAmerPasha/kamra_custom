@@ -1,0 +1,11 @@
+--- a/src/screens/configs.ts	2026-11-18 18:15:04.632830091 +0530
++++ b/src/screens/configs.ts	2026-11-18 18:15:04.633494430 +0530
+@@ -641,6 +641,8 @@
+     { field: "room", label: "Room" },
+     { field: "task_type", label: "Type", badge: true },
+     { field: "priority", label: "Priority" },
++    { field: "assigned_to_user", label: "Assigned to" },
++    { field: "due_by", label: "Due by" },
+     { field: "status", label: "Status", badge: true },
+   ],
+   form: [

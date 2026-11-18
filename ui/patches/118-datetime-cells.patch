@@ -1,0 +1,13 @@
+--- a/src/components/ResourceScreen.tsx	2026-11-18 18:15:49.385029375 +0530
++++ b/src/components/ResourceScreen.tsx	2026-11-18 18:15:49.385839801 +0530
+@@ -441,7 +441,9 @@
+     : v == null || v === ""
+       ? "-"
+       : typeof v === "string"
+-        ? t(v)
++        ? /^\d{4}-\d\d-\d\d[ T]\d\d:\d\d/.test(v)
++          ? v.slice(0, 16).replace("T", " ") // a date-time reads to the minute, never seconds and fractions
++          : t(v)
+         : String(v)
+ 
+ export function ResourceScreen({
