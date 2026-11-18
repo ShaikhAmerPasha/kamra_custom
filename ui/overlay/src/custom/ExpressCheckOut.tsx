@@ -151,7 +151,7 @@ export default function ExpressCheckOut(props: Props & { Fallback: ComponentType
       onClose={props.onClose}
       footer={
         <div className="flex w-full items-center gap-2">
-          <button type="button" className="text-sm text-zinc-500 underline" onClick={() => setSteps(true)}>{t("Use the full steps")}</button>
+          <button type="button" className="text-sm text-zinc-700 underline" onClick={() => setSteps(true)}>{t("Use the full steps")}</button>
           {problem ? <p role="status" className="ms-3 text-sm font-medium text-amber-700">{t(problem)}</p> : null}
           <Button variant="outline" className="ms-auto" onClick={props.onClose}>{t("Cancel")}</Button>
           <Button className="px-6 py-2.5 text-base" disabled={busy || problem !== ""} onClick={checkOut}>

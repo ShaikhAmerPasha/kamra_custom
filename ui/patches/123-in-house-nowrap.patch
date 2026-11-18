@@ -1,0 +1,11 @@
+--- a/src/screens/InHouse.tsx	2026-11-18 18:24:13.246318528 +0530
++++ b/src/screens/InHouse.tsx	2026-11-18 18:24:13.246994847 +0530
+@@ -266,7 +266,7 @@
+                     <td className="px-4 py-2.5" onClick={(e) => e.stopPropagation()}>
+                       <div className="flex justify-end gap-1.5">
+                         {tab === "arrivals" && date === today && (
+-                          <Button className="px-2.5 py-1 text-xs" onClick={() => setCheckingIn(row.name)}>
++                          <Button className="whitespace-nowrap px-2.5 py-1 text-xs" onClick={() => setCheckingIn(row.name)}>
+                             {t("Check in")}
+                           </Button>
+                         )}

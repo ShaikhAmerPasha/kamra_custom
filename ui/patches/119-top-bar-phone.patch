@@ -1,0 +1,15 @@
+--- a/src/AppShell.tsx	2026-11-18 18:24:13.207984855 +0530
++++ b/src/AppShell.tsx	2026-11-18 18:24:13.208816438 +0530
+@@ -724,10 +724,10 @@
+             {!kiosk && <HousePosition />}
+             {!kiosk && <AttentionPanel />}
+             <NotificationBell property={property} />
+-            <LanguageToggle />
++            <span className="hidden sm:block"><LanguageToggle /></span>
+             {user ? <AccountMenu user={user} onSignOut={signOut} /> : null}
+             {canBook && (
+-              <Button variant="outline" onClick={() => navigate("/groups?new=1")} aria-label={t("Group booking")}>
++              <Button variant="outline" className="hidden sm:inline-flex" onClick={() => navigate("/groups?new=1")} aria-label={t("Group booking")}>
+                 <Users className="size-4" aria-hidden />
+                 <span className="hidden sm:inline">{t("Group booking")}</span>
+               </Button>

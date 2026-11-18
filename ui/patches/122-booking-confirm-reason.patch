@@ -1,0 +1,22 @@
+--- a/src/components/BookingDialog.tsx	2026-11-18 18:24:13.236756118 +0530
++++ b/src/components/BookingDialog.tsx	2026-11-18 18:24:13.237523131 +0530
+@@ -2538,6 +2538,19 @@
+                   </>
+                 ) : (
+                 <>
++                {!busy && (!form.guest_name || badPhone || !quote || badDate || pastCheckIn) && (
++                  <p role="status" className="text-center text-xs font-medium text-amber-700">
++                    {!form.guest_name
++                      ? t("Enter the guest name to continue.")
++                      : badPhone
++                        ? t("Check the phone number.")
++                        : badDate
++                          ? t("Check the dates.")
++                          : pastCheckIn
++                            ? t("Check-in cannot be before today.")
++                            : t("Choose a room type and dates to see the price.")}
++                  </p>
++                )}
+                 <Button
+                   className="w-full justify-center py-2.5 text-base"
+                   disabled={busy || !form.guest_name || !quote || badDate || pastCheckIn || badPhone || badSlot || blacklistBlocked || creditBlocked || extraNeedsReason || (!dayUse && custom.blocked)}

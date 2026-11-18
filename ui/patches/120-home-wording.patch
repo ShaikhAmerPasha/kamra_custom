@@ -1,0 +1,23 @@
+--- a/src/screens/Today.tsx	2026-11-18 18:24:13.217330337 +0530
++++ b/src/screens/Today.tsx	2026-11-18 18:24:13.218117568 +0530
+@@ -286,7 +286,7 @@
+                   className="ml-2 font-medium text-brand-700 hover:underline"
+                   onClick={(e) => e.stopPropagation()}
+                 >
+-                  {t("GRC")}
++                  {t("Registration card")}
+                 </Link>
+               )}
+               {row.status === "Confirmed" &&
+@@ -758,7 +758,10 @@
+   const outstanding = Number(kpi?.finance?.outstanding ?? 0)
+   const moneyTiles: { label: string; value: string; to: string; tone?: string }[] = [
+     { label: t("Collected today"), value: `${cur()}${inr0(Number(kpi?.collections_today ?? 0))}`, to: "/cashier/board" },
+-    { label: t("Outstanding"), value: `${cur()}${inr0(outstanding)}`, to: "/ledgers", tone: outstanding ? "text-amber-700" : undefined },
++    // a negative total means guests have paid ahead: say so, never show "Outstanding -2,675"
++    outstanding < 0
++      ? { label: t("Advances held"), value: `${cur()}${inr0(-outstanding)}`, to: "/ledgers" }
++      : { label: t("Outstanding"), value: `${cur()}${inr0(outstanding)}`, to: "/ledgers", tone: outstanding ? "text-amber-700" : undefined },
+     { label: t("Open folios"), value: String(kpi?.finance?.open_folios ?? 0), to: "/billing" },
+     { label: t("ADR, month to date"), value: `${cur()}${inr0(Number(kpi?.statistics?.adr ?? 0))}`, to: "/dashboard" },
+     { label: t("RevPAR, month to date"), value: `${cur()}${inr0(Number(kpi?.statistics?.revpar ?? 0))}`, to: "/dashboard" },

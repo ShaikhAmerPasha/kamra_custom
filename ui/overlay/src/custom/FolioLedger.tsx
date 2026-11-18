@@ -13,6 +13,8 @@ export function BalanceStrip(props: {
   detail: string
   status: string
   money: (n: number) => string
+  /** Jumps to the payment form: the cashier's main action, which sits below the bill. */
+  onTakePayment?: () => void
 }) {
   const { t } = useT()
   const s = strip(props.charges, props.paid, props.balance)
@@ -42,6 +44,15 @@ export function BalanceStrip(props: {
       <Stat k={t("Charges")} v={props.money(s.charges)} />
       {s.discount !== 0 && <Stat k={t("Discount")} v={props.money(s.discount)} />}
       <Stat k={t("Paid")} v={props.money(s.paid)} />
+      {props.onTakePayment && (
+        <button
+          type="button"
+          onClick={props.onTakePayment}
+          className="rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-700"
+        >
+          {t("Take payment")}
+        </button>
+      )}
       <div className="ms-auto min-w-0 text-end text-sm">
         <div className="truncate font-semibold">{props.guest}</div>
         <div className="truncate text-xs text-zinc-600">

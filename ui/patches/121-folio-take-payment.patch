@@ -1,0 +1,19 @@
+--- a/src/screens/FolioView.tsx	2026-11-18 18:24:13.226829522 +0530
++++ b/src/screens/FolioView.tsx	2026-11-18 18:24:13.227584639 +0530
+@@ -794,6 +794,7 @@
+         paid={folio.payments_total}
+         balance={folio.balance}
+         guest={folio.guest_name}
++        onTakePayment={open && folio.balance > 0 ? () => document.getElementById("record-payment")?.scrollIntoView({ behavior: "smooth", block: "center" }) : undefined}
+         detail={[stay.room ? `${t("Room")} ${stay.room.split("-").pop()}` : "", stay.check_in && stay.check_out ? `${stay.check_in} → ${stay.check_out}` : ""].filter(Boolean).join(" · ") || folio.name}
+         status={folio.status}
+         money={(n) => `${n < 0 ? "-" : ""}${cur()}${inr(Math.abs(n))}`}
+@@ -1708,7 +1709,7 @@
+             </CardContent>
+           </Card>
+ 
+-          <Card>
++          <Card id="record-payment">
+             <CardHeader>
+               <CardTitle>{t("Record a payment")}</CardTitle>
+             </CardHeader>
