@@ -1,0 +1,39 @@
+--- a/src/App.tsx	2026-11-20 13:51:43.634457141 +0530
++++ b/src/App.tsx	2026-11-20 13:51:43.635276785 +0530
+@@ -17,6 +17,7 @@
+ import { syncLang } from "./lib/dir"
+ const Billing = lazy(() => import("./screens/Billing"))
+ const EndOfDay = lazy(() => import("./screens/EndOfDay"))
++const HouseHub = lazy(() => import("./custom/HouseHub"))
+ const EndOfDayWizard = lazy(() => import("./screens/EndOfDayWizard"))
+ const AuditPack = lazy(() => import("./screens/AuditPack"))
+ const PublicBooking = lazy(() => import("./screens/PublicBooking"))
+@@ -215,6 +216,7 @@
+           <Route path="assistant" element={<Agents />} />
+           <Route path="calendar" element={<CalendarScreen />} />
+           <Route path="tape" element={<TapeChart />} />
++          <Route path="house" element={<HouseHub />} />
+           <Route
+             path="reservations"
+             element={<ConfiguredScreen config="reservationsConfig" />}
+--- a/src/lib/apps.ts	2026-11-20 13:51:43.638651295 +0530
++++ b/src/lib/apps.ts	2026-11-20 13:51:43.639285305 +0530
+@@ -122,6 +122,8 @@
+     roles: ["Front Desk", "Night Auditor", "Hotel Admin", "System Manager", "Administrator"],
+     items: [
+       { to: "/", label: "Today", icon: Home },
++      { to: "/house", label: "House today", icon: ChartLine,
++        keywords: ["Manager", "Statistics", "Occupancy", "Figures", "Numbers", "House position", "Overview"] },
+       { to: "/assistant", label: "Kamra Agent", icon: Sparkles, featured: true,
+         keywords: ["AI", "Assistant", "Copilot", "Ask"] },
+       { to: "/in-house", label: "In House", icon: BedDouble,
+--- a/src/screens/ReportsHub.tsx	2026-11-20 13:51:43.642648038 +0530
++++ b/src/screens/ReportsHub.tsx	2026-11-20 13:51:43.643368104 +0530
+@@ -66,6 +66,7 @@
+   {
+     title: "Daily",
+     items: [
++      { to: "/house", label: "House today", blurb: "Occupancy, movement, rooms, what needs attention, collections, what is owed, and Today, month and year in one screen.", icon: ChartLine, app: "front-desk" },
+       { to: "/owner", label: "Owner view", blurb: "Today, yesterday or the month on your phone: revenue, occupancy, money owed, the next 7 days and the last night audits.", icon: Smartphone, roles: FIGURE_ROLES },
+       { to: "/reports/flash", label: "Manager flash", blurb: "Occupancy, ADR, RevPAR, revenue and collections for a day, with the month to date.", icon: ChartLine, app: "finance" },
+       { to: "/end-of-day", label: "Night audit history", blurb: "Each closed business date and its audit pack.", icon: MoonStar, app: "finance" },
