@@ -8,8 +8,16 @@ import { useT } from "../lib/i18n"
 import { cur } from "../lib/money"
 import { toFullPath } from "../lib/routing"
 import { cn } from "../lib/utils"
-import { detailRows, sections, type DetailInput, type SectionKey } from "./stayDetails"
+import { detailRows, sections, statusBanner, type BannerTone, type DetailInput, type SectionKey } from "./stayDetails"
 import { showDate } from "./showDate"
+
+const BANNER: Record<BannerTone, string> = {
+  blue: "bg-blue-100 text-blue-800",
+  green: "bg-emerald-100 text-emerald-800",
+  grey: "bg-zinc-200 text-zinc-700",
+  red: "bg-rose-100 text-rose-800",
+  amber: "bg-amber-100 text-amber-800",
+}
 
 const money = (n: number) => `${cur()}${Math.round(n).toLocaleString("en-IN")}`
 
@@ -17,12 +25,30 @@ export function StayDetails(props: { detail: DetailInput & { folio_name?: string
   const { t } = useT()
   const d = props.detail
   const [open, setOpen] = useState<SectionKey | null>(null)
+  const banner = statusBanner((d as { status?: string }).status)
   const parts = sections(detailRows(d, { money, day: (iso) => showDate(iso) }))
   const shown = parts.find((p) => p.key === open)
   const btn = "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium"
   const link = `${btn} border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50`
   return (
     <div className="space-y-2" aria-label={t("Stay details")}>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className={cn("rounded-full px-3 py-1 text-xs font-semibold tracking-wide", BANNER[banner.tone])}>{t(banner.label)}</span>
+        <span className="text-xs text-zinc-500">{d.name}</span>
+        <div className="ms-auto flex flex-wrap gap-2">
+          {d.folio_name && (
+            <a className={link} href={toFullPath(`/billing/${encodeURIComponent(d.folio_name)}`)} target="_blank" rel="noreferrer">
+              {t("Take payment")}
+            </a>
+          )}
+          <a className={link} href={toFullPath(`/grc/${encodeURIComponent(d.name)}`)} target="_blank" rel="noreferrer">
+            {t("Registration card")}
+          </a>
+          <a className={link} href={toFullPath(`/grc/${encodeURIComponent(d.name)}`)} target="_blank" rel="noreferrer">
+            {t("Change room")}
+          </a>
+        </div>
+      </div>
       <div className="flex flex-wrap gap-2">
         {parts.map((p) => (
           <button
@@ -39,12 +65,6 @@ export function StayDetails(props: { detail: DetailInput & { folio_name?: string
             {p.alert && <span className="size-2 rounded-full bg-amber-500" aria-label={t("Needs a look")} />}
           </button>
         ))}
-        <a className={link} href={toFullPath(`/grc/${encodeURIComponent(d.name)}`)} target="_blank" rel="noreferrer">
-          {t("Registration card")}
-        </a>
-        <a className={link} href={toFullPath(`/grc/${encodeURIComponent(d.name)}`)} target="_blank" rel="noreferrer">
-          {t("Change room")}
-        </a>
         {d.folio_name && (
           <a className={link} href={toFullPath(`/billing/${encodeURIComponent(d.folio_name)}`)} target="_blank" rel="noreferrer">
             {t("Bill, discounts and splits")}

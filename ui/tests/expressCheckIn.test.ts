@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { checkInProblems, isCleanRoom, type CheckInForm } from "@custom/expressCheckIn"
+import { checkInProblems, isCleanRoom, matchRoom, type CheckInForm } from "@custom/expressCheckIn"
 
 const ok: CheckInForm = { name: "A Guest", idOnFile: false, idType: "Aadhaar", idNumber: "1234", hasRoom: true, pickedRoom: "", signed: true }
 
@@ -15,7 +15,7 @@ describe("checkInProblems", () => {
     expect(checkInProblems({ ...ok, hasRoom: false, pickedRoom: "R-201" })).toEqual([])
   })
   it("wants a signature, on screen, on paper or earlier", () => {
-    expect(checkInProblems({ ...ok, signed: false })).toEqual([{ page: 2, topic: "sign", message: "The guest must sign." }])
+    expect(checkInProblems({ ...ok, signed: false })).toEqual([{ page: 2, topic: "sign", message: "The guest must sign, or tick that the printed card is signed." }])
   })
   it("wants a name", () => expect(checkInProblems({ ...ok, name: "  " })).toHaveLength(1))
   it("lists several problems together", () => expect(checkInProblems({ ...ok, idNumber: "", hasRoom: false, signed: false })).toHaveLength(3))
@@ -52,5 +52,19 @@ describe("default room", () => {
     expect(topics({ hasRoom: false })).toEqual(["room"])
     expect(topics({ signed: false })).toEqual(["sign"])
     expect(topics({ othersMissing: ["B Guest"] })).toEqual(["id"])
+  })
+})
+
+describe("matchRoom", () => {
+  const rooms = [
+    { name: "H-301", room_number: "301", housekeeping_status: "Clean" },
+    { name: "H-201", room_number: "201", housekeeping_status: "Dirty" },
+  ]
+  it("finds a free room by its number", () => expect(matchRoom(rooms, " 301 ", true)).toEqual({ room: "H-301" }))
+  it("is quiet while nothing is typed", () => expect(matchRoom(rooms, "", true)).toEqual({}))
+  it("says when the room is not free", () => expect(matchRoom(rooms, "999", true).problem).toContain("not free"))
+  it("refuses a dirty room when only clean rooms are allowed", () => {
+    expect(matchRoom(rooms, "201", true).problem).toContain("dirty")
+    expect(matchRoom(rooms, "201", false)).toEqual({ room: "H-201" })
   })
 })

@@ -28,9 +28,9 @@ export function checkInProblems(f: CheckInForm): Problem[] {
   if (!f.name.trim()) out.push({ page: 1, topic: "id", message: "The guest has no name." })
   const idTyped = f.idType.trim() !== "" && f.idNumber.trim() !== ""
   if (!f.idOnFile && !idTyped) out.push({ page: 1, topic: "id", message: "Choose the ID type and type the ID number." })
-  if (!f.hasRoom && !f.pickedRoom) out.push({ page: 1, topic: "room", message: "Choose a room." })
+  if (!f.hasRoom && !f.pickedRoom) out.push({ page: 1, topic: "room", message: "Choose a room, or type its number." })
   if (f.othersMissing?.length) out.push({ page: 1, topic: "id", message: `ID still needed for: ${f.othersMissing.join(", ")}.` })
-  if (!f.signed) out.push({ page: 2, topic: "sign", message: "The guest must sign." })
+  if (!f.signed) out.push({ page: 2, topic: "sign", message: "The guest must sign, or tick that the printed card is signed." })
   return out
 }
 
@@ -42,4 +42,22 @@ export function defaultRoom(rooms: { name: string; housekeeping_status: string }
   const clean = rooms.find((r) => isCleanRoom(r.housekeeping_status))
   if (clean) return clean.name
   return cleanOnly ? "" : (rooms[0]?.name ?? "")
+}
+
+
+export interface RoomChoice {
+  name: string
+  room_number: string
+  housekeeping_status: string
+}
+
+/** Match a room number the desk typed against the free rooms. Returns the room, or why it cannot be used. */
+export function matchRoom(rooms: RoomChoice[], typed: string, cleanOnly: boolean): { room?: string; problem?: string } {
+  const q = typed.trim().toLowerCase()
+  if (!q) return {}
+  const hit = rooms.find((r) => String(r.room_number).toLowerCase() === q)
+  if (!hit) return { problem: `Room ${typed.trim()} is not free for these dates. Pick one from the list.` }
+  if (cleanOnly && !isCleanRoom(hit.housekeeping_status))
+    return { problem: `Room ${hit.room_number} is ${String(hit.housekeeping_status || "not ready").toLowerCase()}. Pick a clean room from the list.` }
+  return { room: hit.name }
 }

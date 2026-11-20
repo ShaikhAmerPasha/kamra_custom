@@ -16,7 +16,7 @@ import { SignaturePad } from "../components/SignaturePad"
 import CheckInGuests, { type GuestOccupant } from "../components/CheckInGuests"
 import { ComplimentaryBox } from "./CustomComplimentary"
 import { useFlags } from "./flags"
-import { checkInProblems, defaultRoom, isCleanRoom } from "./expressCheckIn"
+import { checkInProblems, defaultRoom, isCleanRoom, matchRoom } from "./expressCheckIn"
 import { cur } from "../lib/money"
 import { showStay } from "./showDate"
 import { StayChecklist, useStayInfo } from "./StayChecklist"
@@ -51,6 +51,8 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
   const [idType, setIdType] = useState("")
   const [idNumber, setIdNumber] = useState("")
   const [room, setRoom] = useState("")
+  // the room number typed by the desk; the cards below are the lookup list
+  const [typedRoom, setTypedRoom] = useState("")
   const flagsRef = useRef(flags.clean_rooms_only)
   flagsRef.current = flags.clean_rooms_only
   const [signature, setSignature] = useState("")
@@ -63,7 +65,12 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
       setFlow(f)
       setIdType((v) => v || f.guest.id_type || "")
       // the desk only confirms: the first clean room is already chosen
-      if (!f.room.room) setRoom((v) => v || defaultRoom(f.rooms, flagsRef.current))
+      if (!f.room.room) {
+        const first = defaultRoom(f.rooms, flagsRef.current)
+        setRoom((v) => v || first)
+        // show the chosen room's number in the typed field too, so the desk sees what was picked
+        setTypedRoom((v) => v || (f.rooms.find((x) => x.name === first)?.room_number ?? ""))
+      }
     } catch (e) {
       setError(serverError(e))
     }
@@ -258,6 +265,26 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
             ) : flow.rooms.length === 0 ? (
               <p className="text-sm text-rose-700">{t("No free room of this type for these dates.")}</p>
             ) : (
+              <>
+              <div className="max-w-xs">
+                <label htmlFor="typed-room" className="mb-1 block text-xs text-zinc-500">{t("Room number (type it, or pick below)")}</label>
+                <input
+                  id="typed-room"
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:outline-2 focus:outline-brand-600"
+                  value={typedRoom}
+                  inputMode="numeric"
+                  onChange={(e) => {
+                    const v = e.target.value
+                    setTypedRoom(v)
+                    const m = matchRoom(flow.rooms, v, !!flags.clean_rooms_only)
+                    if (m.room) setRoom(m.room)
+                  }}
+                />
+                {(() => {
+                  const m = matchRoom(flow.rooms, typedRoom, !!flags.clean_rooms_only)
+                  return m.problem ? <p role="alert" className="mt-1 text-xs text-amber-700">{t(m.problem)}</p> : null
+                })()}
+              </div>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {flow.rooms.map((x) => {
                   const blocked = flags.clean_rooms_only && !isCleanRoom(x.housekeeping_status)
@@ -267,7 +294,10 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
                       type="button"
                       disabled={blocked}
                       aria-pressed={room === x.name}
-                      onClick={() => setRoom(x.name)}
+                      onClick={() => {
+                        setRoom(x.name)
+                        setTypedRoom(x.room_number)
+                      }}
                       className={cn(
                         "rounded-xl border p-3 text-start transition disabled:opacity-40",
                         room === x.name ? "border-brand-500 bg-brand-50 ring-2 ring-brand-100" : "border-zinc-200 bg-white hover:border-brand-300",
@@ -279,6 +309,7 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
                   )
                 })}
               </div>
+              </>
             )}
           </section>
 

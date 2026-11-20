@@ -92,3 +92,27 @@ export function detailRows(d: DetailInput, f: Fmt): DetailRow[] {
   add("notes", "notes", "Staff notes", d.internal_remarks)
   return rows
 }
+
+
+export type BannerTone = "blue" | "green" | "grey" | "red" | "amber"
+
+/** The status banner at the top of a stay panel: one word, in capitals, with a colour. */
+export function statusBanner(status: string | null | undefined): { label: string; tone: BannerTone } {
+  switch (status) {
+    case "Confirmed":
+      return { label: "CONFIRMED", tone: "blue" }
+    case "Checked In":
+      return { label: "IN HOUSE", tone: "green" }
+    case "Checked Out":
+      return { label: "CHECKED OUT", tone: "grey" }
+    case "Cancelled":
+      return { label: "CANCELLED", tone: "red" }
+    case "No Show":
+      return { label: "NO SHOW", tone: "red" }
+    case "Waitlist":
+    case "Waitlisted":
+      return { label: "WAITLISTED", tone: "amber" }
+    default:
+      return { label: String(status || "BOOKING").toUpperCase(), tone: "grey" }
+  }
+}
