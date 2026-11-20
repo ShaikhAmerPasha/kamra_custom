@@ -50,6 +50,9 @@ export function StayDetails(props: { detail: DetailInput & { folio_name?: string
             {t("Bill, discounts and splits")}
           </a>
         )}
+        <a className={link} href={toFullPath(`/activity?record=${encodeURIComponent(d.name)}`)} target="_blank" rel="noreferrer">
+          {t("History")}
+        </a>
       </div>
       {shown && (
         <dl className="grid gap-x-6 gap-y-1.5 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm sm:grid-cols-[8rem_1fr]">

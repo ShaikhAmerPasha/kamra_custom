@@ -1,0 +1,16 @@
+--- a/src/screens/ReportsHub.tsx	2026-11-20 10:50:10.237141978 +0530
++++ b/src/screens/ReportsHub.tsx	2026-11-20 10:50:10.237990616 +0530
+@@ -91,6 +91,13 @@
+     ],
+   },
+   {
++    title: "History",
++    items: [
++      { to: "/activity", label: "Activity log", blurb: "Everything that happened and who did it. Search by guest, booking or date, and download.", icon: ScrollText, app: "front-desk", roles: [...FIGURE_ROLES, "Front Desk"] },
++      { to: "/guests", label: "Guest history", blurb: "Every guest with their stays, nights and what they have spent.", icon: History, app: "front-desk" },
++    ],
++  },
++  {
+     title: "Operations",
+     items: [
+       { to: "/ops-sla", label: "SLA report", blurb: "Guest requests against their response times.", icon: Timer, app: "operations" },
