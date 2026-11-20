@@ -40,6 +40,11 @@ class TestTapeChart(IntegrationTestCase):
 		self.assertEqual(b["paid"], 0)
 		self.assertGreater(b["due"], 0)
 		self.assertIn("meal_plan", b)
+		self.assertGreater(b["rate_per_night"], 0)
+		self.assertAlmostEqual(b["rate_per_night"] * 2, float(frappe.db.get_value("Reservation", out["reservation"], "amount_after_tax")), places=1)
+		self.assertFalse(b["rate_agreed"])
+		for key in ("booked_by", "channel", "group"):
+			self.assertIn(key, b)
 
 	def test_the_grid_is_kamras_own(self):
 		from kamra.api import tape_chart as kamra_tape_chart

@@ -212,8 +212,9 @@ def set_actual_times(reservation: str, actual_check_in: str | None = None, actua
 def tape_chart(*args, **kwargs):
 	"""kamra.api.tape_chart, with what the hover card on each booking bar shows.
 
-	Each booking also carries what it has paid and still owes, the children, and the meal
-	plan, read the way Kamra's own in-house list reads them. Nothing of the grid changes.
+	Each booking also carries what it has paid and still owes, the children, the meal plan,
+	the price per night (tax included), whether the rate was agreed, the group, the channel and
+	who booked it, read the way Kamra's own in-house list reads them. Nothing of the grid changes.
 	"""
 	from kamra.api import _stay_balances
 	from kamra.api import tape_chart as kamra_tape_chart
@@ -225,13 +226,20 @@ def tape_chart(*args, **kwargs):
 	names = [b["name"] for b in bookings]
 	extra = {r.name: r for r in frappe.get_all(
 		"Reservation", filters={"name": ("in", names)},
-		fields=["name", "children", "meal_plan"])}
+		fields=["name", "children", "meal_plan", "amount_after_tax", "nights", "rate_negotiated",
+		        "owner", "channel", "group_booking"])}
 	money = _stay_balances(names)
 	for b in bookings:
 		e = extra.get(b["name"])
 		m = money.get(b["name"]) or {}
 		b["children"] = int(e.children or 0) if e else 0
 		b["meal_plan"] = (e.meal_plan or "") if e else ""
+		nights = int(e.nights or 0) if e else 0
+		b["rate_per_night"] = round(float(e.amount_after_tax or 0) / nights, 2) if e and nights else 0
+		b["rate_agreed"] = bool(e and e.rate_negotiated)
+		b["booked_by"] = (e.owner or "").split("@")[0] if e else ""
+		b["channel"] = (e.channel or "") if e else ""
+		b["group"] = (e.group_booking or "") if e else ""
 		b["paid"] = float(m.get("paid") or 0)
 		b["due"] = float(m.get("due") or 0)
 	return out
