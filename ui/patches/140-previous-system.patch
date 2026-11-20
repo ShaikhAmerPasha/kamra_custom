@@ -1,0 +1,93 @@
+--- a/src/lib/i18n.ts	2026-11-20 18:30:59.285374202 +0530
++++ b/src/lib/i18n.ts	2026-11-20 18:30:59.286521221 +0530
+@@ -1,6 +1,7 @@
+ import { useCallback, useSyncExternalStore } from "react"
+ import { getLang } from "./dir"
+ import { dictionaryFor } from "./locales"
++import { vocabularyWord } from "../custom/vocabulary"
+ 
+ export type Vars = Record<string, string | number>
+ 
+@@ -18,6 +19,11 @@
+  * English word needs two translations; without a translation the sense
+  * prefix is dropped. */
+ function translated(source: string, language: string): string {
++  // a person who used another system sees its word for this label (English only)
++  if (language === "en") {
++    const word = vocabularyWord(source)
++    if (word) return word
++  }
+   const dictionary = dictionaryFor(language)
+   return Object.hasOwn(dictionary, source) ? dictionary[source] : source.replace(/^[a-z]+\|/, "")
+ }
+--- a/src/components/CommandPalette.tsx	2026-11-20 18:30:59.290674391 +0530
++++ b/src/components/CommandPalette.tsx	2026-11-20 18:30:59.291993403 +0530
+@@ -6,6 +6,7 @@
+     actions. Every action it triggers is recorded in the Activity Log.
+ */
+ 
++import { aliasTerms } from "../custom/pmsBackground"
+ import {
+   useEffect,
+   useMemo,
+@@ -234,7 +235,7 @@
+           item,
+           app,
+           score: rank(
+-            `${t(item.label)} ${item.label} ${t(app)} ${item.group ?? ""} ${(item.keywords ?? []).map((k) => `${k} ${t(k)}`).join(" ")}`,
++            `${t(item.label)} ${item.label} ${t(app)} ${item.group ?? ""} ${(item.keywords ?? []).map((k) => `${k} ${t(k)}`).join(" ")} ${aliasTerms(item.to)}`,
+             q,
+           ),
+         }))
+--- a/src/AppShell.tsx	2026-11-20 18:30:59.296479419 +0530
++++ b/src/AppShell.tsx	2026-11-20 18:30:59.297397926 +0530
+@@ -54,6 +54,7 @@
+ import { HousePosition } from "./custom/HousePosition"
+ import { AttentionPanel } from "./custom/AttentionPanel"
+ import { StayHubHost } from "./custom/StayHubHost"
++import { BackgroundHost } from "./custom/BackgroundHost"
+ 
+ 
+ // On-demand UI kept out of the entry chunk: the booking dialog opens on
+@@ -219,6 +220,15 @@
+             type="button"
+             role="menuitem"
+             className={itemCls}
++            onClick={() => go("/old-system")}
++          >
++            <UserRound className="size-4 shrink-0 text-zinc-500" aria-hidden />
++            {t("The system I used before")}
++          </button>
++          <button
++            type="button"
++            role="menuitem"
++            className={itemCls}
+             onClick={() => go("/settings/general")}
+           >
+             <SettingsIcon className="size-4 shrink-0 text-zinc-500" aria-hidden />
+@@ -781,6 +791,7 @@
+           <CommandPalette />
+           <Hotkeys onNewBooking={() => canBook && setBooking({})} />
+           <StayHubHost />
++          <BackgroundHost />
+           <OutOfOrderAsk />
+         </Suspense>
+       )}
+--- a/src/App.tsx	2026-11-20 18:30:59.302236390 +0530
++++ b/src/App.tsx	2026-11-20 18:30:59.303198934 +0530
+@@ -18,6 +18,7 @@
+ const Billing = lazy(() => import("./screens/Billing"))
+ const EndOfDay = lazy(() => import("./screens/EndOfDay"))
+ const HouseHub = lazy(() => import("./custom/HouseHub"))
++const OldSystem = lazy(() => import("./custom/OldSystem"))
+ const EndOfDayWizard = lazy(() => import("./screens/EndOfDayWizard"))
+ const AuditPack = lazy(() => import("./screens/AuditPack"))
+ const PublicBooking = lazy(() => import("./screens/PublicBooking"))
+@@ -217,6 +218,7 @@
+           <Route path="calendar" element={<CalendarScreen />} />
+           <Route path="tape" element={<TapeChart />} />
+           <Route path="house" element={<HouseHub />} />
++          <Route path="old-system" element={<OldSystem />} />
+           <Route
+             path="reservations"
+             element={<ConfiguredScreen config="reservationsConfig" />}

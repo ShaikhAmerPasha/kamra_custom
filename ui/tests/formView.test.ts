@@ -31,9 +31,16 @@ describe("form view choice", () => {
     expect(readView(null, "a@x")).toBe("guided")
     expect(() => writeView(undefined, "a@x", "full")).not.toThrow()
   })
-  it("treats an unknown saved value as guided", () => {
+  it("uses the fallback until someone chooses, and their choice wins over it", () => {
+    const s = memory()
+    expect(readView(s, "a@x", "full")).toBe("full")
+    writeView(s, "a@x", "guided")
+    expect(readView(s, "a@x", "full")).toBe("guided")
+  })
+  it("treats an unknown saved value as the fallback", () => {
     const s = memory()
     s.setItem("kamra:form-view:a@x", "weird")
     expect(readView(s, "a@x")).toBe("guided")
+    expect(readView(s, "a@x", "full")).toBe("full")
   })
 })

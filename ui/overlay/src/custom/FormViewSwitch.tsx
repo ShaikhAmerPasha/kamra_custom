@@ -5,13 +5,14 @@ import { useAuth } from "../lib/auth"
 import { useT } from "../lib/i18n"
 import { cn } from "../lib/utils"
 import { FORM_VIEWS, readView, writeView, type FormView } from "./formView"
+import { readBackground, defaultViewFor } from "./pmsBackground"
 
 const store = () => (typeof window === "undefined" ? null : window.localStorage)
 
 /** The view this person chose, and a way to change it. One choice serves both panels. */
 export function useFormView(): [FormView, (v: FormView) => void] {
   const { user } = useAuth()
-  const [view, setView] = useState<FormView>(() => readView(store(), user))
+  const [view, setView] = useState<FormView>(() => readView(store(), user, defaultViewFor(readBackground(store(), user))))
   const set = useCallback(
     (v: FormView) => {
       setView(v)

@@ -15,12 +15,13 @@ interface Store {
   setItem(k: string, v: string): void
 }
 
-/** The saved choice, or "guided". Storage that is missing or throws leaves the default. */
-export function readView(store: Store | null | undefined, user: string | null | undefined): FormView {
+/** The saved choice, or the fallback (guided unless the person's previous system suggests otherwise). Storage that is missing or throws leaves the default. */
+export function readView(store: Store | null | undefined, user: string | null | undefined, fallback: FormView = "guided"): FormView {
   try {
-    return store?.getItem(key(user)) === "full" ? "full" : "guided"
+    const v = store?.getItem(key(user))
+    return v === "full" || v === "guided" ? v : fallback
   } catch {
-    return "guided"
+    return fallback
   }
 }
 
