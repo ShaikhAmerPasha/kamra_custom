@@ -18,6 +18,7 @@ import { Settlements } from "./Settlements"
 import { StayChecklist, useStayInfo } from "./StayChecklist"
 import { StayDetails } from "./StayDetails"
 import { StayFacts } from "./StayFacts"
+import { FormViewSwitch, useFormView } from "./FormViewSwitch"
 import { showStay } from "./showDate"
 import { ExtraCharges } from "./ExtraCharges"
 import { checkOutItems } from "./stayChecks"
@@ -54,6 +55,7 @@ export default function ExpressCheckOut(props: Props & { Fallback: ComponentType
   const [whoPays, setWhoPays] = useState(false)
   const [done, setDone] = useState<string[] | null>(null)
   const info = useStayInfo(props.reservation)
+  const [view, setView] = useFormView()
 
   const load = useCallback(async () => {
     try {
@@ -165,8 +167,10 @@ export default function ExpressCheckOut(props: Props & { Fallback: ComponentType
       }
     >
       <div className="space-y-5">
+        <div className="flex"><FormViewSwitch view={view} onChange={setView} /></div>
         {info && <StayDetails detail={info.detail} />}
         {info && <StayFacts reservation={info.detail.name} />}
+        <div className={view === "full" ? "lg:columns-2 lg:gap-6 [&>*]:mb-5 [&>*]:break-inside-avoid" : "space-y-5"}>
         <StayChecklist
           mode="out"
           items={checkOutItems({ due, folios: ctx.folios, idMissing: !!info?.idMissing })}
@@ -256,6 +260,7 @@ export default function ExpressCheckOut(props: Props & { Fallback: ComponentType
             </button>
           )}
         </section>
+        </div>
         {error ? <p role="alert" className="text-sm text-rose-700">{error}</p> : null}
       </div>
     </Sheet>

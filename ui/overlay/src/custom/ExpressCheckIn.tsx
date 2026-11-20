@@ -22,6 +22,7 @@ import { showStay } from "./showDate"
 import { StayChecklist, useStayInfo } from "./StayChecklist"
 import { StayDetails } from "./StayDetails"
 import { StayFacts } from "./StayFacts"
+import { FormViewSwitch, useFormView } from "./FormViewSwitch"
 import { checkInItems } from "./stayChecks"
 
 interface Flow {
@@ -53,6 +54,8 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
   const [room, setRoom] = useState("")
   // the room number typed by the desk; the cards below are the lookup list
   const [typedRoom, setTypedRoom] = useState("")
+  // guided (two pages) or full form (one page), as this person prefers
+  const [view, setView] = useFormView()
   const flagsRef = useRef(flags.clean_rooms_only)
   flagsRef.current = flags.clean_rooms_only
   const [signature, setSignature] = useState("")
@@ -97,8 +100,9 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
   const idProblems = problems.filter((p) => p.topic === "id")
   const stayProblems = problems.filter((p) => p.topic !== "id")
   const idDone = flow.guest.id_on_file && flow.ids.ok
+  const full = view === "full"
   const current: "id" | "stay" = step ?? (idDone ? "stay" : "id")
-  const shownProblem = (current === "id" ? idProblems : stayProblems)[0]
+  const shownProblem = full ? problems[0] : (current === "id" ? idProblems : stayProblems)[0]
 
   /** Keep the ID the desk typed, so it is done for good, then go on to the room and signature. */
   async function saveIdAndContinue() {
@@ -189,10 +193,10 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
           ) : shownProblem ? (
             <p role="status" className="me-auto text-sm font-medium text-amber-700">{shownProblem.message}</p>
           ) : (
-            <span className="me-auto text-xs text-zinc-500">{current === "id" ? t("Step 1 of 2: ID") : step === "stay" ? t("Step 2 of 2: room and signature") : t("Room and signature")}</span>
+            <span className="me-auto text-xs text-zinc-500">{full ? t("Everything on one page") : current === "id" ? t("Step 1 of 2: ID") : step === "stay" ? t("Step 2 of 2: room and signature") : t("Room and signature")}</span>
           )}
-          {current === "stay" && step === "stay" ? <Button variant="outline" onClick={() => setStep("id")}>{t("Back")}</Button> : null}
-          {current === "id" ? (
+          {!full && current === "stay" && step === "stay" ? <Button variant="outline" onClick={() => setStep("id")}>{t("Back")}</Button> : null}
+          {!full && current === "id" ? (
             <Button className="px-6 py-2.5 text-base" disabled={busy || idProblems.length > 0} onClick={saveIdAndContinue}>{busy ? t("Saving…") : t("Next")}</Button>
           ) : (
             <Button className="px-6 py-2.5 text-base" disabled={busy || problems.length > 0} onClick={checkIn}>
@@ -203,17 +207,19 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
       }
     >
       <div className="space-y-5">
+          <div className="flex"><FormViewSwitch view={view} onChange={setView} /></div>
           {info && <StayDetails detail={info.detail} />}
         {info && <StayFacts reservation={info.detail.name} />}
           {info && (
             <StayChecklist
               mode="in"
-              items={checkInItems({ ...info, idMissing: !idDone, ownIdOnFile: flow.guest.id_on_file, othersMissing: flow.ids.missing.filter((n) => n !== r.guest_name).length })}
+              items={checkInItems({ ...info, idMissing: !(idDone || (idType !== "" && idNumber.trim() !== "" && flow.ids.ok)), ownIdOnFile: flow.guest.id_on_file, othersMissing: flow.ids.missing.filter((n) => n !== r.guest_name).length })}
               money={(n) => `${cur()}${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
             />
           )}
-        {current === "id" && (
-          <>
+        <div className={full ? "grid gap-6 lg:grid-cols-2 lg:items-start" : "space-y-5"}>
+        {(current === "id" || full) && (
+          <div className="space-y-5">
           <section className="space-y-3">
             <h3 className="text-sm font-semibold text-zinc-800">{t("Guest ID")}</h3>
             <p className="text-sm text-zinc-600">{r.guest_name}{flow.guest.phone ? ` · ${flow.guest.phone}` : ""}</p>
@@ -252,10 +258,10 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
             </section>
           )}
 
-          </>
+          </div>
         )}
-        {current === "stay" && (
-          <>
+        {(current === "stay" || full) && (
+          <div className="space-y-5">
           <section className="space-y-3">
             <h3 className="text-sm font-semibold text-zinc-800">{t("Room")}</h3>
             {hasRoom ? (
@@ -338,8 +344,9 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
             <input type="checkbox" className="size-5" checked={onPaper} onChange={(e) => setOnPaper(e.target.checked)} />
             {t("The guest signed the printed card")}
           </label>
-          </>
+          </div>
         )}
+        </div>
       </div>
     </Sheet>
   )
