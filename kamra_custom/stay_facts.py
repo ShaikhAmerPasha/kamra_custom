@@ -13,6 +13,8 @@ import frappe
 from frappe.utils import flt
 from kamra.authz import assert_property_access, require_roles
 
+from kamra_custom.id_on_file import guests_with_id, id_missing
+
 
 def _who(user) -> str:
 	if not user:
@@ -47,7 +49,8 @@ def stay_facts(reservation: str) -> dict:
 		"Reservation", reservation,
 		["name", "property", "owner", "creation", "modified_by", "modified", "checked_in_by", "checked_in_at",
 		 "actual_check_in", "actual_check_out", "status", "rate_negotiated", "negotiated_by", "rate_approved_by",
-		 "amount_after_tax", "rack_amount_before_tax", "quote_snapshot", "channel", "source", "group_booking"],
+		 "amount_after_tax", "rack_amount_before_tax", "quote_snapshot", "channel", "source", "group_booking",
+		 "guest", "room", "id_document", "id_document_discarded"],
 		as_dict=True)
 	if not r:
 		frappe.throw(frappe._("Reservation {0} was not found.").format(reservation))
@@ -56,8 +59,11 @@ def stay_facts(reservation: str) -> dict:
 		quote = json.loads(r.quote_snapshot or "{}")
 	except ValueError:
 		quote = {}
+	room_status = frappe.db.get_value("Room", r.room, "housekeeping_status") if r.room else ""
 	return {
 		"reservation": r.name,
+		"id_on_file": not id_missing(r, guests_with_id([r.guest])),
+		"room_status": room_status or "",
 		"nightly": nightly_rows(quote, flt(r.amount_after_tax)),
 		"total": flt(r.amount_after_tax),
 		"agreed": bool(r.rate_negotiated),
@@ -70,3 +76,49 @@ def stay_facts(reservation: str) -> dict:
 		},
 		"channel": r.channel or "", "source": r.source or "", "group": r.group_booking or "",
 	}
+
+
+def _time(stamp) -> str:
+	return str(stamp)[:16] if stamp else ""
+
+
+@frappe.whitelist()
+@require_roles("Front Desk", "Night Auditor", "Kamra Agent", "Finance", "Revenue Manager")
+def stay_money(reservation: str) -> dict:
+	"""Every bill of the stay with its charges and payments, newest last, for the Money tab.
+
+	A line carries when it was posted and by whom, so the desk can answer "who took this payment".
+	Voided charges stay in the list, marked, so the totals can be explained.
+	"""
+	prop = frappe.db.get_value("Reservation", reservation, "property")
+	if not prop:
+		frappe.throw(frappe._("Reservation {0} was not found.").format(reservation))
+	assert_property_access(prop)
+	out = []
+	for f in frappe.get_all(
+		"Folio", filters={"reservation": reservation},
+		fields=["name", "folio_type", "status", "invoice_number", "tax_total", "grand_total", "payments_total", "balance"],
+		order_by="creation asc"):
+		charges = frappe.get_all(
+			"Folio Charge", filters={"parent": f.name},
+			fields=["posting_date", "description", "amount", "gst_rate", "gst_amount", "total", "creation", "owner",
+			        "void_reason", "voided_by", "reversal_of"],
+			order_by="creation asc")
+		payments = frappe.get_all(
+			"Folio Payment", filters={"parent": f.name},
+			fields=["posting_date", "payment_kind", "mode", "amount", "reference", "creation", "owner"],
+			order_by="creation asc")
+		out.append({
+			"folio": f.name, "side": f.folio_type, "status": f.status, "invoice": f.invoice_number or "",
+			"tax": flt(f.tax_total), "total": flt(f.grand_total), "paid": flt(f.payments_total), "balance": flt(f.balance),
+			"charges": [{
+				"date": str(c.posting_date), "at": _time(c.creation), "by": _who(c.owner), "description": c.description or "",
+				"amount": flt(c.amount), "gst_rate": flt(c.gst_rate), "gst": flt(c.gst_amount), "total": flt(c.total),
+				"void": bool(c.void_reason or c.voided_by), "reason": c.void_reason or "",
+			} for c in charges],
+			"payments": [{
+				"date": str(p.posting_date), "at": _time(p.creation), "by": _who(p.owner), "kind": p.payment_kind or "",
+				"mode": p.mode or "", "amount": flt(p.amount), "reference": p.reference or "",
+			} for p in payments],
+		})
+	return {"reservation": reservation, "folios": out}

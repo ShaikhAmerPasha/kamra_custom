@@ -175,7 +175,12 @@ class TestCancelAndAmend(TestDeskReports):
 		frappe.db.set_single_value("Kamra Custom Settings", "assign_room_at_checkin", 1)
 		ref = self.book("Assign Me", "9000066622")
 		from kamra.checkin import assign_checkin_room
-		room = frappe.db.get_value("Room", {"room_type": DLX, "housekeeping_status": "Clean", "occupancy_status": "Vacant"})
+		# any vacant Deluxe room will do; make it clean here, so the test does not depend on what
+		# earlier work left dirty on the site (the change is rolled back with the test)
+		room = frappe.db.get_value("Room", {"room_type": DLX, "occupancy_status": "Vacant"})
+		if not room:
+			self.skipTest("no vacant Deluxe room on this site")
+		frappe.db.set_value("Room", room, "housekeeping_status", "Clean")
 		assign_checkin_room(ref, room=room)
 		rows = [r for r in self.run_report("amendments")["rows"] if r["ref"] == ref]
 		self.assertTrue(any(room in r["details"] for r in rows), rows)

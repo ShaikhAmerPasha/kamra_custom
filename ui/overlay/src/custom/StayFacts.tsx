@@ -9,7 +9,9 @@ import { cn } from "../lib/utils"
 import { ratesVary, trailLine, when, type NightRow, type Trail } from "./stayFacts"
 import { showDate } from "./showDate"
 
-interface Facts {
+export interface Facts {
+  id_on_file?: boolean
+  room_status?: string
   nightly: NightRow[]
   total: number
   agreed: boolean
@@ -19,43 +21,14 @@ interface Facts {
 
 const money = (n: number) => `${cur()}${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
-export function StayFacts(props: { reservation: string }) {
+/** The price night by night: one row a night with tax, and the stay total. Used in the check-in and
+    check-out panels and in the Stay hub. */
+export function NightTable(props: { facts: Pick<Facts, "nightly" | "total" | "agreed" | "agreed_by"> }) {
   const { t } = useT()
-  const [facts, setFacts] = useState<Facts | null>(null)
-  const [open, setOpen] = useState(false)
-
-  useEffect(() => {
-    let alive = true
-    setFacts(null)
-    call<Facts>("kamra_custom.stay_facts.stay_facts", { reservation: props.reservation })
-      .then((f) => alive && setFacts(f))
-      .catch(() => alive && setFacts(null))
-    return () => {
-      alive = false
-    }
-  }, [props.reservation])
-
-  if (!facts) return null
-  const line = trailLine(facts.trail)
+  const { facts } = props
   const cell = "px-2 py-1 text-right tabular-nums"
   return (
-    <div className="space-y-2">
-      {facts.nightly.length > 0 && (
-        <div>
-          <button
-            type="button"
-            aria-expanded={open}
-            onClick={() => setOpen(!open)}
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium",
-              open ? "border-brand-600 bg-brand-50 text-brand-700" : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50",
-            )}
-          >
-            {t("Price night by night")}
-            {facts.agreed && <span className="rounded bg-amber-100 px-1.5 text-xs text-amber-800">{t("agreed rate")}</span>}
-          </button>
-          {open && (
-            <div className="mt-2 overflow-x-auto rounded-xl border border-zinc-200 bg-white">
+    <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-zinc-200 text-xs uppercase tracking-wide text-zinc-500">
@@ -91,7 +64,44 @@ export function StayFacts(props: { reservation: string }) {
                 </p>
               )}
             </div>
-          )}
+  )
+}
+
+export function StayFacts(props: { reservation: string }) {
+  const { t } = useT()
+  const [facts, setFacts] = useState<Facts | null>(null)
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    let alive = true
+    setFacts(null)
+    call<Facts>("kamra_custom.stay_facts.stay_facts", { reservation: props.reservation })
+      .then((f) => alive && setFacts(f))
+      .catch(() => alive && setFacts(null))
+    return () => {
+      alive = false
+    }
+  }, [props.reservation])
+
+  if (!facts) return null
+  const line = trailLine(facts.trail)
+  return (
+    <div className="space-y-2">
+      {facts.nightly.length > 0 && (
+        <div>
+          <button
+            type="button"
+            aria-expanded={open}
+            onClick={() => setOpen(!open)}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium",
+              open ? "border-brand-600 bg-brand-50 text-brand-700" : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50",
+            )}
+          >
+            {t("Price night by night")}
+            {facts.agreed && <span className="rounded bg-amber-100 px-1.5 text-xs text-amber-800">{t("agreed rate")}</span>}
+          </button>
+          {open && <NightTable facts={facts} />}
         </div>
       )}
       {line && <p className="text-xs text-zinc-500" title={when(facts.trail.changed_at)}>{line}</p>}

@@ -2,6 +2,7 @@
     one list, each item one click from its fix. Refreshes on open and every minute. */
 
 import { useCallback, useEffect, useRef, useState } from "react"
+import { openStayHub } from "./stayHub"
 import { AlertTriangle } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { call, getCurrentProperty } from "../lib/api"
@@ -64,15 +65,9 @@ export function AttentionPanel() {
     setOpen(false)
     if (i.open === "night_audit") return navigate("/end-of-day")
     if (i.open === "check_out") return navigate(`/in-house?tab=in-house&checkout=${encodeURIComponent(i.reservation)}`)
-    if (i.open === "bill") {
-      try {
-        const d = await call<{ folio_name?: string }>("kamra.api.reservation_detail", { reservation: i.reservation })
-        if (d.folio_name) return navigate(`/billing/${encodeURIComponent(d.folio_name)}`)
-      } catch {
-        /* fall through to the reservation */
-      }
-    }
-    navigate(`/grc/${encodeURIComponent(i.reservation)}`)
+    // a stay that needs a look opens the Stay hub, on the tab that holds the problem
+    if (i.open === "bill") return openStayHub(i.reservation, "money")
+    openStayHub(i.reservation, i.open === "reservation" ? "guest" : "overview")
   }
 
   const total = data?.total ?? 0

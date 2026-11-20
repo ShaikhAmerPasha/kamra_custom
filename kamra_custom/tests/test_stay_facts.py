@@ -66,3 +66,51 @@ class TestStayFacts(IntegrationTestCase):
 	def test_unknown_reservation_is_refused(self):
 		with self.assertRaises(frappe.ValidationError):
 			stay_facts.stay_facts("RES-NOPE")
+
+
+class TestStayMoney(IntegrationTestCase):
+	def setUp(self):
+		frappe.set_user("Administrator")
+
+	def tearDown(self):
+		frappe.db.rollback()
+
+	def test_money_lists_bills_with_their_lines(self):
+		from kamra.api import create_booking
+
+		name = create_booking(property=PROP, room_type=DLX, check_in_date=nowdate(), check_out_date=add_days(nowdate(), 1),
+		                      guest_name="Money Test", phone="9000077706", adults=1)["reservation"]
+		out = stay_facts.stay_money(name)
+		self.assertEqual(out["reservation"], name)
+		self.assertIsInstance(out["folios"], list)
+		for f in out["folios"]:
+			for c in f["charges"]:
+				self.assertIn("void", c)
+			for p in f["payments"]:
+				self.assertIn("mode", p)
+
+	def test_a_closed_stay_shows_its_charges_and_payments(self):
+		name = frappe.db.get_value("Reservation", {"status": "Checked Out", "property": PROP, "guest_name": "Phase One Guest"})
+		if not name:
+			self.skipTest("no checked-out stay to read")
+		out = stay_facts.stay_money(name)
+		f = out["folios"][0]
+		self.assertTrue(f["charges"])
+		self.assertTrue(f["payments"])
+		self.assertAlmostEqual(f["total"] - f["paid"], f["balance"], places=1)
+
+	def test_unknown_reservation_is_refused(self):
+		with self.assertRaises(frappe.ValidationError):
+			stay_facts.stay_money("RES-NOPE")
+
+	def test_facts_carry_the_id_rule_and_room_status(self):
+		from kamra.api import create_booking
+
+		name = create_booking(property=PROP, room_type=DLX, check_in_date=nowdate(), check_out_date=add_days(nowdate(), 1),
+		                      guest_name="Id Test", phone="9000077707", adults=1)["reservation"]
+		facts = stay_facts.stay_facts(name)
+		self.assertFalse(facts["id_on_file"])
+		guest = frappe.db.get_value("Reservation", name, "guest")
+		frappe.db.set_value("Guest", guest, "id_number", "123412341234")
+		self.assertTrue(stay_facts.stay_facts(name)["id_on_file"])
+		self.assertIn("room_status", facts)

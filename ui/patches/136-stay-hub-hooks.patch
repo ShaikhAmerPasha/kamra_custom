@@ -1,0 +1,53 @@
+--- a/src/AppShell.tsx	2026-11-20 13:42:57.189007046 +0530
++++ b/src/AppShell.tsx	2026-11-20 13:42:57.189643259 +0530
+@@ -53,6 +53,7 @@
+ import NotificationBell from "./components/NotificationBell"
+ import { HousePosition } from "./custom/HousePosition"
+ import { AttentionPanel } from "./custom/AttentionPanel"
++import { StayHubHost } from "./custom/StayHubHost"
+ 
+ 
+ // On-demand UI kept out of the entry chunk: the booking dialog opens on
+@@ -779,6 +780,7 @@
+           <HelpPanel />
+           <CommandPalette />
+           <Hotkeys onNewBooking={() => canBook && setBooking({})} />
++          <StayHubHost />
+           <OutOfOrderAsk />
+         </Suspense>
+       )}
+--- a/src/screens/InHouse.tsx	2026-11-20 13:42:57.193765918 +0530
++++ b/src/screens/InHouse.tsx	2026-11-20 13:42:57.194428643 +0530
+@@ -1,4 +1,5 @@
+ import { useCallback, useEffect, useState } from "react"
++import { openStayHub } from "../custom/stayHub"
+ import { useNavigate, useOutletContext, useSearchParams } from "react-router-dom"
+ import { ChevronLeft, ChevronRight, LogIn, LogOut, Receipt, Users } from "lucide-react"
+ 
+@@ -230,7 +231,7 @@
+                   <tr
+                     key={row.name}
+                     className="cursor-pointer hover:bg-zinc-50"
+-                    onClick={() => navigate(`/grc/${encodeURIComponent(row.name)}`)}
++                    onClick={() => openStayHub(row.name)}
+                   >
+                     <td className="px-4 py-2.5">
+                       <div className="flex items-center gap-2.5">
+--- a/src/screens/TapeChart.tsx	2026-11-20 13:42:57.197809050 +0530
++++ b/src/screens/TapeChart.tsx	2026-11-20 13:42:57.198609115 +0530
+@@ -1,4 +1,5 @@
+ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
++import { openStayHub } from "../custom/stayHub"
+ import { Link, useOutletContext } from "react-router-dom"
+ import type { ShellContext } from "../AppShell"
+ import {
+@@ -895,6 +896,9 @@
+             </dl>
+ 
+             {/* what the desk can do with it - always visible */}
++            <Button variant="outline" className="w-full justify-center" onClick={() => { setSel(null); openStayHub(sel.name) }}>
++              {t("Open the stay: money, rates, guest, history")}
++            </Button>
+             <div className="grid grid-cols-2 gap-2" role="group" aria-label={t("Stay actions")}>
+               <Button variant="outline" disabled={busy} className="justify-start"
+                 onClick={() => setMoving({ reservation: sel.name, roomNumber: roomNumber(sel.room) })}>
