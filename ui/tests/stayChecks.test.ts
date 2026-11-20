@@ -32,3 +32,18 @@ describe("stay checks", () => {
     expect(checkInItems({ due: -300, paid: 300, idMissing: false })[0].amount).toBe(0)
   })
 })
+
+describe("checkInItems: ID line", () => {
+  const id = (x: ReturnType<typeof checkInItems>) => x.find((i) => i.key === "id")!
+  it("counts the other adults when the guest's own ID is on file", () => {
+    const i = id(checkInItems({ due: 0, paid: 0, idMissing: true, ownIdOnFile: true, othersMissing: 1 }))
+    expect(i.ok).toBe(false)
+    expect(i.count).toBe(1)
+  })
+  it("keeps the plain message when the guest has no ID of their own", () => {
+    expect(id(checkInItems({ due: 0, paid: 0, idMissing: true, ownIdOnFile: false, othersMissing: 1 })).count).toBeUndefined()
+  })
+  it("has no count when everything is on file", () => {
+    expect(id(checkInItems({ due: 0, paid: 0, idMissing: false, ownIdOnFile: true, othersMissing: 0 })).count).toBeUndefined()
+  })
+})

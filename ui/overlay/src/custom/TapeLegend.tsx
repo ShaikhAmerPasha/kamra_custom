@@ -2,7 +2,7 @@
 
 import { cn } from "../lib/utils"
 import { useT } from "../lib/i18n"
-import { LEGEND, legendCounts, nightsOf, type LegendBooking, type LegendKey } from "./tapeLegend"
+import { LEGEND, legendCounts, nightsOf, rateLine, type LegendBooking, type LegendKey } from "./tapeLegend"
 
 export function TapeLegend(props: {
   bookings: LegendBooking[]
@@ -57,6 +57,11 @@ export interface CardBooking extends LegendBooking {
   planned_check_out_time?: string | null
   paid?: number
   due?: number
+  rate_per_night?: number
+  rate_agreed?: boolean
+  booked_by?: string
+  channel?: string
+  group?: string
 }
 
 export function BookingCard(props: { b: CardBooking; x: number; y: number; money: (n: number) => string }) {
@@ -64,7 +69,7 @@ export function BookingCard(props: { b: CardBooking; x: number; y: number; money
   const { b } = props
   const hhmm = (v?: string | null) => (v ? String(v).slice(0, 5) : "")
   const left = Math.min(props.x + 12, window.innerWidth - 270)
-  const top = Math.min(props.y + 14, window.innerHeight - 230)
+  const top = Math.min(props.y + 14, window.innerHeight - 300)
   const nights = nightsOf(b.check_in_date, b.check_out_date)
   const guests = `${b.adults ?? 0} ${t(b.adults === 1 ? "adult" : "adults")}${b.children ? ` + ${b.children} ${t(b.children === 1 ? "child" : "children")}` : ""}`
   return (
@@ -82,6 +87,12 @@ export function BookingCard(props: { b: CardBooking; x: number; y: number; money
         <Row k={t("Guests")} v={guests} />
         {b.meal_plan ? <Row k={t("Meal plan")} v={b.meal_plan} /> : null}
         {b.company ? <Row k={t("Company")} v={b.company} /> : b.source ? <Row k={t("Source")} v={b.source} /> : null}
+        {rateLine(b, props.money, { night: t("a night"), tax: t("tax included"), agreed: t("agreed") }) ? (
+          <Row k={t("Rate")} v={rateLine(b, props.money, { night: t("a night"), tax: t("tax included"), agreed: t("agreed") })} />
+        ) : null}
+        {b.group ? <Row k={t("Group")} v={b.group} /> : null}
+        {b.channel ? <Row k={t("Channel")} v={b.channel} /> : null}
+        {b.booked_by ? <Row k={t("Booked by")} v={b.booked_by} /> : null}
         <Row k={t("Paid")} v={props.money(b.paid ?? 0)} />
         <Row k={t("Balance due")} v={props.money(b.due ?? 0)} tone={(b.due ?? 0) > 0 ? "text-rose-600 font-semibold" : ""} />
       </dl>

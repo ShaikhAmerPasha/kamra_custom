@@ -71,3 +71,16 @@ Backend tests fail if Kamra renames any of these, before a user meets the proble
 `create_booking`, `create_group_booking`, `record_advance`, `room_board`,
 `folio_invoice`; `Housekeeping Task` fields `room`, `reservation`, `task_type`;
 `kamra.pricing.quote`. Our tax maths is checked against Kamra's own `quote()`.
+
+## Which Kamra the patches build against
+
+The patches are written for Kamra v2.7.7. The shared clone in `apps/kamra` moves to newer releases (it was at
+v2.7.10 when this was written) and 18 of the patches no longer apply there, because upstream rewrote parts of the
+booking dialog, the bill and check-out.
+
+So the build prefers a pinned copy: `ui/.upstream/kamra-v2.7.7` (ignored by git). Create it once with
+
+    git -C ../kamra worktree add --detach ui/.upstream/kamra-v2.7.7 v2.7.7
+
+`KAMRA_FRONTEND=/path/to/frontend` overrides it. Moving to a newer Kamra means rebasing those patches; the
+conflicting ones are found by applying each patch in order to a copy of the new `frontend/src`.

@@ -21,6 +21,7 @@ import { cur } from "../lib/money"
 import { showStay } from "./showDate"
 import { StayChecklist, useStayInfo } from "./StayChecklist"
 import { StayDetails } from "./StayDetails"
+import { StayFacts } from "./StayFacts"
 import { checkInItems } from "./stayChecks"
 
 interface Flow {
@@ -196,10 +197,11 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
     >
       <div className="space-y-5">
           {info && <StayDetails detail={info.detail} />}
+        {info && <StayFacts reservation={info.detail.name} />}
           {info && (
             <StayChecklist
               mode="in"
-              items={checkInItems({ ...info, idMissing: !idDone })}
+              items={checkInItems({ ...info, idMissing: !idDone, ownIdOnFile: flow.guest.id_on_file, othersMissing: flow.ids.missing.filter((n) => n !== r.guest_name).length })}
               money={(n) => `${cur()}${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
             />
           )}

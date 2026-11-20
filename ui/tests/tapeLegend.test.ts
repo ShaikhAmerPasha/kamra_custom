@@ -51,3 +51,18 @@ describe("tape legend", () => {
     expect(arrivalNotReady({ ...b, status: "Checked In" }, "Dirty", today)).toBe(false)
   })
 })
+
+import { rateLine } from "../overlay/src/custom/tapeLegend"
+describe("rateLine", () => {
+  const money = (n: number) => `₹${n}`
+  it("states the price a night with tax", () => {
+    expect(rateLine({ rate_per_night: 3675 }, money)).toBe("₹3675 a night, tax included")
+  })
+  it("marks an agreed rate", () => {
+    expect(rateLine({ rate_per_night: 3000, rate_agreed: true }, money)).toContain("agreed")
+  })
+  it("says nothing without a price", () => {
+    expect(rateLine({}, money)).toBe("")
+    expect(rateLine({ rate_per_night: 0 }, money)).toBe("")
+  })
+})

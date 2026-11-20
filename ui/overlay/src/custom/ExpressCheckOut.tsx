@@ -17,10 +17,11 @@ import ChangeCompany from "../components/ChangeCompany"
 import { Settlements } from "./Settlements"
 import { StayChecklist, useStayInfo } from "./StayChecklist"
 import { StayDetails } from "./StayDetails"
+import { StayFacts } from "./StayFacts"
 import { showStay } from "./showDate"
 import { ExtraCharges } from "./ExtraCharges"
 import { checkOutItems } from "./stayChecks"
-import { allocate, isCash, tenderAmounts, tenderProblem, whyNotExpress, type CheckoutLike, type Tender } from "./expressCheckOut"
+import { allocate, balanceSplit, isCash, tenderAmounts, tenderProblem, whyNotExpress, type CheckoutLike, type Tender } from "./expressCheckOut"
 
 type Props = {
   reservation: string
@@ -165,6 +166,7 @@ export default function ExpressCheckOut(props: Props & { Fallback: ComponentType
     >
       <div className="space-y-5">
         {info && <StayDetails detail={info.detail} />}
+        {info && <StayFacts reservation={info.detail.name} />}
         <StayChecklist
           mode="out"
           items={checkOutItems({ due, folios: ctx.folios, idMissing: !!info?.idMissing })}
@@ -184,6 +186,11 @@ export default function ExpressCheckOut(props: Props & { Fallback: ComponentType
             <div className={cn("flex justify-between px-4 py-2 text-base font-semibold", due > EPS ? "text-rose-700" : "text-emerald-700")}>
               <span>{t("To collect")}</span><span>{money(due)}</span>
             </div>
+            {balanceSplit(ctx.folios).length > 0 && (
+              <p className="px-4 py-2 text-xs text-zinc-500">
+                {balanceSplit(ctx.folios).map((r) => `${t(r.label)} ${money(r.balance)}`).join(" · ")}
+              </p>
+            )}
           </div>
         </section>
 

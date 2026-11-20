@@ -1,0 +1,26 @@
+--- a/src/components/BookingDialog.tsx	2026-11-20 13:32:55.938030315 +0530
++++ b/src/components/BookingDialog.tsx	2026-11-20 13:32:55.938757168 +0530
+@@ -28,7 +28,7 @@
+ import { CustomBookingFields, RateAmount, customGuestSearch, useCustomBooking } from "../custom/CustomBooking"
+ import { StayLength } from "../custom/CustomStay"
+ import { StayTimes } from "../custom/StayTimes"
+-import { showStay } from "../custom/showDate"
++import { showDate, showStay } from "../custom/showDate"
+ import { CompanyDetails } from "../custom/CompanyDetails"
+ import { useFlags } from "../custom/flags"
+ import { DEFAULT_TIMES, stayTimeArgs } from "../custom/stayTimes"
+@@ -1055,12 +1055,12 @@
+                 <div>
+                   <dt className="text-xs font-medium text-zinc-400">{t("Check-in")}</dt>
+                   <dd className="mt-1 font-semibold text-zinc-900">
+-                    {form.check_in_date}
++                    {showDate(form.check_in_date)}
+                   </dd>
+                 </div>
+                 <div>
+                   <dt className="text-xs font-medium text-zinc-400">{t("Check-out")}</dt>
+-                  <dd className="mt-1 font-semibold text-zinc-900">{checkOut}</dd>
++                  <dd className="mt-1 font-semibold text-zinc-900">{showDate(checkOut)}</dd>
+                 </div>
+                 <div>
+                   <dt className="text-xs font-medium text-zinc-400">

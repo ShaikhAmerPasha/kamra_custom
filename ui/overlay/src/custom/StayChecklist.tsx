@@ -61,7 +61,10 @@ export function StayChecklist(props: {
         return t("{n} bills still open", { n: i.count ?? 0 })
       case "id":
         // at check-out the check is for the scanned ID document; at check-in it is for the ID itself
-        return props.mode === "out" ? (i.ok ? t("ID scan on file") : t("No ID scan on file")) : i.ok ? t("ID on file") : t("No ID on file")
+        if (props.mode === "out") return i.ok ? t("ID scan on file") : t("No ID scan on file")
+        if (i.ok) return t("ID on file")
+        // the guest's own ID is there; the page is open for the other adults
+        return i.count ? t(i.count === 1 ? "ID still needed for {n} more adult" : "ID still needed for {n} more adults", { n: i.count }) : t("No ID on file")
     }
   }
   return (

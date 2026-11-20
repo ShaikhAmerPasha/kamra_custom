@@ -83,3 +83,27 @@ describe("paying in more than one way", () => {
     expect(out.reduce((s, p) => s + Math.round(p.amount * 100), 0)).toBe(30)
   })
 })
+
+import { balanceSplit } from "../overlay/src/custom/expressCheckOut"
+describe("balanceSplit", () => {
+  it("is empty for a plain guest bill", () => {
+    expect(balanceSplit([{ side: "guest", status: "Open", balance: 3675 }])).toEqual([])
+  })
+  it("splits between payers who owe", () => {
+    const r = balanceSplit([
+      { side: "guest", status: "Open", balance: 500 },
+      { side: "company", status: "Open", balance: 3000 },
+    ])
+    expect(r).toEqual([{ side: "guest", label: "Guest", balance: 500 }, { side: "company", label: "Company", balance: 3000 }])
+  })
+  it("adds several folios of one payer", () => {
+    expect(balanceSplit([
+      { side: "guest", status: "Open", balance: 100 }, { side: "guest", status: "Open", balance: 50 }, { side: "group", status: "Open", balance: 10 },
+    ])[0].balance).toBe(150)
+  })
+  it("ignores a payer who owes nothing and cancelled folios", () => {
+    expect(balanceSplit([
+      { side: "guest", status: "Open", balance: 500 }, { side: "company", status: "Open", balance: 0 }, { side: "group", status: "Cancelled", balance: 99 },
+    ])).toEqual([])
+  })
+})

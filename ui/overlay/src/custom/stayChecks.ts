@@ -26,10 +26,13 @@ export function checkOutItems(i: {
   return items
 }
 
-export function checkInItems(i: { due: number; paid: number; idMissing: boolean }): CheckItem[] {
+/** `othersMissing`: how many other adults still have no ID. When the guest's own ID is on file and
+    only they are missing, the line says so instead of "No ID on file". */
+export function checkInItems(i: { due: number; paid: number; idMissing: boolean; ownIdOnFile?: boolean; othersMissing?: number }): CheckItem[] {
+  const others = i.idMissing && i.ownIdOnFile ? Math.max(0, i.othersMissing ?? 0) : 0
   return [
     { key: "balance", ok: i.due <= EPS, amount: Math.max(0, i.due) },
     { key: "deposit", ok: i.paid > EPS, amount: Math.max(0, i.paid) },
-    { key: "id", ok: !i.idMissing },
+    { key: "id", ok: !i.idMissing, ...(others > 0 ? { count: others } : {}) },
   ]
 }

@@ -15,7 +15,12 @@ import { fileURLToPath } from "node:url"
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const appRoot = path.resolve(here, "..")
-const kamraFrontend = process.env.KAMRA_FRONTEND || path.resolve(appRoot, "../kamra/frontend")
+// Which Kamra the patches are written for. The patches target v2.7.7, so the build prefers the pinned
+// copy in ui/.upstream (a git worktree of Kamra's v2.7.7 tag) over whatever the shared clone has
+// checked out. KAMRA_FRONTEND overrides both. See ui/README.md.
+const pinned = path.join(here, ".upstream", "kamra-v2.7.7", "frontend")
+const kamraFrontend =
+  process.env.KAMRA_FRONTEND || (existsSync(path.join(pinned, "package.json")) ? pinned : path.resolve(appRoot, "../kamra/frontend"))
 const work = path.join(here, ".build")
 const out = path.join(appRoot, "kamra_custom", "public", "kamra-ui")
 const checkOnly = process.argv.includes("--check")

@@ -82,3 +82,14 @@ export function dayMovement(bookings: MoveBooking[], dates: string[]): Record<st
 export function arrivalNotReady(b: { status: string; check_in_date: string }, roomStatus: string, today: string): boolean {
   return b.status === "Confirmed" && b.check_in_date === today && (roomStatus === "Dirty" || roomStatus === "Out of Order")
 }
+
+/** "₹3,675 a night, tax included, agreed" for the hover card. Empty when the booking has no price. */
+export function rateLine(
+  b: { rate_per_night?: number; rate_agreed?: boolean },
+  money: (n: number) => string,
+  words: { night: string; tax: string; agreed: string } = { night: "a night", tax: "tax included", agreed: "agreed" },
+): string {
+  const r = Number(b.rate_per_night ?? 0)
+  if (!(r > 0)) return ""
+  return `${money(r)} ${words.night}, ${words.tax}${b.rate_agreed ? `, ${words.agreed}` : ""}`
+}

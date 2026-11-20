@@ -103,3 +103,24 @@ export function allocate(
   }
   return out
 }
+
+export interface SplitFolio {
+  side: string
+  status: string
+  balance: number
+}
+
+/** What each payer owes on the stay, for the line under the total. Shown only when more than
+    one payer owes something, so a plain guest bill stays plain. */
+export function balanceSplit(folios: SplitFolio[]): { side: string; label: string; balance: number }[] {
+  const names: Record<string, string> = { guest: "Guest", company: "Company", group: "Group" }
+  const sums = new Map<string, number>()
+  for (const f of folios) {
+    if (f.status === "Cancelled" || f.status === "Void") continue
+    sums.set(f.side, (sums.get(f.side) ?? 0) + (Number(f.balance) || 0))
+  }
+  const rows = [...sums.entries()]
+    .map(([side, balance]) => ({ side, label: names[side] ?? side, balance: Math.round(balance * 100) / 100 }))
+    .filter((r) => Math.abs(r.balance) >= 0.005)
+  return rows.length >= 2 ? rows : []
+}
