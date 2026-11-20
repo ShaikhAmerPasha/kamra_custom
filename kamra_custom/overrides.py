@@ -247,6 +247,8 @@ def front_desk_snapshot(*args, **kwargs):
 	"""
 	from kamra.api import front_desk_snapshot as kamra_snapshot
 
+	from kamra_custom.id_on_file import guests_with_id, id_missing
+
 	out = kamra_snapshot(*args, **_accepted(kamra_snapshot, kwargs))
 	rows = [r for key in ("arrivals", "in_house", "departures") for r in out.get(key, [])]
 	if not rows:
@@ -259,9 +261,10 @@ def front_desk_snapshot(*args, **kwargs):
 	guests = {e.guest for e in extra.values() if e.guest}
 	vip = set(frappe.get_all(
 		"Guest", filters={"name": ("in", list(guests)), "vip": 1}, pluck="name")) if guests else set()
+	with_id = guests_with_id(guests)
 	for r in rows:
 		e = extra.get(r["name"])
-		r["id_missing"] = bool(e and not e.id_document and not e.id_document_discarded)
+		r["id_missing"] = bool(e and id_missing(e, with_id))
 		r["vip"] = 1 if e and e.guest in vip else 0
 		r["planned_check_in_time"] = str(e.planned_check_in_time)[:5] if e and e.planned_check_in_time else None
 		r["planned_check_out_time"] = str(e.planned_check_out_time)[:5] if e and e.planned_check_out_time else None

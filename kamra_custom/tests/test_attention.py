@@ -69,6 +69,14 @@ class TestAttention(IntegrationTestCase):
 		self.assertIn("vip", row)
 		self.assertIn("paid_total", row)
 
+	def test_a_typed_id_number_on_the_guest_counts_as_an_id_on_file(self):
+		name = self.book()
+		guest = frappe.db.get_value("Reservation", name, "guest")
+		frappe.db.set_value("Guest", guest, "id_number", "123412341234")
+		snap = overrides.front_desk_snapshot(property=PROP)
+		row = next(r for r in snap["arrivals"] if r["name"] == name)
+		self.assertFalse(row["id_missing"])
+
 	def test_snapshot_keeps_everything_kamras_own_screens_read(self):
 		from kamra.api import front_desk_snapshot as kamras
 

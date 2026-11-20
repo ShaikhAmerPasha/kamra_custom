@@ -20,11 +20,13 @@ def _clock_now() -> str:
 def attention(property: str):
 	from kamra.api import _stay_balances
 
+	from kamra_custom.id_on_file import guests_with_id, id_missing
+
 	assert_property_access(property)
 	today = nowdate()
 	now = _clock_now()
 	fields = ["name", "guest_name", "room", "check_in_date", "check_out_date",
-	          "planned_check_out_time", "id_document", "id_document_discarded"]
+	          "planned_check_out_time", "id_document", "id_document_discarded", "guest"]
 	in_house = frappe.get_all("Reservation", filters={"property": property, "status": "Checked In"},
 	                          fields=fields, order_by="room asc")
 	arrivals = frappe.get_all("Reservation", filters={"property": property, "status": "Confirmed",
@@ -34,6 +36,7 @@ def attention(property: str):
 	rooms = {r.name: r for r in frappe.get_all(
 		"Room", filters={"property": property},
 		fields=["name", "room_number", "housekeeping_status", "occupancy_status"])}
+	with_id = guests_with_id(r.guest for r in in_house)
 	money = _stay_balances([r.name for r in in_house]) if in_house else {}
 
 	def number(room):
@@ -51,7 +54,7 @@ def attention(property: str):
 		elif due > 0:
 			owing.append({"reservation": r.name, "guest": r.guest_name, "room": number(r.room),
 			              "detail": f"owes {due:,.0f}", "open": "bill"})
-		if not r.id_document and not r.id_document_discarded:
+		if id_missing(r, with_id):
 			no_id.append({"reservation": r.name, "guest": r.guest_name, "room": number(r.room),
 			              "detail": "no ID on file", "open": "reservation"})
 	for r in arrivals:
