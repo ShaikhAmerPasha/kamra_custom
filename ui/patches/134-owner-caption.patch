@@ -1,0 +1,18 @@
+--- a/src/screens/Owner.tsx	2026-11-20 13:15:27.993661987 +0530
++++ b/src/screens/Owner.tsx	2026-11-20 13:15:27.994367000 +0530
+@@ -3,6 +3,7 @@
+     figures are the manager flash's; the server decides who sees them. */
+ 
+ import { useCallback, useEffect, useState, type ReactNode } from "react"
++import { revenueCaption } from "../custom/figureCaption"
+ import { Link, useOutletContext } from "react-router-dom"
+ import { ChevronRight, FileText } from "lucide-react"
+ import { call, getCurrentProperty, myProperties, setCurrentProperty, type PropertyRow } from "../lib/api"
+@@ -219,6 +220,7 @@
+         <>
+           <Section title={t("Revenue")}>
+             <div className="text-3xl font-semibold tabular-nums text-zinc-900">{money(d.total_revenue)}</div>
++            <p className="mt-1 text-xs text-zinc-500">{t(revenueCaption(period, snap.date))}</p>
+             <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
+               <Figure label={t("Occupancy")} value={`${d.occupancy_pct}%`} />
+               <Figure
