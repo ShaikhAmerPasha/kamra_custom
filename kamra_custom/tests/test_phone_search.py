@@ -55,9 +55,17 @@ class TestSchema(IntegrationTestCase):
 class TestSearch(IntegrationTestCase):
 	def setUp(self):
 		frappe.set_user("Administrator")
-		self.prop = frappe.db.get_value("Property", {}, "name")
+		# the test numbers are Indian; do not depend on which property is the oldest on the site
+		self.prop = frappe.db.get_value("Property", {"country": "India"}, "name")
 		if not self.prop:
-			self.skipTest("no property on this site")
+			self.skipTest("no Indian property on this site")
+		from unittest.mock import patch
+
+		from kamra_custom.guests import property_region
+
+		p = patch("kamra_custom.guests._default_region", return_value=property_region(self.prop))
+		p.start()
+		self.addCleanup(p.stop)
 
 	def _guest(self, first, phone):
 		return frappe.get_doc({"doctype": "Guest", "first_name": first, "phone": phone}).insert(ignore_permissions=True)

@@ -50,10 +50,13 @@ class TestAttention(IntegrationTestCase):
 		self.assertIn("dirty", [i["detail"] for i in g["items"] if i["reservation"] == name][0])
 
 	def test_a_missed_arrival_is_listed_for_no_show(self):
+		# the panel lists only the first few, so compare the count, not the item
+		before = (self.group("no_show") or {"count": 0})["count"]
 		name = self.book()
 		frappe.db.set_value("Reservation", name, "check_in_date", add_days(nowdate(), -1))
 		g = self.group("no_show")
-		self.assertTrue(g and any(i["reservation"] == name for i in g["items"]))
+		self.assertTrue(g)
+		self.assertEqual(g["count"], before + 1)
 
 	def test_total_is_the_sum_of_the_groups(self):
 		out = attention.attention(PROP)

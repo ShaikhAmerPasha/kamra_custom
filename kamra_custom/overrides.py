@@ -103,6 +103,12 @@ def create_group_booking(*args, guest=None, special_requests=None, internal_rema
 		stored = frappe.db.get_value("Guest", found, "phone")
 		if stored:
 			kwargs["phone"] = stored
+	if guest:
+		# Kamra 2.7.8 and later reuse a profile only when the phone AND the full name match, so a
+		# profile picked at the desk is named the way the profile names itself.
+		picked_name = frappe.db.get_value("Guest", guest, "full_name")
+		if picked_name:
+			kwargs["guest_name"] = picked_name
 
 	out = kamra_create_group_booking(*args, **_accepted(kamra_create_group_booking, kwargs))
 

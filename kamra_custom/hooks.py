@@ -221,7 +221,7 @@ required_apps = ["kamra"]
 
 # Request Events
 # ----------------
-# before_request = ["kamra_custom.utils.before_request"]
+before_request = ["kamra_custom.projection_lock.install"]
 # after_request = ["kamra_custom.utils.after_request"]
 
 # Job Events
