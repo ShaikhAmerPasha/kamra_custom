@@ -1,0 +1,32 @@
+--- a/src/components/BookingDialog.tsx	2026-11-20 10:25:07.368915156 +0530
++++ b/src/components/BookingDialog.tsx	2026-11-20 10:25:07.369693322 +0530
+@@ -2612,6 +2612,29 @@
+                         </p>
+                       </>
+                     )}
++                    {!busy && walkInBlocked && (
++                      <p role="status" className="text-center text-xs font-medium text-amber-700">
++                        {blacklistBlocked
++                          ? t("This guest is blocked. Confirm the override first.")
++                          : !form.guest_name
++                            ? t("Enter the guest name to continue.")
++                            : badPhone
++                              ? t("Check the phone number.")
++                              : badDate
++                                ? t("Check the dates.")
++                                : badSlot
++                                  ? t("Check the arrival and departure times.")
++                                  : !quote
++                                    ? t("Choose a room type and dates to see the price.")
++                                    : !walk.room
++                                      ? t("Choose a room to continue.")
++                                      : payAmount < 0
++                                        ? t("The amount cannot be negative.")
++                                        : !!walk.id_number.trim() && !walk.id_type
++                                          ? t("Choose the ID type.")
++                                          : t("Fix the agreed rate to continue.")}
++                      </p>
++                    )}
+                     <Button
+                       className="w-full justify-center py-2.5 text-base"
+                       disabled={walkInBlocked || tillClosed}
