@@ -1,0 +1,14 @@
+--- a/src/screens/Today.tsx	2026-11-20 16:11:23.410233684 +0530
++++ b/src/screens/Today.tsx	2026-11-20 16:11:23.410969378 +0530
+@@ -248,9 +248,9 @@
+         <li key={row.name} className="flex items-center gap-3 py-2.5">
+           <div className="min-w-0 flex-1">
+             <div className="flex items-center gap-2">
+-              <span className="truncate text-sm font-medium">
++              <button type="button" className="truncate text-start text-sm font-medium hover:underline" onClick={() => openStayHub(row.name)}>
+                 {row.guest_name}
+-              </span>
++              </button>
+               <SourceBadge row={row} />
+               <PaymentChip row={row} />
+               {row.precheckin_status === "Submitted" && (
