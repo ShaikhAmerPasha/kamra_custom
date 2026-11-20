@@ -196,13 +196,23 @@ export default function ExpressCheckOut(props: Props & { Fallback: ComponentType
               </p>
             )}
           </div>
+          {view === "full" && (
+            <ExtraCharges
+              inline
+              folio={ctx.folios.find((f) => f.side === "guest" && f.status === "Open")?.folio ?? null}
+              money={money}
+              onPosted={() => void load()}
+            />
+          )}
         </section>
 
-        <ExtraCharges
-          folio={ctx.folios.find((f) => f.side === "guest" && f.status === "Open")?.folio ?? null}
-          money={money}
-          onPosted={() => void load()}
-        />
+        {view !== "full" && (
+          <ExtraCharges
+            folio={ctx.folios.find((f) => f.side === "guest" && f.status === "Open")?.folio ?? null}
+            money={money}
+            onPosted={() => void load()}
+          />
+        )}
 
         <Settlements reservation={props.reservation} money={money} version={ctx.totals.paid} />
 

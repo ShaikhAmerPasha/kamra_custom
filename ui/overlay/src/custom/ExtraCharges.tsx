@@ -16,9 +16,11 @@ interface Catalog {
 
 const field = "w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:outline-2 focus:outline-offset-1 focus:outline-brand-600"
 
-export function ExtraCharges(props: { folio: string | null; money: (n: number) => string; onPosted: () => void }) {
+/** `inline`: no button; the form is always open, as a row under the bill (the Full form check-out). */
+export function ExtraCharges(props: { folio: string | null; money: (n: number) => string; onPosted: () => void; inline?: boolean }) {
   const { t } = useT()
-  const [open, setOpen] = useState(false)
+  const [openState, setOpen] = useState(false)
+  const open = !!props.inline || openState
   const [cat, setCat] = useState<Catalog | null>(null)
   const empty: ExtraLine = { description: "", amount: "", gst: "18" }
   const [line, setLine] = useState<ExtraLine>(empty)
@@ -56,7 +58,7 @@ export function ExtraCharges(props: { folio: string | null; money: (n: number) =
 
   return (
     <section className="space-y-2">
-      <button
+      {!props.inline && <button
         type="button"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
@@ -66,9 +68,10 @@ export function ExtraCharges(props: { folio: string | null; money: (n: number) =
         )}
       >
         {t("Add extra charges (airport drop, laundry, tour…)")}
-      </button>
+      </button>}
       {open && (
-        <div className="space-y-3 rounded-xl border border-zinc-200 bg-white p-3">
+        <div className={cn("space-y-3 rounded-xl p-3", props.inline ? "border border-dashed border-brand-300 bg-brand-50/30" : "border border-zinc-200 bg-white")}>
+          {props.inline && <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{t("Add a charge to this bill")}</p>}
           <div className="flex flex-wrap gap-2" role="group" aria-label={t("Quick items")}>
             {(cat?.items ?? []).map((i) => (
               <button
@@ -84,7 +87,7 @@ export function ExtraCharges(props: { folio: string | null; money: (n: number) =
               {t("Custom item")}
             </button>
           </div>
-          <div className="grid gap-2 sm:grid-cols-[1fr_8rem_7rem]">
+          <div className={cn("grid gap-2", props.inline ? "sm:grid-cols-[1fr_7rem_6rem]" : "sm:grid-cols-[1fr_8rem_7rem]")}>
             <label className="block">
               <span className="mb-1 block text-xs font-medium text-zinc-500">{t("Item")}</span>
               <input className={field} value={line.description} onChange={(e) => setLine({ ...line, description: e.target.value })} placeholder={t("e.g. Airport drop")} />
