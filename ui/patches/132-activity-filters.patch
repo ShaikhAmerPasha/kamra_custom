@@ -1,0 +1,62 @@
+--- a/src/screens/Agents.tsx	2026-11-20 10:47:00.979713635 +0530
++++ b/src/screens/Agents.tsx	2026-11-20 10:47:00.980408335 +0530
+@@ -22,6 +22,8 @@
+ import { serverError } from "../lib/resource"
+ import { moneyLocale } from "../lib/money"
+ import { useAuth } from "../lib/auth"
++import { ActivityFilters } from "../custom/ActivityFilters"
++import { emptyFilters, filterArgs, filtersFromUrl } from "../custom/activityFilters"
+ import { useT, t as translate, useUILanguage, uiDateLocale } from "../lib/i18n"
+ 
+ 
+@@ -214,6 +216,16 @@
+   const [loading, setLoading] = useState(true)
+   const [error, setError] = useState<string | null>(null)
+   const [kind, setKind] = useState("")
++  // words, dates and a record narrow the log; a booking's own link opens it already filtered
++  const [filters, setFilters] = useState(() => (typeof window === "undefined" ? emptyFilters() : filtersFromUrl(window.location.search)))
++  const [applied, setApplied] = useState(filters)
++  useEffect(() => {
++    const id = setTimeout(() => {
++      setApplied(filters)
++      setPage(0)
++    }, 300)
++    return () => clearTimeout(id)
++  }, [filters])
+   const { roles } = useAuth()
+   const { t } = useT()
+   const canSeeSignIns = roles.some((r) => SIGN_IN_ROLES.includes(r))
+@@ -242,6 +254,7 @@
+       actor_kind: kind || null,
+       limit: PAGE,
+       start: page * PAGE,
++      ...filterArgs(applied),
+     })
+       .then((r) => {
+         setRows(r)
+@@ -249,7 +262,7 @@
+       })
+       .catch((e) => setError(serverError(e)))
+       .finally(() => { if (!silent) setLoading(false) })
+-  }, [property, kind, page])
++  }, [property, kind, page, applied])
+ 
+   // live audit stream: refetch silently on any change (no loading flash)
+   useRealtime(useCallback(() => load(true), [load]))
+@@ -281,6 +294,7 @@
+             : t("Every action on the property, newest first - who did it and what changed.")}
+         </p>
+       </div>
++      {kind !== "signins" && <ActivityFilters value={filters} onChange={setFilters} rows={rows} />}
+       {kind === "signins" ? (
+         <SignInsTable property={property} />
+       ) : (
+@@ -294,7 +308,7 @@
+       {loading ? (
+         <LoadingRow />
+       ) : rows.length === 0 ? (
+-        <p className="py-8 text-center text-sm text-zinc-400">{translate("Nothing logged yet.")}</p>
++        <p className="py-8 text-center text-sm text-zinc-400">{Object.keys(filterArgs(applied)).length ? translate("Nothing matches these filters.") : translate("Nothing logged yet.")}</p>
+       ) : (
+         <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
+           <table className="w-full text-sm">
