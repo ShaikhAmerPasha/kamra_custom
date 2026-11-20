@@ -303,4 +303,5 @@ override_whitelisted_methods = {
 	"kamra.api.amend_stay": "kamra_custom.overrides.amend_stay",
 	"kamra.api.set_actual_times": "kamra_custom.overrides.set_actual_times",
 	"kamra.api.set_housekeeping_status": "kamra_custom.rooms.set_housekeeping_status",
+	"kamra.agents_api.activity_feed": "kamra_custom.history.activity_feed",
 }
