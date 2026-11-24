@@ -2,17 +2,34 @@
    Small type, tight rows, label on the left, section bars, three columns, nothing to scroll on a
    normal desktop screen. Applied by the `kd` class on a form's outermost panel. */
 
-.kd { font-size: 12px; line-height: 1.25; color: #1f2933; }
+.kd { font-size: 12px; line-height: 1.25; color: var(--kd-text); }
 .kd, .kd * { letter-spacing: 0; }
 
+
+.kd {
+  --kd-bg: #f5f6f8; --kd-surface: #ffffff; --kd-head: #e9edf1; --kd-line: #c3cad2; --kd-input-line: #aeb7c0;
+  --kd-bar: #5b6670; --kd-text: #1f2933; --kd-label: #3b4651; --kd-req: #fffbd1;
+}
+.dark .kd {
+  --kd-bg: #151517; --kd-surface: #1f2023; --kd-head: #26282c; --kd-line: #3a3d42; --kd-input-line: #4d525a;
+  --kd-bar: #3d4650; --kd-text: #e6e8eb; --kd-label: #b4bac2; --kd-req: #4a4420;
+}
+.kd { background: var(--kd-surface); }
+.kd .kd-grid [class*="bg-white"], .kd .kd-body [class*="bg-white"], .kd .kd-body [class*="bg-zinc-50"], .kd .kd-body [class*="bg-zinc-100"] { background-color: var(--kd-surface) !important; }
+.kd .kd-body [class*="text-zinc-"], .kd .kd-body [class*="text-slate-"] { color: var(--kd-label) !important; }
+.kd .kd-body [class*="border-zinc-"] { border-color: var(--kd-line) !important; }
+.kd button:not([class*="bg-brand"]):not([class*="bg-emerald"]):not([class*="bg-rose"]):not([class*="bg-amber"]) { background-color: var(--kd-surface); color: var(--kd-text); border-color: var(--kd-input-line); }
+.kd .kd-actions, .kd .kd-head { color: var(--kd-text); }
+.kd .kd-quote { color: var(--kd-text); }
+
 /* header: one thin bar */
-.kd .kd-head { padding: 4px 10px !important; gap: 10px; background: #e9edf1; border-bottom: 1px solid #aab3bd; }
+.kd .kd-head { padding: 4px 10px !important; gap: 10px; background: var(--kd-head); border-bottom: 1px solid var(--kd-line); }
 .kd .kd-head h2 { font-size: 14px !important; font-weight: 600; line-height: 1.2; }
 .kd .kd-head p { display: none; }
 .kd .kd-head button, .kd .kd-head [role="radio"] { font-size: 12px; padding: 2px 8px; }
 
 /* body: form columns on the left, quote on the right */
-.kd .kd-body { padding: 8px 10px !important; background: #f5f6f8; }
+.kd .kd-body { padding: 8px 10px !important; background: var(--kd-bg); }
 .kd .kd-grid { display: block !important; column-count: 3; column-gap: 14px; margin: 0 !important; }
 .kd .kd-grid > * { margin: 0 0 8px 0 !important; min-width: 0; break-inside: avoid; }
 .kd .kd-grid > .kd-wide, .kd .kd-grid > div[class*="bg-brand-50"], .kd .kd-grid > div[class*="bg-rose"], .kd .kd-grid > div[class*="bg-amber"], .kd .kd-grid > div[class*="border-rose"], .kd .kd-grid > div[class*="border-amber"] { column-span: all; }
@@ -23,19 +40,19 @@
 .kd .kd-grid .grid { grid-template-columns: minmax(0, 1fr) !important; gap: 3px !important; }
 
 /* section bar */
-.kd [data-bar] { background: #fff; border: 1px solid #c3cad2; padding: 0 6px 4px 6px !important; border-radius: 0; }
-.kd [data-bar]::before { content: attr(data-bar); display: block; background: #5b6670; color: #fff; text-align: center; font-weight: 600; font-size: 11px; padding: 1px 6px; margin: 0 -6px 4px -6px; }
+.kd [data-bar] { background: var(--kd-surface); border: 1px solid var(--kd-line); padding: 0 6px 4px 6px !important; border-radius: 0; }
+.kd [data-bar]::before { content: attr(data-bar); display: block; background: var(--kd-bar); color: #fff; text-align: center; font-weight: 600; font-size: 11px; padding: 1px 6px; margin: 0 -6px 4px -6px; }
 
 /* a field: label on the left, right-aligned, control fills the row */
 .kd .kd-row { display: grid !important; grid-template-columns: 84px minmax(0, 1fr); align-items: center; column-gap: 6px; margin: 0 0 3px 0 !important; }
-.kd .kd-lab { width: 84px; min-width: 0; overflow-wrap: anywhere; text-align: right; font-size: 11px !important; font-weight: 400 !important; color: #3b4651 !important; margin: 0 !important; line-height: 1.15; }
+.kd .kd-lab { width: 84px; min-width: 0; overflow-wrap: anywhere; text-align: right; font-size: 11px !important; font-weight: 400 !important; color: var(--kd-label) !important; margin: 0 !important; line-height: 1.15; }
 .kd .kd-ctl { min-width: 0; }
 .kd .kd-ctl > p, .kd .kd-ctl > div > p { font-size: 10px; margin: 1px 0 0 0 !important; }
-.kd .kd-req input, .kd .kd-req select { background: #fffbd1 !important; }
+.kd .kd-req input, .kd .kd-req select { background: var(--kd-req) !important; }
 
 /* controls */
-.kd input:not([type="checkbox"]):not([type="radio"]), .kd select { height: 24px !important; min-height: 24px; padding: 1px 6px !important; font-size: 12px !important; border-radius: 2px !important; border: 1px solid #aeb7c0 !important; background-color: #fff; }
-.kd textarea { padding: 2px 6px !important; font-size: 12px !important; border-radius: 2px !important; border: 1px solid #aeb7c0 !important; min-height: 38px; }
+.kd input:not([type="checkbox"]):not([type="radio"]), .kd select { height: 24px !important; min-height: 24px; padding: 1px 6px !important; font-size: 12px !important; border-radius: 2px !important; border: 1px solid var(--kd-input-line) !important; background-color: var(--kd-surface); color: var(--kd-text); }
+.kd textarea { padding: 2px 6px !important; font-size: 12px !important; border-radius: 2px !important; border: 1px solid var(--kd-input-line) !important; min-height: 38px; }
 .kd input[type="checkbox"], .kd input[type="radio"] { width: 13px; height: 13px; }
 .kd select { padding-right: 20px !important; }
 .kd [role="radiogroup"] button, .kd button[aria-pressed] { padding: 1px 8px !important; font-size: 12px !important; }
@@ -44,13 +61,13 @@
 
 /* buttons (the footer and the verbs): small, flat, green for the main one */
 .kd button { font-size: 12px; }
-.kd .kd-actions { display: flex; gap: 6px; padding: 6px 10px; background: #e9edf1; border-top: 1px solid #aab3bd; }
+.kd .kd-actions { display: flex; gap: 6px; padding: 6px 10px; background: var(--kd-head); border-top: 1px solid var(--kd-line); }
 .kd .kd-actions button { min-height: 24px !important; height: 26px !important; padding: 0 12px !important; border-radius: 2px !important; font-size: 12px !important; }
 
 /* the quote column */
-.kd .kd-quote { width: 250px !important; background: #fff; border-left: 1px solid #aab3bd; }
+.kd .kd-quote { width: 250px !important; background: var(--kd-surface); border-left: 1px solid var(--kd-line); }
 .kd .kd-quote > div { padding: 8px 10px !important; }
-.kd .kd-quote h3 { background: #5b6670; color: #fff; text-align: center; padding: 1px 6px; font-size: 11px !important; text-transform: none; letter-spacing: 0; }
+.kd .kd-quote h3 { background: var(--kd-bar); color: #fff; text-align: center; padding: 1px 6px; font-size: 11px !important; text-transform: none; letter-spacing: 0; }
 
 /* the custom rate box and other stock labels */
 .kd .uppercase { text-transform: none !important; letter-spacing: 0 !important; font-size: 11px !important; }
