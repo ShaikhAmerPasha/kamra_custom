@@ -151,3 +151,7 @@
 .kd-pop [data-bar]::before { display: none; }
 .kd-pop label.block { display: grid; grid-template-columns: 150px minmax(0, 1fr); align-items: center; column-gap: 6px; }
 .kd-pop label.block > span { text-align: right; margin: 0; font-size: 13px; }
+
+/* a signature box that does not need half the screen */
+.kd canvas.h-40 { height: 84px !important; }
+.kd .kd-grid [data-bar] + .kd-flat { margin-top: 0; }

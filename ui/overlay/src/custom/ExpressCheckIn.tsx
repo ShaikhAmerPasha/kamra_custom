@@ -14,6 +14,10 @@ import { Button } from "../components/ui/button"
 import { Sheet } from "../components/ui/sheet"
 import { DeskPage } from "./DeskPage"
 import { SignaturePad } from "../components/SignaturePad"
+import { IdDocumentField } from "../components/IdDocumentField"
+import DepositPanel, { type DepositState } from "../components/DepositPanel"
+import SecurityDepositPanel, { type SecurityDepositState } from "../components/SecurityDepositPanel"
+import TillCard, { type TillState } from "../components/TillCard"
 import CheckInGuests, { type GuestOccupant } from "../components/CheckInGuests"
 import { ComplimentaryBox } from "./CustomComplimentary"
 import { useFlags } from "./flags"
@@ -28,7 +32,7 @@ import { checkInItems } from "./stayChecks"
 
 interface Flow {
   reservation: { name: string; guest_name: string; room_type: string; check_in_date: string; check_out_date: string; nights: number; adults: number; children: number }
-  guest: { name: string | null; full_name: string; has_photo: boolean; phone: string | null; nationality: string | null; id_type: string | null; id_on_file: boolean; id_number: string | null }
+  guest: { name: string | null; email?: string | null; full_name: string; has_photo: boolean; phone: string | null; nationality: string | null; id_type: string | null; id_on_file: boolean; id_number: string | null }
   ids: { ok: boolean; missing: string[]; occupants: GuestOccupant[] }
   vocabulary: { id_types: string[] }
   steps: { step_key: string; relevant: 0 | 1; state: string }[]
@@ -36,6 +40,8 @@ interface Flow {
   room: { room: string | null; room_number: string | null; housekeeping_status: string | null; room_type_name: string | null }
   billing: { payer: string }
   grc: { signed: boolean }
+  deposit: { applies: boolean; satisfied: boolean; security: SecurityDepositState; advance: DepositState; security_due: number; advance_due: number }
+  till: TillState
 }
 
 const input = "w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-base focus:outline-2 focus:outline-offset-1 focus:outline-brand-600"
@@ -52,6 +58,9 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
   const [done, setDone] = useState<string | null | false>(false)
   const [idType, setIdType] = useState("")
   const [idNumber, setIdNumber] = useState("")
+  const [contact, setContact] = useState({ phone: "", email: "", nationality: "" })
+  // what an ID scan read: kept to send with the details
+  const [scanned, setScanned] = useState<{ date_of_birth?: string | null; gender?: string | null; id_expiry_date?: string | null; address?: string | null; city?: string | null } | null>(null)
   const [room, setRoom] = useState("")
   // the room number typed by the desk; the cards below are the lookup list
   const [typedRoom, setTypedRoom] = useState("")
@@ -68,6 +77,7 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
       const f = await call<Flow>("kamra.checkin.checkin_flow", { reservation: props.reservation })
       setFlow(f)
       setIdType((v) => v || f.guest.id_type || "")
+      setContact((c) => ({ phone: c.phone || f.guest.phone || "", email: c.email || f.guest.email || "", nationality: c.nationality || f.guest.nationality || "" }))
       // the desk only confirms: the first clean room is already chosen
       if (!f.room.room) {
         const first = defaultRoom(f.rooms, flagsRef.current)
@@ -132,17 +142,24 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
     const base = { reservation: props.reservation }
     const stepOpen = (key: string) => flow.steps.some((s) => s.step_key === key && s.relevant && s.state !== "done")
     try {
-      if (idType && idNumber.trim()) {
-        await call("kamra.checkin.save_guest_details", { ...base, id_type: idType, id_number: idNumber.trim() })
+      const changed = (contact.phone && contact.phone !== (flow.guest.phone ?? "")) || (contact.email && contact.email !== (flow.guest.email ?? "")) ||
+        (contact.nationality && contact.nationality !== (flow.guest.nationality ?? ""))
+      if ((idType && idNumber.trim()) || changed) {
+        await call("kamra.checkin.save_guest_details", {
+          ...base,
+          phone: contact.phone || undefined, email: contact.email || undefined, nationality: contact.nationality || undefined,
+          id_type: idType && idNumber.trim() ? idType : undefined, id_number: idNumber.trim() || undefined,
+          date_of_birth: scanned?.date_of_birth ?? undefined, gender: scanned?.gender ?? undefined,
+          id_expiry_date: scanned?.id_expiry_date ?? undefined, address_line: scanned?.address || undefined, city: scanned?.city || undefined,
+        })
       }
       if (stepOpen("guest_ids")) await call("kamra.checkin.complete_checkin_step", { ...base, step: "guest_ids", note: "Name and ID" })
       if (stepOpen("billing_check")) await call("kamra.checkin.confirm_billing", { ...base, payer: flow.billing.payer })
       if (!hasRoom) await call("kamra.checkin.assign_checkin_room", { ...base, room })
       if (signature) await call("kamra.checkin.sign_registration_card", { ...base, signature })
       else if (onPaper) await call("kamra.checkin.sign_registration_card", { ...base, on_paper: 1 })
-      if (stepOpen("security_deposit")) {
-        await call("kamra.checkin.skip_checkin_step", { ...base, step: "security_deposit", reason: "No deposit at this hotel: advance only" })
-      }
+      // a required deposit is done only when taken or waived: it cannot be skipped, so it is left for Kamra's
+      // "Finish check-in" reminder when the desk chooses to check in first
       if (stepOpen("room_charges")) await call("kamra.checkin.set_room_charges", { ...base, allowed: 1 })
       const out = await call<{ room: string | null }>("kamra.api.check_in", base)
       setDone(out.room ? (flow.rooms.find((x) => x.name === out.room)?.room_number ?? flow.room.room_number ?? out.room) : null)
@@ -232,8 +249,13 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
           <div className={full ? "kd-flat" : "space-y-5"}>
           <section data-bar={full ? "Guest ID" : undefined} className="space-y-3">
             <h3 className="kd-hide text-sm font-semibold text-zinc-800">{t("Guest ID")}</h3>
-            <p className="text-sm text-zinc-600">{r.guest_name}{flow.guest.phone ? ` · ${flow.guest.phone}` : ""}</p>
             <div className="grid gap-3 sm:grid-cols-2">
+              {([["phone", "Phone"], ["email", "Email"], ["nationality", "Nationality"]] as const).map(([k, lab]) => (
+                <div className="kd-row" key={k}>
+                  <label className={label + " kd-lab"} htmlFor={`x-${k}`}>{t(lab)}</label>
+                  <input id={`x-${k}`} className={input} value={contact[k]} onChange={(e) => setContact({ ...contact, [k]: e.target.value })} />
+                </div>
+              ))}
               <div className="kd-row">
                 <label className={label + " kd-lab"} htmlFor="x-id-type">{t("ID type")}</label>
                 <select id="x-id-type" className={input} value={idType} onChange={(e) => setIdType(e.target.value)}>
@@ -248,9 +270,16 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
                 <input id="x-id-number" className={input} autoComplete="off" value={idNumber} onChange={(e) => setIdNumber(e.target.value)} />
               </div>
             </div>
+            <IdDocumentField
+              method="kamra.api.upload_id_document"
+              params={{ reservation: r.name }}
+              uploaded={flow.guest.id_on_file}
+              onUploaded={load}
+              label={t("Photograph the guest's ID")}
+            />
           </section>
 
-          {r.adults + r.children > 1 && (
+          {(
             <section data-bar={full ? "Everyone staying" : undefined} className="space-y-3">
               <CheckInGuests
                 key={flow.ids.occupants.map((o) => o.row).join(",")}
@@ -263,7 +292,12 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
                 occupants={flow.ids.occupants}
                 idTypes={flow.vocabulary.id_types}
                 onChanged={load}
-                onMainRead={() => {}}
+                onMainRead={(read) => {
+                  setIdType((v) => read.id_type || v)
+                  setIdNumber((v) => read.id_number || v)
+                  setContact((c) => ({ ...c, nationality: read.nationality ?? c.nationality }))
+                  setScanned(read)
+                }}
               />
             </section>
           )}
@@ -272,6 +306,23 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
         )}
         {(current === "stay" || full) && (
           <div className={full ? "kd-flat" : "space-y-5"}>
+          {flow.deposit.applies && (
+            <section data-bar={full ? "Deposit and advance" : undefined} className="space-y-3">
+              {!flow.deposit.satisfied && <TillCard till={flow.till} onOpened={load} purpose={t("to take the deposit")} />}
+              {flow.deposit.security.status !== "None" && (
+                <SecurityDepositPanel reservation={r.name} deposit={flow.deposit.security} canStart onChanged={load} />
+              )}
+              {flow.deposit.advance_due > 0 && (
+                <DepositPanel reservation={r.name} deposit={flow.deposit.advance} guestPhone={flow.guest.phone} onChanged={() => load()} />
+              )}
+              <p className={flow.deposit.satisfied ? "text-sm text-emerald-700" : "text-sm font-medium text-amber-700"}>
+                {flow.deposit.satisfied
+                  ? flow.deposit.security.status === "Waived" ? t("Security deposit waived.") : t("Security deposit is taken.")
+                  : t("Take the deposit or waive it with a reason. You can also check in now and finish it later.")}
+              </p>
+            </section>
+          )}
+
           <section data-bar={full ? "Room" : undefined} className="space-y-3">
             <h3 className="kd-hide text-sm font-semibold text-zinc-800">{t("Room")}</h3>
             {hasRoom ? (
@@ -331,7 +382,7 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
 
           <ComplimentaryBox reservation={props.reservation} onChanged={load} />
 
-          <dl data-bar={full ? "Summary" : undefined} className="divide-y divide-zinc-100 rounded-xl border border-zinc-200 bg-white px-4 text-sm">
+          <dl data-bar={full ? "Summary" : undefined} className={(full ? "kd-hide " : "") + "divide-y divide-zinc-100 rounded-xl border border-zinc-200 bg-white px-4 text-sm"}>
             {[
               [t("Guest"), r.guest_name],
               [t("ID"), flow.guest.id_on_file && !idNumber ? t("On file") : `${idType} ${idNumber ? "•••" + idNumber.slice(-4) : ""}`],
