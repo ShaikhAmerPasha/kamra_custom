@@ -6,7 +6,7 @@ import { call } from "../lib/api"
 import { useT } from "../lib/i18n"
 import { cur } from "../lib/money"
 import { cn } from "../lib/utils"
-import { ratesVary, trailLine, when, type NightRow, type Trail } from "./stayFacts"
+import { ratesVary, roomWithMeal, trailLine, when, type NightRow, type Trail } from "./stayFacts"
 import { showDate } from "./showDate"
 
 export interface Facts {
@@ -36,7 +36,6 @@ export function NightTable(props: { facts: Pick<Facts, "nightly" | "total" | "ag
                   <tr className="border-b border-zinc-200 text-xs uppercase tracking-wide text-zinc-500">
                     <th className="px-2 py-1 text-left font-medium">{t("Night")}</th>
                     <th className={cn(cell, "font-medium")}>{t("Room")}</th>
-                    <th className={cn(cell, "font-medium")}>{t("Meals")}</th>
                     <th className={cn(cell, "font-medium")}>{t("Tax")}</th>
                     <th className={cn(cell, "font-medium")}>{t("Total")}</th>
                   </tr>
@@ -45,8 +44,7 @@ export function NightTable(props: { facts: Pick<Facts, "nightly" | "total" | "ag
                   {facts.nightly.map((r, i) => (
                     <tr key={r.date ?? `o${i}`}>
                       <td className="px-2 py-1">{r.date ? showDate(r.date) : t("Discount and other")}</td>
-                      <td className={cell}>{r.date ? money(r.room) : ""}</td>
-                      <td className={cell}>{r.date && r.meal ? money(r.meal) : r.date ? "-" : ""}</td>
+                      <td className={cell}>{r.date ? money(roomWithMeal(r)) : ""}</td>
                       <td className={cell}>{r.date ? `${money(r.tax)} (${r.gst_rate}%)` : ""}</td>
                       <td className={cn(cell, "font-medium")}>{money(r.total)}</td>
                     </tr>
@@ -54,7 +52,7 @@ export function NightTable(props: { facts: Pick<Facts, "nightly" | "total" | "ag
                 </tbody>
                 <tfoot>
                   <tr className="border-t border-zinc-200 font-semibold">
-                    <td className="px-2 py-1" colSpan={4}>{t("Stay total, tax included")}</td>
+                    <td className="px-2 py-1" colSpan={3}>{t("Stay total, tax included")}</td>
                     <td className={cell}>{money(facts.total)}</td>
                   </tr>
                 </tfoot>

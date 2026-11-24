@@ -102,7 +102,6 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
   const stayProblems = problems.filter((p) => p.topic !== "id")
   const idDone = flow.guest.id_on_file && flow.ids.ok
   const full = view === "full"
-  const Done = full ? DeskPage : Sheet
   const current: "id" | "stay" = step ?? (idDone ? "stay" : "id")
   const shownProblem = full ? problems[0] : (current === "id" ? idProblems : stayProblems)[0]
 
@@ -156,29 +155,37 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
   }
 
   if (done !== false) {
+    const rows: [string, string][] = [
+      [t("Guest"), r.guest_name],
+      ...(done ? ([[t("Room"), done]] as [string, string][]) : []),
+      [t("Stay"), `${showStay(r.check_in_date, r.check_out_date)} · ${r.nights} ${r.nights === 1 ? t("night") : t("nights")}`],
+    ]
     return (
-      <Done
-        wide
-        title={title}
-        description={description}
-        onClose={props.onDone}
-        footer={
-          <div className="flex w-full flex-wrap items-center gap-2">
+      <div className="kd kd-modal" role="dialog" aria-modal="true" aria-label={title as string}>
+        <div className="kd-done">
+          <div className="flex items-center gap-2 text-emerald-700">
+            <CircleCheck className="size-6 shrink-0" aria-hidden />
+            <p className="text-lg font-semibold">
+              {done ? t("{name} is checked in to room {room}", { name: r.guest_name, room: done }) : t("{name} is checked in", { name: r.guest_name })}
+            </p>
+          </div>
+          <dl className="grid gap-1 text-sm" style={{ gridTemplateColumns: "90px minmax(0,1fr)" }}>
+            {rows.map(([k, v]) => (
+              <div key={k} className="contents">
+                <dt className="text-zinc-500">{k}</dt>
+                <dd className="font-medium">{v}</dd>
+              </div>
+            ))}
+          </dl>
+          <div className="flex flex-wrap items-center gap-2 pt-1">
             <a href={toFullPath(`/grc/${r.name}`)} target="_blank" rel="noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50">
+              className="inline-flex h-9 items-center gap-1.5 rounded-sm border border-zinc-300 px-3 text-sm font-medium">
               <Printer className="size-4" aria-hidden /> {t("Print registration card")}
             </a>
-            <Button className="ms-auto px-6 py-2.5 text-base" onClick={props.onDone}>{t("Done")}</Button>
+            <Button className="ms-auto h-9 px-6 text-sm" onClick={props.onDone} autoFocus>{t("Done")}</Button>
           </div>
-        }
-      >
-        <div className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-900">
-          <CircleCheck className="mt-0.5 size-6 shrink-0 text-emerald-600" aria-hidden />
-          <p className="text-lg font-semibold">
-            {done ? t("{name} is checked in to room {room}", { name: r.guest_name, room: done }) : t("{name} is checked in", { name: r.guest_name })}
-          </p>
         </div>
-      </Done>
+      </div>
     )
   }
 

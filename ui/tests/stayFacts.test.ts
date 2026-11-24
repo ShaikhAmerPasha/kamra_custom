@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { ratesVary, trailLine, when } from "../overlay/src/custom/stayFacts"
+import { ratesVary, roomWithMeal, trailLine, when } from "../overlay/src/custom/stayFacts"
 
 const base = { reserved_by: "", reserved_at: "", changed_by: "", changed_at: "", checked_in_by: "", checked_in_at: "", checked_out_at: "" }
 
@@ -29,4 +29,9 @@ describe("ratesVary", () => {
   it("is true when nights differ", () => expect(ratesVary([row(2700), row(3000, "2026-11-21")])).toBe(true))
   it("is false when they match", () => expect(ratesVary([row(2700), row(2700, "2026-11-21")])).toBe(false))
   it("ignores the discount row", () => expect(ratesVary([row(2700), row(0, null)])).toBe(false))
+})
+
+describe("roomWithMeal", () => {
+  it("folds the meal into the room", () => expect(roomWithMeal({ room: 2142.86, meal: 1000 })).toBe(3142.86))
+  it("is the room alone with no meal", () => expect(roomWithMeal({ room: 2700, meal: 0 })).toBe(2700))
 })
