@@ -115,3 +115,7 @@
 .kd .kd-done > * { margin: 0 !important; }
 .kd .kd-done .text-lg, .kd .kd-done .text-2xl, .kd .kd-done .text-3xl { font-size: 15px !important; }
 .kd .kd-done button { height: 26px !important; padding: 0 12px !important; font-size: 12px !important; border-radius: 2px !important; }
+
+/* two fields that belong on one row (card type and its last 4 digits) */
+.kd .kd-grid .grid.kd-pair { grid-template-columns: minmax(0, 1fr) 7rem !important; gap: 6px !important; }
+.kd .kd-pair .kd-lab { text-align: left; width: auto; }
