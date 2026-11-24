@@ -11,6 +11,8 @@ import { showDate } from "./showDate"
 
 export interface Facts {
   id_on_file?: boolean
+  /** Room charges the stay will still be billed: nights not posted to the folio yet. */
+  unposted?: number
   room_status?: string
   nightly: NightRow[]
   total: number

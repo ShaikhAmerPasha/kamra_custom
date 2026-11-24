@@ -45,6 +45,8 @@ export function daysBetween(from: string, to: string): number {
 export interface StripInput {
   status: string
   due: number
+  /** Room charges not on the folio yet (nights post at the night audit and at check-out). */
+  unposted?: number
   idOnFile: boolean
   depositPaid: number
   roomStatus: string
@@ -61,6 +63,8 @@ export function hubChips(i: StripInput): Chip[] {
   const ended = i.status === "Checked Out" || i.status === "Cancelled" || i.status === "No Show"
 
   if (i.due > EPS) out.push({ key: "owed", tone: "bad", label: "To collect {amount}", vars: { amount: i.money(i.due) } })
+  else if (i.status === "Checked In" && (i.unposted ?? 0) > EPS)
+    out.push({ key: "owed", tone: "warn", label: "Not billed yet: {amount} posts at check-out", vars: { amount: i.money(i.unposted ?? 0) } })
   else if (i.status === "Checked In" || i.status === "Checked Out") out.push({ key: "owed", tone: "ok", label: "Bill settled" })
 
   if (!ended) out.push(i.idOnFile ? { key: "id", tone: "ok", label: "ID on file" } : { key: "id", tone: "warn", label: "No ID yet" })
