@@ -22,6 +22,8 @@ import { StayFacts } from "./StayFacts"
 import { FormViewSwitch, useFormView } from "./FormViewSwitch"
 import { showStay } from "./showDate"
 import { ExtraCharges } from "./ExtraCharges"
+import { CardNetworkPicker } from "./CardNetworkPicker"
+import { cardArgs, isCard as isCardMode } from "./cardNetwork"
 import { checkOutItems } from "./stayChecks"
 import { allocate, balanceSplit, isCash, tenderAmounts, tenderProblem, whyNotExpress, type CheckoutLike, type Tender } from "./expressCheckOut"
 
@@ -103,12 +105,13 @@ export default function ExpressCheckOut(props: Props & { Fallback: ComponentType
     try {
       const amounts = tenderAmounts(lines, due)
       const payments = allocate(
-        lines.map((l, i) => ({ mode: l.mode, amount: amounts[i], reference: l.reference.trim() })),
+        lines.map((l, i) => ({ mode: l.mode, amount: amounts[i], reference: l.reference.trim(), network: l.network, last4: l.last4 })),
         ctx.collect.filter((c) => c.amount > EPS),
       )
       for (const p of payments) {
         await call("kamra.api.add_folio_payment", {
           folio: p.folio, mode: p.mode, amount: p.amount, kind: "Payment", reference: p.reference || undefined,
+          ...cardArgs(p.mode, p.network, p.last4),
         })
       }
       await checkOutWithCredit(props.reservation, undefined)
@@ -238,6 +241,9 @@ export default function ExpressCheckOut(props: Props & { Fallback: ComponentType
                       </button>
                     ))}
                   </div>
+                  {isCardMode(l.mode) ? (
+                    <CardNetworkPicker size="lg" network={l.network} last4={l.last4} onChange={(patch) => setLine(i, patch)} />
+                  ) : null}
                   <div className="grid gap-2 sm:grid-cols-2">
                     {lines.length > 1 ? (
                       <input inputMode="decimal" aria-label={t("Amount")}

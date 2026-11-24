@@ -1,5 +1,7 @@
 // When the one-page check-out can be used. Anything unusual goes to Kamra's own steps.
 
+import { cardProblem } from "./cardNetwork"
+
 export interface CheckoutLike {
   reservation: { status: string; company: string | null }
   actions: { can_check_out_role: boolean }
@@ -46,6 +48,9 @@ export interface Tender {
   /** Blank on the last line means "the rest". */
   amount: string
   reference: string
+  /** Only for a Card line: Visa, RuPay and so on. */
+  network?: string
+  last4?: string
 }
 
 const cents = (n: number) => Math.round(n * 100)
@@ -69,6 +74,8 @@ export function tenderProblem(lines: Tender[], due: number): string {
     if (!Number.isFinite(a) || a <= 0) return "Enter an amount for each payment."
     if (!lines[i].mode) return "Choose how the guest pays."
     if (lines[i].reference.trim() === "") return `Write the reference for the ${lines[i].mode} payment.`
+    const card = cardProblem(lines[i].mode, lines[i].network, lines[i].last4)
+    if (card) return card
   }
   const total = amounts.reduce((s, a) => s + cents(a), 0)
   if (total > cents(due)) return "The payments are more than the amount to collect."
@@ -81,11 +88,13 @@ export interface Payment {
   mode: string
   amount: number
   reference: string
+  network?: string
+  last4?: string
 }
 
 /** Share the payments over the folios that owe money, in order. */
 export function allocate(
-  payments: { mode: string; amount: number; reference: string }[],
+  payments: { mode: string; amount: number; reference: string; network?: string; last4?: string }[],
   owes: { folio: string; amount: number }[],
 ): Payment[] {
   const out: Payment[] = []
@@ -95,7 +104,12 @@ export function allocate(
     let c = cents(p.amount)
     while (c > 0 && f < left.length) {
       const take = Math.min(c, left[f].c)
-      if (take > 0) out.push({ folio: left[f].folio, mode: p.mode, amount: take / 100, reference: p.reference })
+      if (take > 0) {
+        out.push({
+          folio: left[f].folio, mode: p.mode, amount: take / 100, reference: p.reference,
+          ...(p.network ? { network: p.network } : {}), ...(p.last4 ? { last4: p.last4 } : {}),
+        })
+      }
       c -= take
       left[f].c -= take
       if (left[f].c === 0) f++

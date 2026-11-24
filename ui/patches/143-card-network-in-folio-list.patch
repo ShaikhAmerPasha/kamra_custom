@@ -1,0 +1,20 @@
+--- a/src/screens/FolioView.tsx	2026-11-24 11:25:53.098387154 +0530
++++ b/src/screens/FolioView.tsx	2026-11-24 11:25:53.099772432 +0530
+@@ -59,6 +59,8 @@
+       mode: string
+       amount: number
+       reference: string | null
++      card_network?: string | null
++      card_last4?: string | null
+       creation?: string | null
+       owner?: string | null
+       currency?: string | null
+@@ -1397,7 +1399,7 @@
+                 money={(n) => `${n < 0 ? "-" : ""}${cur()}${inr(Math.abs(n))}`}
+                 payments={folio.payments.map((p) => ({
+                   ...p,
+-                  reference: [p.reference, Number(p.fx_amount) > 0 ? `${p.currency} ${inr(p.fx_amount)} @ ${p.exchange_rate}` : ""]
++                  reference: [p.card_network ? `${p.card_network}${p.card_last4 ? ` ····${p.card_last4}` : ""}` : "", p.reference, Number(p.fx_amount) > 0 ? `${p.currency} ${inr(p.fx_amount)} @ ${p.exchange_rate}` : ""]
+                     .filter(Boolean).join(" · ") || null,
+                 }))}
+               />

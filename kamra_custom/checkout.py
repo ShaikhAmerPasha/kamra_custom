@@ -25,7 +25,7 @@ def settlements(reservation: str) -> list[dict]:
 	rows = frappe.get_all(
 		"Folio Payment",
 		filters={"parent": ("in", folios)},
-		fields=["parent as folio", "posting_date", "mode", "amount", "reference", "payment_kind", "idx"],
+		fields=["parent as folio", "posting_date", "mode", "amount", "reference", "payment_kind", "idx", "card_network", "card_last4"],
 		order_by="posting_date asc, creation asc, idx asc",
 	)
 	out = []
@@ -39,6 +39,7 @@ def settlements(reservation: str) -> list[dict]:
 				"mode": r.mode,
 				"amount": -abs(amount) if refund else amount,
 				"reference": r.reference or "",
+				"card": " ····".join(x for x in (r.card_network, r.card_last4) if x),
 				"kind": r.payment_kind or "Payment",
 			}
 		)

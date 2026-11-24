@@ -1,0 +1,434 @@
+--- a/src/components/BookingDialog.tsx	2026-11-24 11:26:49.916224614 +0530
++++ b/src/components/BookingDialog.tsx	2026-11-24 11:26:49.916882317 +0530
+@@ -34,6 +34,8 @@
+ import { DEFAULT_TIMES, stayTimeArgs } from "../custom/stayTimes"
+ import CheckInDialog from "./CheckInDialog"
+ import TillCard, { useTill } from "./TillCard"
++import { CardNetworkPicker } from "../custom/CardNetworkPicker"
++import { cardArgs, cardProblem, isCard } from "../custom/cardNetwork"
+ 
+ /** Reservation.market_segment options (same list as the doctype). */
+ const MARKET_SEGMENTS = ["Corporate", "Leisure", "Group", "MICE", "Government", "Wedding",
+@@ -298,6 +300,8 @@
+     pay_mode: "Cash",
+     pay_amount: "",
+     pay_reference: "",
++    pay_network: "",
++    pay_last4: "",
+   })
+   const setW = (k: keyof typeof walk, v: string) =>
+     setWalk((w) => ({ ...w, [k]: v }))
+@@ -758,6 +762,7 @@
+         payment_mode: amount > 0 ? walk.pay_mode : undefined,
+         payment_amount: amount,
+         payment_reference: walk.pay_reference.trim() || undefined,
++        ...(amount > 0 ? cardArgs(walk.pay_mode, walk.pay_network, walk.pay_last4) : {}),
+         idempotency_key: walkInKey,
+         ...(dayUse ? {} : custom.single()),
+         ...slotArgs,
+@@ -859,6 +864,7 @@
+     badSlot ||
+     !walk.room ||
+     payAmount < 0 ||
++    (payAmount > 0 && !!cardProblem(walk.pay_mode, walk.pay_network, walk.pay_last4)) ||
+     (!!walk.id_number.trim() && !walk.id_type) ||
+     (!dayUse && custom.blocked)
+ 
+@@ -1750,6 +1756,10 @@
+                         </button>
+                       ))}
+                     </div>
++                    {isCard(walk.pay_mode) && (
++                      <CardNetworkPicker size="md" network={walk.pay_network} last4={walk.pay_last4}
++                        onChange={(patch) => setWalk((w) => ({ ...w, ...(patch.network !== undefined ? { pay_network: patch.network } : {}), ...(patch.last4 !== undefined ? { pay_last4: patch.last4 } : {}) }))} />
++                    )}
+                     <div className="grid gap-3 sm:grid-cols-2">
+                       <Field label={t("Amount collected")}>
+                         <input
+@@ -2573,7 +2583,9 @@
+                                         ? t("The amount cannot be negative.")
+                                         : !!walk.id_number.trim() && !walk.id_type
+                                           ? t("Choose the ID type.")
+-                                          : t("Fix the agreed rate to continue.")}
++                                          : payAmount > 0 && !!cardProblem(walk.pay_mode, walk.pay_network, walk.pay_last4)
++                                            ? t(cardProblem(walk.pay_mode, walk.pay_network, walk.pay_last4))
++                                            : t("Fix the agreed rate to continue.")}
+                       </p>
+                     )}
+                     <Button
+--- a/src/components/CheckOutDialog.tsx	2026-11-24 11:26:49.930142236 +0530
++++ b/src/components/CheckOutDialog.tsx	2026-11-24 11:26:49.930215644 +0530
+@@ -19,6 +19,8 @@
+ import TillCard, { type TillState } from "./TillCard"
+ import ChangeCompany from "./ChangeCompany"
+ import FolioDiscount from "./FolioDiscount"
++import { CardNetworkPicker } from "../custom/CardNetworkPicker"
++import { cardArgs, cardProblem, isCard } from "../custom/cardNetwork"
+ 
+ 
+ /* Guided check-out, one stay at a time:
+@@ -309,6 +311,8 @@
+   // per-step desk input
+   const [payMode, setPayMode] = useState("")
+   const [payRef, setPayRef] = useState("")
++  const [payCard, setPayCard] = useState<{ network?: string; last4?: string }>({})
++  const [outletCards, setOutletCards] = useState<Record<string, { network?: string; last4?: string }>>({})
+   // part of the bill, for a guest who pays part in cash and part another way (Kamra Custom)
+   const [payAmount, setPayAmount] = useState("")
+   const [refundModes, setRefundModes] = useState<Record<string, string>>({})
+@@ -502,7 +506,9 @@
+         ? t("That is more than the guest owes.")
+         : payRef.trim() === ""
+           ? t("Write the reference for this payment.")
+-          : ""
++          : cardProblem(payMode, payCard.network, payCard.last4)
++            ? t(cardProblem(payMode, payCard.network, payCard.last4))
++            : ""
+ 
+   function collect() {
+     return run(async () => {
+@@ -514,9 +520,11 @@
+         await call("kamra.api.add_folio_payment", {
+           folio: p.folio, mode: p.mode, amount: p.amount, kind: "Payment",
+           reference: p.reference || undefined,
++          ...cardArgs(p.mode, payCard.network, payCard.last4),
+         })
+       }
+       setPayRef("")
++      setPayCard({})
+       setPayAmount("")
+     })
+   }
+@@ -598,7 +606,8 @@
+ 
+   function payAtOutlet(b: PendingBill) {
+     return run(async () => {
+-      await call("kamra.pos.pay_order", { order: b.name, mode: outletModes[b.name] || b.pay_modes[0] })
++      const m = outletModes[b.name] || b.pay_modes[0]
++      await call("kamra.pos.pay_order", { order: b.name, mode: m, ...cardArgs(m, outletCards[b.name]?.network, outletCards[b.name]?.last4) })
+     })
+   }
+ 
+@@ -970,7 +979,13 @@
+                                 >
+                                   {b.pay_modes.map((m) => <option key={m} value={m}>{t(m)}</option>)}
+                                 </select>
+-                                <Button variant="ghost" disabled={busy || !ctx.till.open} onClick={() => void payAtOutlet(b)}>
++                                {isCard(outletModes[b.name] || b.pay_modes[0]) && (
++                                  <CardNetworkPicker network={outletCards[b.name]?.network} last4={outletCards[b.name]?.last4}
++                                    onChange={(patch) => setOutletCards((c) => ({ ...c, [b.name]: { ...c[b.name], ...patch } }))} />
++                                )}
++                                <Button variant="ghost"
++                                  disabled={busy || !ctx.till.open || !!cardProblem(outletModes[b.name] || b.pay_modes[0], outletCards[b.name]?.network)}
++                                  onClick={() => void payAtOutlet(b)}>
+                                   {t("Settle separately")}
+                                 </Button>
+                               </>
+@@ -1277,6 +1292,11 @@
+                         {ctx.payment_modes.map((m) => <option key={m} value={m}>{t(m)}</option>)}
+                       </select>
+                     </label>
++                    {isCard(payMode) && (
++                      <div className="sm:col-span-3">
++                        <CardNetworkPicker network={payCard.network} last4={payCard.last4} onChange={(patch) => setPayCard((c) => ({ ...c, ...patch }))} />
++                      </div>
++                    )}
+                     <label className="block text-xs">
+                       <span className="mb-1 block text-zinc-500">{t("Amount")}</span>
+                       <input className={inputCls} inputMode="decimal" value={payAmount}
+--- a/src/components/DepositPanel.tsx	2026-11-24 11:26:49.934459533 +0530
++++ b/src/components/DepositPanel.tsx	2026-11-24 11:26:49.935092139 +0530
+@@ -11,6 +11,8 @@
+ import { cur, useLocale, fmtAmount } from "../lib/money"
+ import { useT, t as translate } from "../lib/i18n"
+ import { Button } from "./ui/button"
++import { CardNetworkPicker } from "../custom/CardNetworkPicker"
++import { cardArgs, cardProblem, isCard } from "../custom/cardNetwork"
+ 
+ 
+ export interface DepositState {
+@@ -43,6 +45,7 @@
+   const [mode, setMode] = useState<"record" | "link" | null>(null)
+   const [amount, setAmount] = useState(String(deposit.due || ""))
+   const [payMode, setPayMode] = useState(loc.payment_modes[0] ?? "Cash")
++  const [card, setCard] = useState<{ network?: string; last4?: string }>({})
+   const [reference, setReference] = useState("")
+   // one key per "Take advance": a retry after a lost response replays
+   const [advKey, setAdvKey] = useState(newIdempotencyKey)
+@@ -72,11 +75,13 @@
+         mode: payMode,
+         reference: reference.trim() || undefined,
+         idempotency_key: advKey,
++        ...cardArgs(payMode, card.network, card.last4),
+       })
+       setAdvKey(newIdempotencyKey())
+       props.onChanged(r.deposit)
+       setMode(null)
+       setReference("")
++      setCard({})
+     } catch (e) {
+       setError(serverError(e))
+     } finally {
+@@ -237,6 +242,9 @@
+                   </button>
+                 ))}
+               </div>
++              {isCard(payMode) && (
++                <CardNetworkPicker network={card.network} last4={card.last4} onChange={(patch) => setCard((c) => ({ ...c, ...patch }))} />
++              )}
+               {payMode !== "Cash" && (
+                 <input
+                   className={inputCls}
+@@ -246,7 +254,7 @@
+                 />
+               )}
+               <div className="flex gap-2">
+-                <Button disabled={busy || !(Number(amount) > 0)} onClick={record}>
++                <Button disabled={busy || !(Number(amount) > 0) || !!cardProblem(payMode, card.network, card.last4)} onClick={record}>
+                   {busy ? t("Saving…") : t("Record {amt}", { amt: fmt(Number(amount) || 0) })}
+                 </Button>
+                 <Button variant="ghost" onClick={() => setMode(null)}>
+--- a/src/components/GroupControl.tsx	2026-11-24 11:26:49.938988413 +0530
++++ b/src/components/GroupControl.tsx	2026-11-24 11:26:49.939874203 +0530
+@@ -13,6 +13,8 @@
+ import { useCashierAuth } from "../lib/cashierAuth"
+ import CheckInDialog from "./CheckInDialog"
+ import CheckOutDialog from "./CheckOutDialog"
++import { CardNetworkPicker } from "../custom/CardNetworkPicker"
++import { cardArgs, cardProblem, isCard } from "../custom/cardNetwork"
+ 
+ /** One group, in the order the desk works it. A "What to do next" box
+  *  follows the group's stage (quotation, before arrival, arrival day, in
+@@ -164,9 +166,9 @@
+   const [blocks, setBlocks] = useState<BlockDraft[]>([])
+   const [cutoff, setCutoff] = useState("")
+   const [terms, setTerms] = useState({ attrition_pct: "", deposit_due: "" })
+-  const [deposit, setDeposit] = useState<{ amount: string; mode: string } | null>(null)
++  const [deposit, setDeposit] = useState<{ amount: string; mode: string; network?: string; last4?: string } | null>(null)
+   const [pick, setPick] = useState({ room_type: "", guest_name: "", phone: "" })
+-  const [settle, setSettle] = useState<{ mode: string; amount: string; cityLedger: boolean } | null>(null)
++  const [settle, setSettle] = useState<{ mode: string; amount: string; cityLedger: boolean; network?: string; last4?: string } | null>(null)
+   const [checkingIn, setCheckingIn] = useState<string | null>(null)
+   const [checkingOut, setCheckingOut] = useState<string | null>(null)
+   // rooms checked in by the group button that still have steps to finish
+@@ -249,10 +251,10 @@
+     })
+ 
+   /** an advance for the whole group, paid into the group bill */
+-  const takeDeposit = (amount: number, mode: string) =>
++  const takeDeposit = (amount: number, mode: string, card?: { network?: string; last4?: string }) =>
+     act(async () => {
+       const { folio } = await call<{ folio: string }>("kamra.api.group_master_folio", { group_booking: name })
+-      await call("kamra.api.add_folio_payment", { folio, mode, amount, kind: "Advance" })
++      await call("kamra.api.add_folio_payment", { folio, mode, amount, kind: "Advance", ...cardArgs(mode, card?.network, card?.last4) })
+       setDeposit(null)
+       setNotice(translate("Deposit of {v0} received on the group bill.", { v0: inr(amount) }))
+     }, true)
+@@ -1009,7 +1011,13 @@
+                       onChange={(e) => setDeposit({ ...deposit, mode: e.target.value })}>
+                       {loc.payment_modes.map((m) => <option key={m} value={m}>{translate(m)}</option>)}
+                     </select>
+-                    <Button disabled={busy || !(Number(deposit.amount) > 0)} onClick={() => takeDeposit(Number(deposit.amount), deposit.mode)}>
++                    {isCard(deposit.mode) && (
++                      <div className="basis-full">
++                        <CardNetworkPicker network={deposit.network} last4={deposit.last4} onChange={(patch) => setDeposit({ ...deposit, ...patch })} />
++                      </div>
++                    )}
++                    <Button disabled={busy || !(Number(deposit.amount) > 0) || !!cardProblem(deposit.mode, deposit.network, deposit.last4)}
++                      onClick={() => takeDeposit(Number(deposit.amount), deposit.mode, deposit)}>
+                       {translate("Receive")}
+                     </Button>
+                     <Button variant="outline" onClick={() => setDeposit(null)}>{translate("Cancel")}</Button>
+@@ -1053,10 +1061,15 @@
+                         </select>
+                         <input type="number" className={`${inputSm} w-32`} value={settle.amount}
+                           onChange={(e) => setSettle({ ...settle, amount: e.target.value })} />
++                        {isCard(settle.mode) && (
++                          <div className="basis-full">
++                            <CardNetworkPicker network={settle.network} last4={settle.last4} onChange={(patch) => setSettle({ ...settle, ...patch })} />
++                          </div>
++                        )}
+                       </>
+                     )}
+                     <Button
+-                      disabled={busy}
++                      disabled={busy || (!settle.cityLedger && !!cardProblem(settle.mode, settle.network, settle.last4))}
+                       onClick={() =>
+                         act(async () => {
+                           const out = await call<{ closed: boolean; invoice_number?: string; warning?: string }>(
+@@ -1066,6 +1079,7 @@
+                               mode: settle.cityLedger ? null : settle.mode,
+                               amount: settle.cityLedger ? null : Number(settle.amount) || null,
+                               to_city_ledger: settle.cityLedger ? 1 : 0,
++                              ...(settle.cityLedger ? {} : cardArgs(settle.mode, settle.network, settle.last4)),
+                             },
+                           )
+                           setSettle(null)
+--- a/src/components/RoomStayPanels.tsx	2026-11-24 11:26:49.943723721 +0530
++++ b/src/components/RoomStayPanels.tsx	2026-11-24 11:26:49.944462895 +0530
+@@ -15,6 +15,8 @@
+ import { Badge } from "./ui/badge"
+ import { Button } from "./ui/button"
+ import type { RoomDetail } from "../lib/rooms"
++import { CardNetworkPicker } from "../custom/CardNetworkPicker"
++import { cardArgs, cardProblem, isCard } from "../custom/cardNetwork"
+ 
+ 
+ const inputCls =
+@@ -253,7 +255,7 @@
+     gst_rate: "0",
+     is_alcohol: false,
+   })
+-  const [pay, setPay] = useState({ folio: "", mode: locale().payment_modes[0] ?? "Cash", amount: "", reference: "" })
++  const [pay, setPay] = useState({ folio: "", mode: locale().payment_modes[0] ?? "Cash", amount: "", reference: "", network: "", last4: "" })
+ 
+   useEffect(() => {
+     loadLocale().then((l) => setRates(l.tax_rates))
+@@ -511,6 +513,11 @@
+               ))}
+             </select>
+           </label>
++          {isCard(pay.mode) && (
++            <div className="sm:col-span-2">
++              <CardNetworkPicker network={pay.network} last4={pay.last4} onChange={(patch) => setPay({ ...pay, ...patch })} />
++            </div>
++          )}
+           <label className="block text-sm text-zinc-600">
+             {t("Amount")}
+             <input
+@@ -531,7 +538,7 @@
+         </div>
+         <Button
+           className="min-h-11 px-4"
+-          disabled={busy || !pay.folio || !(Number(pay.amount) > 0)}
++          disabled={busy || !pay.folio || !(Number(pay.amount) > 0) || !!cardProblem(pay.mode, pay.network, pay.last4)}
+           onClick={() =>
+             act(async () => {
+               await call("kamra.api.add_folio_payment", {
+@@ -540,8 +547,9 @@
+                 kind: "Payment",
+                 amount: Number(pay.amount),
+                 reference: pay.reference || undefined,
++                ...cardArgs(pay.mode, pay.network, pay.last4),
+               })
+-              setPay({ ...pay, amount: "", reference: "" })
++              setPay({ ...pay, amount: "", reference: "", network: "", last4: "" })
+             }, t("Payment recorded."))
+           }
+         >
+--- a/src/screens/FolioView.tsx	2026-11-24 11:26:49.947215892 +0530
++++ b/src/screens/FolioView.tsx	2026-11-24 11:26:49.948638120 +0530
+@@ -21,6 +21,8 @@
+ import { Button } from "../components/ui/button"
+ import { cur, locale, taxLabel, useLocale } from "../lib/money"
+ import { useT, t as translate, useUILanguage } from "../lib/i18n"
++import { CardNetworkPicker } from "../custom/CardNetworkPicker"
++import { cardArgs, cardProblem, isCard } from "../custom/cardNetwork"
+ import {
+   Card,
+   CardContent,
+@@ -296,6 +298,8 @@
+     mode: locale().payment_modes[0] ?? "Cash",
+     amount: "",
+     reference: "",
++    network: "",
++    last4: "",
+     kind: "Payment",
+     currency: "",
+   })
+@@ -1738,6 +1742,11 @@
+                   <option key={m} value={m}>{t(m)}</option>
+                 ))}
+               </select>
++              {isCard(payment.mode) && (
++                <div className="basis-full">
++                  <CardNetworkPicker network={payment.network} last4={payment.last4} onChange={(patch) => setPayment({ ...payment, ...patch })} />
++                </div>
++              )}
+               {fxRates.length > 0 && (
+                 <select
+                   className={inputCls}
+@@ -1780,7 +1789,7 @@
+                 </span>
+               )}
+               <Button
+-                disabled={busy || !payment.amount || !payment.reference.trim()}
++                disabled={busy || !payment.amount || !payment.reference.trim() || !!cardProblem(payment.mode, payment.network, payment.last4)}
+                 onClick={() =>
+                   act(() =>
+                     call("kamra.api.add_folio_payment", withPin({
+@@ -1790,6 +1799,7 @@
+                       amount: Number(payment.amount),
+                       reference: payment.reference || undefined,
+                       currency: payment.currency || undefined,
++                      ...cardArgs(payment.mode, payment.network, payment.last4),
+                     })),
+                   )
+                 }
+--- a/src/screens/POS.tsx	2026-11-24 11:26:49.952208865 +0530
++++ b/src/screens/POS.tsx	2026-11-24 11:26:49.952990404 +0530
+@@ -24,6 +24,7 @@
+ import { cur, moneyLocale, useLocale } from "../lib/money"
+ import { useT, t as translate } from "../lib/i18n"
+ import { docsUrl } from "../components/InfoTip"
++import { cardArgs } from "../custom/cardNetwork"
+ 
+ 
+ const inr = (n: unknown) =>
+@@ -600,12 +601,12 @@
+       })
+     }
+   }
+-  async function settle(mode: string) {
++  async function settle(mode: string, card?: { network?: string; last4?: string }) {
+     if (!selected) return
+     const order = selected
+     await act(async () => {
+       await ensureUnlocked()
+-      await call("kamra.pos.pay_order", { order, mode })
++      await call("kamra.pos.pay_order", { order, mode, ...cardArgs(mode, card?.network, card?.last4) })
+       await sendBill(order)
+       newOrder()
+     })
+--- a/src/screens/pos/SettleSheet.tsx	2026-11-24 11:26:49.957451524 +0530
++++ b/src/screens/pos/SettleSheet.tsx	2026-11-24 11:26:49.958223681 +0530
+@@ -8,6 +8,8 @@
+ import { Button } from "../../components/ui/button"
+ import { cn } from "../../lib/utils"
+ import { useT, t as translate } from "../../lib/i18n"
++import { CardNetworkPicker } from "../../custom/CardNetworkPicker"
++import { cardProblem, isCard } from "../../custom/cardNetwork"
+ 
+ 
+ export interface SettleRoom {
+@@ -63,7 +65,7 @@
+   onNcBy: (v: string) => void
+   onNcNote: (v: string) => void
+   onSheetNc: (v: boolean) => void
+-  onSettle: (mode: string) => void
++  onSettle: (mode: string, card?: { network?: string; last4?: string }) => void
+   onSettleDeliver: () => void
+   onChargeToRoom: () => void
+   onSettleNc: () => void
+@@ -83,6 +85,8 @@
+   }, [onClose])
+ 
+   const [pendingMode, setPendingMode] = useState<string | null>(null) // tender picked, not yet confirmed
++  const [card, setCard] = useState<{ network?: string; last4?: string }>({})
++  const cardIssue = pendingMode ? cardProblem(pendingMode, card.network, card.last4) : ""
+   const roomNo = room?.split("-").pop() || ""
+   const roomBlocked =
+     !!room &&
+@@ -173,8 +177,11 @@
+                   </Button>
+                 ))}
+               </div>
++              {pendingMode && isCard(pendingMode) && (
++                <CardNetworkPicker network={card.network} last4={card.last4} onChange={(patch) => setCard((c) => ({ ...c, ...patch }))} />
++              )}
+               {pendingMode && (
+-                <Button className="h-14 w-full text-base" disabled={busy} onClick={() => onSettle(pendingMode)}>
++                <Button className="h-14 w-full text-base" disabled={busy || !!cardIssue} onClick={() => onSettle(pendingMode, card)}>
+                   {t("Confirm {mode} · {amount}", { mode: pendingMode, amount: grandLabel })}
+                 </Button>
+               )}
