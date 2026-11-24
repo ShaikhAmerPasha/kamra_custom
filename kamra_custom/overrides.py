@@ -5,14 +5,17 @@ The booking dialog calls `kamra.api.create_booking` and
 their place (`override_whitelisted_methods`). Ours calls Kamra's own function
 first, unchanged, and then does what Kamra does not:
 
-* find the returning guest by mobile number in any format, so a typed number
-  never makes a second profile;
 * keep the guest's remarks where Kamra's screens read them (`special_requests`)
   and add the staff-only `internal_remarks`;
 * hold an agreed rate for a room (a walk-in too), with the guardrail, desk limit, reason and log
   from `negotiation`.
 
 Nothing of Kamra's is copied here, so a fix in Kamra's booking code still applies.
+
+The returning guest is found by Kamra itself: since Kamra 2.8 its guest matching reads a
+phone number written in any format (spaces, a leading 0, +91 and so on), so these two calls
+no longer look the guest up first. The group booking still does, because Kamra's rooming-list
+matching needs the stored number and the exact name.
 """
 
 import inspect
@@ -75,8 +78,6 @@ def create_booking(*args, internal_remarks=None, custom_rate=None, **kwargs):
 	from kamra.api import create_booking as kamra_create_booking
 
 	custom_rate = frappe.parse_json(custom_rate) if isinstance(custom_rate, str) else custom_rate
-	if not kwargs.get("guest") and kwargs.get("phone") and kwargs.get("property"):
-		kwargs["guest"] = find_guest_by_phone(kwargs["phone"], kwargs["property"])
 
 	from kamra_custom import extra_guest
 
@@ -136,8 +137,6 @@ def walk_in(*args, internal_remarks=None, custom_rate=None, **kwargs):
 	from kamra.api import walk_in as kamra_walk_in
 
 	custom_rate = frappe.parse_json(custom_rate) if isinstance(custom_rate, str) else custom_rate
-	if not kwargs.get("guest") and kwargs.get("phone") and kwargs.get("property"):
-		kwargs["guest"] = find_guest_by_phone(kwargs["phone"], kwargs["property"])
 
 	res = kamra_walk_in(*args, **_accepted(kamra_walk_in, kwargs))
 	changed = _finish(res["reservation"], "", internal_remarks, custom_rate)
