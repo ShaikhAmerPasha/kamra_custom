@@ -2,7 +2,7 @@
    Small type, tight rows, label on the left, section bars, three columns, nothing to scroll on a
    normal desktop screen. Applied by the `kd` class on a form's outermost panel. */
 
-.kd { font-size: 12px; line-height: 1.25; color: var(--kd-text); }
+.kd { font-size: 14px; line-height: 1.25; color: var(--kd-text); }
 .kd, .kd * { letter-spacing: 0; }
 
 
@@ -23,56 +23,56 @@
 .kd .kd-quote { color: var(--kd-text); }
 
 /* header: one thin bar */
-.kd .kd-head { padding: 4px 10px !important; gap: 10px; background: var(--kd-head); border-bottom: 1px solid var(--kd-line); }
-.kd .kd-head h2 { font-size: 14px !important; font-weight: 600; line-height: 1.2; }
+.kd .kd-head { padding: 8px 14px !important; gap: 10px; background: var(--kd-head); border-bottom: 1px solid var(--kd-line); }
+.kd .kd-head h2 { font-size: 17px !important; font-weight: 600; line-height: 1.2; }
 .kd .kd-head p { display: none; }
-.kd .kd-head button, .kd .kd-head [role="radio"] { font-size: 12px; padding: 2px 8px; }
+.kd .kd-head button, .kd .kd-head [role="radio"] { font-size: 14px; padding: 2px 8px; }
 
 /* body: form columns on the left, quote on the right */
-.kd .kd-body { padding: 8px 10px !important; background: var(--kd-bg); }
-.kd .kd-grid { display: block !important; column-count: 3; column-gap: 14px; margin: 0 !important; }
+.kd .kd-body { padding: 12px 14px !important; background: var(--kd-bg); }
+.kd .kd-grid { display: block !important; column-count: 3; column-gap: 20px; margin: 0 !important; }
 .kd .kd-grid > * { margin: 0 0 8px 0 !important; min-width: 0; break-inside: avoid; }
 .kd .kd-grid > .kd-wide, .kd .kd-grid > div[class*="bg-brand-50"], .kd .kd-grid > div[class*="bg-rose"], .kd .kd-grid > div[class*="bg-amber"], .kd .kd-grid > div[class*="border-rose"], .kd .kd-grid > div[class*="border-amber"] { column-span: all; }
 .kd .kd-grid .space-y-6 > *, .kd .kd-grid .space-y-5 > *, .kd .kd-grid .space-y-4 > *, .kd .kd-grid .space-y-3 > *, .kd .kd-grid .space-y-2 > * { margin-top: 0 !important; margin-bottom: 0 !important; }
-.kd .kd-grid .space-y-6, .kd .kd-grid .space-y-5, .kd .kd-grid .space-y-4, .kd .kd-grid .space-y-3, .kd .kd-grid .space-y-2 { display: grid; gap: 3px; }
+.kd .kd-grid .space-y-6, .kd .kd-grid .space-y-5, .kd .kd-grid .space-y-4, .kd .kd-grid .space-y-3, .kd .kd-grid .space-y-2 { display: grid; gap: 7px; }
 
 /* every inner grid of fields becomes one tight column of rows */
-.kd .kd-grid .grid { grid-template-columns: minmax(0, 1fr) !important; gap: 3px !important; }
+.kd .kd-grid .grid { grid-template-columns: minmax(0, 1fr) !important; gap: 7px !important; }
 
 /* section bar */
-.kd [data-bar] { background: var(--kd-surface); border: 1px solid var(--kd-line); padding: 0 6px 4px 6px !important; border-radius: 0; }
-.kd [data-bar]::before { content: attr(data-bar); display: block; background: var(--kd-bar); color: #fff; text-align: center; font-weight: 600; font-size: 11px; padding: 1px 6px; margin: 0 -6px 4px -6px; }
+.kd [data-bar] { background: var(--kd-surface); border: 1px solid var(--kd-line); padding: 0 10px 8px 10px !important; border-radius: 0; }
+.kd [data-bar]::before { content: attr(data-bar); display: block; background: var(--kd-bar); color: #fff; text-align: center; font-weight: 600; font-size: 13px; padding: 4px 6px; margin: 0 -10px 8px -10px; }
 
 /* a field: label on the left, right-aligned, control fills the row */
-.kd .kd-row { display: grid !important; grid-template-columns: 84px minmax(0, 1fr); align-items: center; column-gap: 6px; margin: 0 0 3px 0 !important; }
-.kd .kd-lab { width: 84px; min-width: 0; overflow-wrap: anywhere; text-align: right; font-size: 11px !important; font-weight: 400 !important; color: var(--kd-label) !important; margin: 0 !important; line-height: 1.15; }
+.kd .kd-row { display: grid !important; grid-template-columns: 120px minmax(0, 1fr); align-items: center; column-gap: 6px; margin: 0 0 7px 0 !important; }
+.kd .kd-lab { width: 120px; min-width: 0; overflow-wrap: anywhere; text-align: right; font-size: 13px !important; font-weight: 400 !important; color: var(--kd-label) !important; margin: 0 !important; line-height: 1.15; }
 .kd .kd-ctl { min-width: 0; }
-.kd .kd-ctl > p, .kd .kd-ctl > div > p { font-size: 10px; margin: 1px 0 0 0 !important; }
+.kd .kd-ctl > p, .kd .kd-ctl > div > p { font-size: 12px; margin: 1px 0 0 0 !important; }
 .kd .kd-req input, .kd .kd-req select { background: var(--kd-req) !important; }
 
 /* controls */
-.kd input:not([type="checkbox"]):not([type="radio"]), .kd select { height: 24px !important; min-height: 24px; padding: 1px 6px !important; font-size: 12px !important; border-radius: 2px !important; border: 1px solid var(--kd-input-line) !important; background-color: var(--kd-surface); color: var(--kd-text); }
-.kd textarea { padding: 2px 6px !important; font-size: 12px !important; border-radius: 2px !important; border: 1px solid var(--kd-input-line) !important; min-height: 38px; }
-.kd input[type="checkbox"], .kd input[type="radio"] { width: 13px; height: 13px; }
+.kd input:not([type="checkbox"]):not([type="radio"]), .kd select { height: 32px !important; min-height: 32px; padding: 2px 8px !important; font-size: 14px !important; border-radius: 2px !important; border: 1px solid var(--kd-input-line) !important; background-color: var(--kd-surface); color: var(--kd-text); }
+.kd textarea { padding: 2px 6px !important; font-size: 14px !important; border-radius: 2px !important; border: 1px solid var(--kd-input-line) !important; min-height: 56px; }
+.kd input[type="checkbox"], .kd input[type="radio"] { width: 16px; height: 16px; }
 .kd select { padding-right: 20px !important; }
-.kd [role="radiogroup"] button, .kd button[aria-pressed] { padding: 1px 8px !important; font-size: 12px !important; }
+.kd [role="radiogroup"] button, .kd button[aria-pressed] { padding: 4px 12px !important; font-size: 14px !important; }
 .kd details { padding: 2px 6px !important; border-radius: 0 !important; }
-.kd summary { font-size: 11px !important; }
+.kd summary { font-size: 13px !important; }
 
 /* buttons (the footer and the verbs): small, flat, green for the main one */
-.kd button { font-size: 12px; }
+.kd button { font-size: 14px; }
 .kd .kd-actions { display: flex; gap: 6px; padding: 6px 10px; background: var(--kd-head); border-top: 1px solid var(--kd-line); }
-.kd .kd-actions button { min-height: 24px !important; height: 26px !important; padding: 0 12px !important; border-radius: 2px !important; font-size: 12px !important; }
+.kd .kd-actions button { min-height: 32px !important; height: 34px !important; padding: 0 12px !important; border-radius: 2px !important; font-size: 14px !important; }
 
 /* the quote column */
 .kd .kd-quote { width: 250px !important; background: var(--kd-surface); border-left: 1px solid var(--kd-line); }
 .kd .kd-quote > div { padding: 8px 10px !important; }
-.kd .kd-quote h3 { background: var(--kd-bar); color: #fff; text-align: center; padding: 1px 6px; font-size: 11px !important; text-transform: none; letter-spacing: 0; }
+.kd .kd-quote h3 { background: var(--kd-bar); color: #fff; text-align: center; padding: 1px 6px; font-size: 13px !important; text-transform: none; letter-spacing: 0; }
 
 /* the custom rate box and other stock labels */
-.kd .uppercase { text-transform: none !important; letter-spacing: 0 !important; font-size: 11px !important; }
+.kd .uppercase { text-transform: none !important; letter-spacing: 0 !important; font-size: 13px !important; }
 .kd .rounded-xl { border-radius: 2px !important; }
-.kd [class*="text-base"] { font-size: 12px !important; }
+.kd [class*="text-base"] { font-size: 14px !important; }
 .kd [class*="text-lg"] { font-size: 13px !important; }
 
 /* hide what a dense page does not need */
@@ -82,8 +82,8 @@
 @media (max-width: 720px) { .kd .kd-grid { column-count: 1; } .kd .kd-quote { width: 100% !important; } }
 
 /* small print in the form */
-.kd .kd-grid p { font-size: 11px; }
-.kd .kd-quote button { height: 28px !important; min-height: 28px !important; font-size: 12px !important; border-radius: 2px !important; padding: 0 10px !important; }
+.kd .kd-grid p { font-size: 13px; }
+.kd .kd-quote button { height: 36px !important; min-height: 36px !important; font-size: 14px !important; border-radius: 2px !important; padding: 0 10px !important; }
 
 /* a wrapper that adds no box of its own: its children flow in the page's columns */
 .kd .kd-flat { display: contents; }
@@ -92,13 +92,13 @@
 /* sections never split across columns, even inside a wrapper that adds no box */
 .kd .kd-grid [data-bar], .kd .kd-grid .kd-wide { break-inside: avoid; }
 /* verbs and tabs at the top: small flat buttons */
-.kd .kd-wide button, .kd .kd-wide a { height: 24px; padding: 0 10px !important; font-size: 12px !important; border-radius: 2px !important; display: inline-flex; align-items: center; }
-.kd .kd-wide span[class*="rounded-full"] { font-size: 11px; padding: 1px 8px; }
+.kd .kd-wide button, .kd .kd-wide a { height: 32px; padding: 0 10px !important; font-size: 14px !important; border-radius: 2px !important; display: inline-flex; align-items: center; }
+.kd .kd-wide span[class*="rounded-full"] { font-size: 13px; padding: 1px 8px; }
 /* a grid that must stay a grid (the room lookup) */
 .kd .kd-grid .grid.kd-keep { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; gap: 4px !important; }
 .kd .kd-keep button { padding: 3px 6px !important; border-radius: 2px !important; }
-.kd .kd-keep button span:first-child { font-size: 13px !important; display: inline; margin-right: 4px; }
-.kd .kd-keep button span { font-size: 11px !important; }
+.kd .kd-keep button span:first-child { font-size: 18px !important; display: inline; margin-right: 4px; }
+.kd .kd-keep button span { font-size: 13px !important; }
 /* stock components dropped into a form (everyone staying, signature) */
 .kd .rounded-2xl, .kd .rounded-xl, .kd .rounded-lg { border-radius: 2px !important; }
 .kd .py-3 { padding-top: 4px !important; padding-bottom: 4px !important; }
@@ -107,14 +107,14 @@
 .kd .px-4 { padding-left: 6px !important; padding-right: 6px !important; }
 
 /* a read-only fact: label and value on one row */
-.kd .kd-val { font-size: 12px; font-weight: 500; }
-.kd [data-bar] label[class*="uppercase"], .kd [data-bar] label[class*="text-xs"] { font-size: 11px; }
+.kd .kd-val { font-size: 14px; font-weight: 500; }
+.kd [data-bar] label[class*="uppercase"], .kd [data-bar] label[class*="text-xs"] { font-size: 13px; }
 
 /* the booked-confirmation card: compact, top left, not stretched across the page */
 .kd .kd-done { max-width: 880px; padding: 8px 10px !important; display: grid; gap: 6px; }
 .kd .kd-done > * { margin: 0 !important; }
-.kd .kd-done .text-lg, .kd .kd-done .text-2xl, .kd .kd-done .text-3xl { font-size: 15px !important; }
-.kd .kd-done button { height: 26px !important; padding: 0 12px !important; font-size: 12px !important; border-radius: 2px !important; }
+.kd .kd-done .text-lg, .kd .kd-done .text-2xl, .kd .kd-done .text-3xl { font-size: 18px !important; }
+.kd .kd-done button { height: 34px !important; padding: 0 12px !important; font-size: 14px !important; border-radius: 2px !important; }
 
 /* two fields that belong on one row (card type and its last 4 digits) */
 .kd .kd-grid .grid.kd-pair { grid-template-columns: minmax(0, 1fr) 7rem !important; gap: 6px !important; }
