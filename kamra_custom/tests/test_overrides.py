@@ -185,4 +185,6 @@ class TestAllInRate(TestOverrides):
 		q = negotiation.preview(PROP, DLX, START, END, adults=2, children=0, meal_plan=self.cp, rates=[4700, 4700], all_in=1)
 		self.assertTrue(q["all_in"])
 		self.assertAlmostEqual(q["negotiated"]["room_total"], 4600, places=1)
-		self.assertAlmostEqual(q["discount_pct"], 8.0, places=1)
+		# the percentage is taken on room and meal together, since one amount is agreed for both
+		sys_all = q["system"]["room_total"] + q["system"]["meal_total"]
+		self.assertAlmostEqual(q["discount_pct"], (sys_all - 4600 - q["system"]["meal_total"]) / sys_all * 100, places=1)

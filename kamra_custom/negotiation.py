@@ -221,11 +221,17 @@ def reprice(q: dict, property: str, room_type: str, entered: list) -> dict:
 
 
 def discount_pct(system: dict, negotiated: dict) -> float:
-	"""How far below the system's room price the agreed price is. Zero if above."""
-	base = flt(system.get("room_total"))
+	"""How far below the system's price for room and meal the agreed price is. Zero if above.
+
+	The meal is part of the price the desk agrees (one amount for room and meal), so the
+	percentage is taken on room and meal together, before tax. Measured on the room alone,
+	a plan with a meal in it would make the same cut look larger than the desk sees it.
+	"""
+	base = flt(system.get("room_total")) + flt(system.get("meal_total"))
 	if base <= 0:
 		return 0.0
-	return max(0.0, (base - flt(negotiated.get("room_total"))) / base * 100)
+	agreed = flt(negotiated.get("room_total")) + flt(negotiated.get("meal_total"))
+	return max(0.0, (base - agreed) / base * 100)
 
 
 # --- the rules ----------------------------------------------------------------

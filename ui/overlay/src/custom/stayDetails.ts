@@ -21,6 +21,8 @@ export interface DetailInput {
   special_requests: string | null
   internal_remarks?: string | null
   night_rates?: { rate: number }[]
+  /** What the guest pays for the stay, every tax in it. */
+  amount_after_tax?: number
   guest: { full_name: string; vip: number; stays: number; last_stay: string | null } | null
   deposit?: { expected: number; paid: number; due: number } | null
   security_deposit?: { status: string; held: number; collected: number; required: number } | null
@@ -80,8 +82,8 @@ export function detailRows(d: DetailInput, f: Fmt): DetailRow[] {
   const guests = `${d.adults} adult${d.adults === 1 ? "" : "s"}${d.children ? ` + ${d.children} child${d.children === 1 ? "" : "ren"}` : ""}`
   add("stay", "stay", "Stay", `${f.day(d.check_in_date)} → ${f.day(d.check_out_date)} · ${d.nights} night${d.nights === 1 ? "" : "s"} · ${guests}`)
   add("room", "stay", "Room", [d.room_number, d.room_type_name].filter(Boolean).join(" · "))
-  const avg = averageRate(d.night_rates)
-  add("rate", "stay", "Rate", [d.meal_plan_name || d.meal_plan, d.rate_plan, avg > 0 ? `${f.money(avg)} a night` : ""].filter(Boolean).join(" · "))
+  const avg = nightlyPrice(d)
+  add("rate", "stay", "Rate", [d.meal_plan_name || d.meal_plan, d.rate_plan, avg > 0 ? `${f.money(avg)} a night${taxIn(d) ? ", tax included" : ""}` : ""].filter(Boolean).join(" · "))
   add("booked", "stay", "Booked", [d.source === "OTA" ? d.channel || "OTA" : d.source, d.company ? `company ${d.company}` : "", d.travel_agent ? `agent ${d.travel_agent}` : ""].filter(Boolean).join(" · "))
   if (d.deposit && d.deposit.expected > 0)
     add("deposit", "money", "Deposit", `required ${f.money(d.deposit.expected)} · received ${f.money(d.deposit.paid)}${d.deposit.due > 0 ? ` · still due ${f.money(d.deposit.due)}` : ""}`, d.deposit.due > 0 ? "warn" : "ok")
@@ -101,6 +103,15 @@ export interface DenseBlock {
 
 /** The same facts as detailRows, one field to a row, grouped as the bars of a one-page form
     (Stay, Rate, Booking, Deposits, Notes). Empty rows and empty bars are left out. */
+/** The price a night with every tax in it: what the desk agreed and the guest pays.
+    The room rates alone leave out the meal and the tax, so they are the fallback only. */
+export function nightlyPrice(d: Pick<DetailInput, "amount_after_tax" | "nights" | "night_rates">): number {
+  const total = Number(d.amount_after_tax) || 0
+  return total > 0 && d.nights > 0 ? Math.round((total / d.nights) * 100) / 100 : averageRate(d.night_rates)
+}
+
+const taxIn = (d: Pick<DetailInput, "amount_after_tax" | "nights">) => (Number(d.amount_after_tax) || 0) > 0 && d.nights > 0
+
 export function denseSections(d: DetailInput, f: Fmt): DenseBlock[] {
   const blocks: DenseBlock[] = []
   const bar = (title: string, rows: [string, string, string | number | null | undefined, ("warn" | "ok")?][]) => {
@@ -118,11 +129,11 @@ export function denseSections(d: DetailInput, f: Fmt): DenseBlock[] {
     ["rtype", "Room type", d.room_type_name],
     ["room", "Room", d.room_number],
   ])
-  const avg = averageRate(d.night_rates)
+  const avg = nightlyPrice(d)
   bar("Rate", [
     ["meal", "Meal plan", d.meal_plan_name || d.meal_plan],
     ["plan", "Rate plan", d.rate_plan],
-    ["avg", "Rate a night", avg > 0 ? f.money(avg) : ""],
+    ["avg", taxIn(d) ? "Rate a night (tax incl.)" : "Rate a night", avg > 0 ? f.money(avg) : ""],
   ])
   const history = d.guest
     ? d.guest.stays > 0

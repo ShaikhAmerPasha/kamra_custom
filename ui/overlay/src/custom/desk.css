@@ -130,7 +130,7 @@
 
 /* the check-in done card, centred over the dimmed desk */
 .kd-modal { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.45); }
-.kd-modal .kd-done { margin: 0 !important; width: min(520px, calc(100% - 28px)); }
+.kd-modal .kd-done { margin: 0 !important; align-self: center; width: min(520px, calc(100% - 28px)); }
 
 /* a section that lives in a pop-up: one row on the page */
 .kd-popup-row { display: flex; align-items: center; gap: 8px; min-height: 32px; }
