@@ -24,8 +24,8 @@ export interface BookingRoom {
 }
 
 interface Preview extends PreviewInfo {
-  system: { amount_after_tax: number }
-  negotiated: { amount_after_tax: number } | null
+  system: { amount_after_tax: number; amount_before_tax: number; tax_amount: number }
+  negotiated: { amount_after_tax: number; amount_before_tax: number; tax_amount: number } | null
   limit_pct: number
   entry_rates: number[]
   inclusive: boolean
@@ -46,6 +46,9 @@ export interface CustomBooking {
   blocked: boolean
   /** Agreed rates, in money: what the rooms cost more or less than the system rate (with tax). */
   adjust: number
+  /** The same change split in two: what the agreed rate moves the price before tax and the tax by.
+      The quote adds these to its own lines so an agreed tax-included price shows no extra tax. */
+  adjustParts: { before: number; tax: number }
   setRoomCount: (n: number) => void
   /** Extra arguments for the booking call of a single room. */
   single: () => Record<string, unknown>
@@ -74,7 +77,15 @@ export function useCustomBooking(): CustomBooking {
     return typeof p === "object" && p.negotiated ? sum + (p.negotiated.amount_after_tax - p.system.amount_after_tax) : sum
   }, 0)
 
+  const adjustParts = live.reduce((sum, i) => {
+    const p = previews[i]
+    return typeof p === "object" && p.negotiated
+      ? { before: sum.before + p.negotiated.amount_before_tax - p.system.amount_before_tax, tax: sum.tax + p.negotiated.tax_amount - p.system.tax_amount }
+      : sum
+  }, { before: 0, tax: 0 })
+
   return {
+    adjustParts,
     remarks, setRemarks, rates, previews, setPreviews, nights, setNights, blocked, adjust, setRoomCount,
     setRate: (i, patch) => setRates((all) => ({ ...all, [i]: { ...(all[i] ?? emptyRate()), ...patch } })),
     single: () => {

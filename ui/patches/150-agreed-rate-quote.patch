@@ -1,0 +1,43 @@
+--- a/src/components/BookingDialog.tsx	2026-11-24 17:23:10.480022776 +0530
++++ b/src/components/BookingDialog.tsx	2026-11-24 17:23:10.480759635 +0530
+@@ -2397,7 +2397,7 @@
+                       </span>
+                       <span className="shrink-0 tabular-nums">
+                         {cur()}
+-                        {inr(quote.room_total + (mealInside ? quote.meal_total : 0))}
++                        {inr(quote.room_total + (mealInside ? quote.meal_total : 0) + custom.adjustParts.before)}
+                       </span>
+                     </div>
+                     {(quote.over_capacity_total ?? 0) > 0 && (
+@@ -2449,11 +2449,11 @@
+                     )}
+                     <div className="flex justify-between text-zinc-600">
+                       <span>
+-                        {loc.tax_label} {quote.tax_percent}%
++                        {custom.adjust !== 0 ? t("Includes {tax}", { tax: loc.tax_label }) : `${loc.tax_label} ${quote.tax_percent}%`}
+                       </span>
+                       <span className="tabular-nums">
+                         {cur()}
+-                        {inr(quote.tax_amount)}
++                        {inr(quote.tax_amount + custom.adjustParts.tax)}
+                       </span>
+                     </div>
+                     {moreQuotes.map((mq, i) =>
+@@ -2488,17 +2488,6 @@
+                         </span>
+                       </div>
+                     )}
+-
+-                    {custom.adjust !== 0 && (
+-                      <div className="flex justify-between text-zinc-600">
+-                        <span>Agreed rate</span>
+-                        <span className="tabular-nums">
+-                          {custom.adjust < 0 ? "-" : "+"}
+-                          {cur()}
+-                          {inr(Math.abs(custom.adjust))}
+-                        </span>
+-                      </div>
+-                    )}
+ 
+                     <div className="mt-3 rounded-xl border border-zinc-200 bg-white px-4 py-3.5 shadow-sm">
+                       <div className="flex items-baseline justify-between gap-2">
