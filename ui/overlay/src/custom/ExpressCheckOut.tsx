@@ -14,6 +14,7 @@ import { Button } from "../components/ui/button"
 import { Sheet } from "../components/ui/sheet"
 import { checkOutWithCredit } from "../components/CreditCheckout"
 import ChangeCompany from "../components/ChangeCompany"
+import TillCard, { type TillState } from "../components/TillCard"
 import { Settlements } from "./Settlements"
 import { StayChecklist, useStayInfo } from "./StayChecklist"
 import { StayDetails } from "./StayDetails"
@@ -39,6 +40,8 @@ interface Ctx extends CheckoutLike {
   groups: Record<string, { group: string; amount: number; count: number }>
   totals: { charges: number; paid: number; balance: number }
   collect: { folio: string; amount: number }[]
+  /** the operator's till: money cannot be taken while it is closed */
+  till?: TillState
 }
 
 const EPS = 0.005
@@ -86,7 +89,9 @@ export default function ExpressCheckOut(props: Props & { Fallback: ComponentType
   const cur = ctx.currency_symbol
   const money = (n: number) => `${cur}${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   const due = ctx.collect.reduce((s, c) => s + c.amount, 0)
-  const problem = tenderProblem(lines, due)
+  // money cannot be taken while the operator's till is closed; say so, and offer to open it
+  const tillClosed = due > EPS && !!ctx.till && !ctx.till.open
+  const problem = tillClosed ? "Open your till to take the payment." : tenderProblem(lines, due)
   const setLine = (i: number, patch: Partial<Tender>) => setLines((ls) => ls.map((l, n) => (n === i ? { ...l, ...patch } : l)))
   const title = t("Check out {name}", { name: r.guest_name })
   const description = `${t("Room {n}", { n: r.room_number ?? "" })} · ${r.room_type_name ?? ""} · ${showStay(r.check_in_date, r.check_out_date)}`
@@ -219,6 +224,7 @@ export default function ExpressCheckOut(props: Props & { Fallback: ComponentType
         {due > EPS && (
           <section className="space-y-3">
             <h3 className="text-sm font-semibold text-zinc-800">{t("Payment")}</h3>
+            {ctx.till && <TillCard till={ctx.till} onOpened={() => void load()} purpose={t("to take the payment")} />}
             {lines.map((l, i) => {
               const rest = i === lines.length - 1
               const amounts = tenderAmounts(lines, due)
