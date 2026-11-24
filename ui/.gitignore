@@ -1,2 +1,4 @@
 
 .upstream/
+e2e/
+test-results/
