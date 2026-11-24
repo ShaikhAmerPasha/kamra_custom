@@ -131,3 +131,23 @@
 /* the check-in done card, centred over the dimmed desk */
 .kd-modal { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.45); }
 .kd-modal .kd-done { margin: 0 !important; width: min(520px, calc(100% - 28px)); }
+
+/* a section that lives in a pop-up: one row on the page */
+.kd-popup-row { display: flex; align-items: center; gap: 8px; min-height: 32px; }
+.kd-popup-sum { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.kd-popup-none { color: var(--kd-label); opacity: .75; }
+.kd-popup-row button { height: 30px; padding: 0 14px; border: 1px solid var(--kd-input-line); border-radius: 2px; font-size: 14px; background: var(--kd-surface); color: var(--kd-text); }
+.kd-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #e11d48; margin-right: 6px; }
+
+/* the pop-up card */
+.kd-pop { width: min(560px, calc(100% - 28px)); max-height: calc(100% - 40px); display: flex; flex-direction: column; background: var(--kd-surface); border: 1px solid var(--kd-line); box-shadow: 0 10px 40px rgba(0,0,0,.4); color: var(--kd-text); }
+.kd-pop-wide { width: min(820px, calc(100% - 28px)); }
+.kd-pop-head { background: var(--kd-bar); color: #fff; text-align: center; font-weight: 600; font-size: 14px; padding: 6px; }
+.kd-pop-body { padding: 10px 12px; overflow-y: auto; display: grid; gap: 8px; }
+.kd-pop-foot { display: flex; justify-content: flex-end; padding: 8px 12px; background: var(--kd-head); border-top: 1px solid var(--kd-line); }
+/* inside a pop-up the fields are label-left rows, in one column */
+.kd-pop .grid { grid-template-columns: minmax(0, 1fr) !important; gap: 7px !important; }
+.kd-pop [data-bar] { border: 0; padding: 0 !important; }
+.kd-pop [data-bar]::before { display: none; }
+.kd-pop label.block { display: grid; grid-template-columns: 150px minmax(0, 1fr); align-items: center; column-gap: 6px; }
+.kd-pop label.block > span { text-align: right; margin: 0; font-size: 13px; }

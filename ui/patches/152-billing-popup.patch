@@ -1,0 +1,26 @@
+--- a/src/components/BookingDialog.tsx	2026-11-24 17:24:24.785968038 +0530
++++ b/src/components/BookingDialog.tsx	2026-11-24 17:24:24.786730485 +0530
+@@ -2078,8 +2078,12 @@
+                     />
+                   </button>
+ 
+-                  {moreOpen && (
+-                    <div data-bar="Billing, add-ons and requests" className="space-y-5 pb-2 pt-1">
++                  <DeskPopup
++                    wide
++                    title={t("Billing, add-ons and requests")}
++                    summary={[form.company ? (options?.companies.find((c) => c.name === form.company)?.company_name ?? form.company) : "", Object.values(addonQty).some((q) => q > 0) ? `${Object.values(addonQty).reduce((n, q) => n + q, 0)} ${t("add-ons")}` : ""].filter(Boolean).join(" · ")}
++                  >
++                    <div className="space-y-5 pb-2 pt-1">
+                       <div className="grid gap-3 sm:grid-cols-2">
+                         <Field label={translate("Company (bill corporate)")}>
+                           <select
+@@ -2364,7 +2368,7 @@
+                         </>
+                       )}
+                     </div>
+-                  )}
++                  </DeskPopup>
+                 </div>
+                 </>)}
+               </div>

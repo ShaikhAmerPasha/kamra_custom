@@ -1,0 +1,39 @@
+--- a/src/components/BookingDialog.tsx	2026-11-24 17:24:15.147823345 +0530
++++ b/src/components/BookingDialog.tsx	2026-11-24 17:24:15.148577675 +0530
+@@ -25,6 +25,7 @@
+ import { petChargeBasis } from "../lib/pets"
+ import { useCashierAuth } from "../lib/cashierAuth"
+ import DepositPanel, { type DepositState } from "./DepositPanel"
++import { DeskPopup } from "../custom/DeskPopup"
+ import { CustomBookingFields, RateAmount, customGuestSearch, useCustomBooking } from "../custom/CustomBooking"
+ import { StayLength } from "../custom/CustomStay"
+ import { StayTimes } from "../custom/StayTimes"
+@@ -1625,15 +1626,12 @@
+                 ) : null}
+ 
+                 {selectedRt && extraBeds > 0 && (
+-                  <div
+-                    data-bar="Extra guests"
+-                    className={
+-                      "space-y-2 rounded-xl border px-3 py-2.5 text-sm " +
+-                      (form.over_capacity_guests > 0
+-                        ? "border-amber-200 bg-amber-50 text-amber-800"
+-                        : "border-zinc-200 text-zinc-600")
+-                    }
++                  <DeskPopup
++                    title={t("Extra guests")}
++                    summary={form.over_capacity_guests > 0 ? `${form.over_capacity_guests} · ${cur()}${inr(extraCharge)} / ${t("night")}` : ""}
++                    missing={extraNeedsReason}
+                   >
++                  <div className="space-y-2 text-sm">
+                     <div>
+                       {t("Extra guests by arrangement - up to {beds} above the {cap} it sleeps, at a price you agree", {
+                         beds: extraBeds,
+@@ -1688,6 +1686,7 @@
+                       />
+                     )}
+                   </div>
++                  </DeskPopup>
+                 )}
+ 
+                 <details open={!!form.voucher_code} className="rounded-xl border border-zinc-200 px-3 py-2">
