@@ -29,7 +29,7 @@ interface House {
   rooms: RoomsBlock
   guests: { adults: number; children: number; complimentary: number }
   attention: { total: number; groups: { key: string; label: string; count: number }[] }
-  collected: { total: number; refunds: number; by_mode: { mode: string; amount: number }[] }
+  collected: { total: number; refunds: number; by_mode: { mode: string; amount: number }[]; by_card_network?: { network: string; amount: number }[] }
   owed: { guests: number; open_bills: number; companies: number; overdue: number }
 }
 
@@ -202,7 +202,22 @@ export default function HouseHub() {
             {data.collected.by_mode.length === 0 ? (
               <p className="py-1 text-sm text-zinc-500">{t("Nothing collected yet.")}</p>
             ) : (
-              data.collected.by_mode.map((m) => <Line key={m.mode} label={m.mode} value={money(m.amount)} />)
+              data.collected.by_mode.map((m) => (
+                <div key={m.mode}>
+                  <Line label={m.mode} value={money(m.amount)} />
+                  {m.mode === "Card" && (data.collected.by_card_network?.length ?? 0) > 0 && (
+                    <div className="mb-1 ml-3 border-l border-zinc-200 pl-3">
+                      {data.collected.by_card_network!.map((c) => (
+                        <div key={c.network} className="flex items-center justify-between gap-3 py-0.5 text-xs text-zinc-500">
+                          <span>{c.network === "Not recorded" ? t("Card type not recorded") : c.network}</span>
+                          <span className="tabular-nums">{money(c.amount)}</span>
+                        </div>
+                      ))}
+                      <p className="pt-0.5 text-[11px] text-zinc-400">{t("Card types include restaurant bills paid at the outlet.")}</p>
+                    </div>
+                  )}
+                </div>
+              ))
             )}
             <div className="mt-1 border-t border-zinc-100 pt-1">
               <Line label={t("Total")} value={money(data.collected.total)} to="/cashier/shift-report" />

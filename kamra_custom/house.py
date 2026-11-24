@@ -88,6 +88,7 @@ def house_today(property: str) -> dict:
 		"rooms": _rooms(property),
 		"guests": _guests_in_house(property),
 		"attention": {"total": attn["total"], "groups": [{"key": g["key"], "label": g["label"], "count": g["count"]} for g in attn["groups"]]},
-		"collected": {"total": flt(collected["total"]), "refunds": flt(collected["refunds"]), "by_mode": collected["by_mode"]},
+		"collected": {"total": flt(collected["total"]), "refunds": flt(collected["refunds"]), "by_mode": collected["by_mode"],
+					 "by_card_network": collected["by_card_network"]},
 		"owed": {"guests": flt(guest_owed), "open_bills": int(open_bills), "companies": flt(company_owed), "overdue": flt(ledger.get("overdue"))},
 	}

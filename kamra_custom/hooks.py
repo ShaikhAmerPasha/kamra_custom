@@ -281,7 +281,11 @@ after_migrate = ["kamra_custom.setup.after_migrate"]
 # Keep each guest's phone key in step with the phone number.
 doc_events = {
 	"Guest": {"before_save": "kamra_custom.guests.set_phone_key"},
-	"POS Order": {"before_save": "kamra_custom.complimentary.restaurant_nc"},
+	"POS Order": {"before_save": [
+		"kamra_custom.complimentary.restaurant_nc",
+		"kamra_custom.card_network.on_pos_order_save",
+	]},
+	"Folio": {"before_save": "kamra_custom.card_network.on_folio_save"},
 	"Reservation": {
 		"before_insert": "kamra_custom.assign.release_room",
 		"validate": "kamra_custom.assign.require_clean_room",

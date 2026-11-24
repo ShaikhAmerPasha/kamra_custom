@@ -53,15 +53,27 @@ describe("paying in more than one way", () => {
     expect(tenderProblem([{ mode: "UPI", amount: "", reference: "UTR123" }], 3675)).toBe("")
   })
   it("a blank last line takes the rest", () => {
-    const lines = [{ mode: "Cash", amount: "1000", reference: "r" }, { mode: "Card", amount: "", reference: "x" }]
+    const lines = [{ mode: "Cash", amount: "1000", reference: "r" }, { mode: "Card", amount: "", reference: "x", network: "Visa" }]
     expect(tenderAmounts(lines, 3675)).toEqual([1000, 2675])
     expect(tenderProblem(lines, 3675)).toBe("")
   })
   it("the payments must add up to what is due", () => {
-    const low = [{ mode: "Cash", amount: "1000", reference: "r" }, { mode: "Card", amount: "1000", reference: "x" }]
+    const low = [{ mode: "Cash", amount: "1000", reference: "r" }, { mode: "Card", amount: "1000", reference: "x", network: "Visa" }]
     expect(tenderProblem(low, 3675)).toMatch(/less/)
     const high = [{ mode: "Cash", amount: "4000", reference: "r" }]
     expect(tenderProblem(high, 3675)).toMatch(/more/)
+  })
+  it("a card line needs a network, and the last 4 digits are optional", () => {
+    const card = { mode: "Card", amount: "", reference: "AP123" }
+    expect(tenderProblem([card], 500)).toMatch(/card type/)
+    expect(tenderProblem([{ ...card, network: "RuPay" }], 500)).toBe("")
+    expect(tenderProblem([{ ...card, network: "RuPay", last4: "4321" }], 500)).toBe("")
+    expect(tenderProblem([{ ...card, network: "RuPay", last4: "43" }], 500)).toMatch(/last 4/)
+    expect(tenderProblem([{ mode: "UPI", amount: "", reference: "U1" }], 500)).toBe("")
+  })
+  it("the card details travel with the allocated payment", () => {
+    const out = allocate([{ mode: "Card", amount: 500, reference: "r", network: "Visa", last4: "1111" }], [{ folio: "F", amount: 500 }])
+    expect(out[0]).toMatchObject({ network: "Visa", last4: "1111" })
   })
   it("asks for an amount on every line", () => {
     expect(tenderProblem([{ mode: "Cash", amount: "0", reference: "r" }], 100)).toMatch(/amount/)

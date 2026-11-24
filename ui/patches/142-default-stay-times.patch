@@ -1,0 +1,23 @@
+--- a/src/components/BookingDialog.tsx	2026-11-24 11:23:12.883198192 +0530
++++ b/src/components/BookingDialog.tsx	2026-11-24 11:23:12.883902594 +0530
+@@ -203,7 +203,7 @@
+   const [slot, setSlot] = useState({ from: "10:00", to: "18:00" })
+   const badSlot = dayUse && (!slot.from || !slot.to || slot.to <= slot.from)
+   // usual hotel times, editable; a walk-in arrives now, so it has no arrival time
+-  const [stayTimes, setStayTimes] = useState(props.initial.walkIn ? { ...DEFAULT_TIMES, arrive: "" } : DEFAULT_TIMES)
++  const [stayTimes, setStayTimes] = useState(DEFAULT_TIMES)
+   const slotArgs = dayUse
+     ? { check_in_time: slot.from, check_out_time: slot.to }
+     : stayTimeArgs(stayTimes)
+@@ -286,10 +286,7 @@
+   const { ensureUnlocked, status: pinStatus } = useCashierAuth()
+   const [walkIn, setWalkIn] = useState(!!props.initial.walkIn)
+   // the room clicked on the tape chart; dropped once the desk picks another type
+-  // a walk-in arrives now, so no arrival time; back on Reservation the usual one returns
+-  useEffect(() => {
+-    setStayTimes((x) => ({ ...x, arrive: walkIn ? "" : x.arrive || DEFAULT_TIMES.arrive }))
+-  }, [walkIn])
++  // walk-in or reservation, the usual times (arrive 14:00, depart 12:00) are filled in; the desk can change them
+   const pinnedRoom = !!props.initial.room && !walkIn && form.room_type === props.initial.room_type
+   const [freeRooms, setFreeRooms] = useState<FreeRoom[] | null>(null)
+   const [walk, setWalk] = useState({

@@ -3,6 +3,8 @@
 import frappe
 from kamra.authz import assert_property_access, require_roles
 
+from kamra_custom.card_network import card_collections
+
 
 @frappe.whitelist()
 @require_roles("Front Desk", "Night Auditor", "Kamra Agent", "Finance", "Revenue Manager")
@@ -45,5 +47,6 @@ def collections(property: str, date: str | None = None):
 		"refunds": round(refunds, 2),
 		"cash": round(by_mode.get("Cash", {}).get("amount", 0.0), 2),
 		"by_mode": sorted(by_mode.values(), key=lambda x: -x["amount"]),
+		"by_card_network": card_collections(property, day),
 		"by_cashier": sorted(by_cashier.values(), key=lambda x: -x["amount"]),
 	}

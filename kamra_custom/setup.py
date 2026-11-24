@@ -9,6 +9,8 @@ import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 from frappe.custom.doctype.property_setter.property_setter import make_property_setter
 
+from kamra_custom.card_network import NETWORKS as CARD_NETWORKS
+
 CUSTOM_FIELDS = {
 	"Guest": [
 		{
@@ -24,6 +26,21 @@ CUSTOM_FIELDS = {
 			"report_hide": 1,
 			"description": "Digits of the phone number in international form. Set by Kamra Custom.",
 		}
+	],
+	"Folio Payment": [
+		{"fieldname": "card_network", "label": "Card Network", "fieldtype": "Select",
+		 "options": "\n" + "\n".join(CARD_NETWORKS),
+		 "insert_after": "reference", "no_copy": 1, "search_index": 1,
+		 "description": "Set when the mode is Card, from the card machine slip."},
+		{"fieldname": "card_last4", "label": "Card Last 4 Digits", "fieldtype": "Data", "length": 4,
+		 "insert_after": "card_network", "no_copy": 1},
+	],
+	"POS Order": [
+		{"fieldname": "card_network", "label": "Card Network", "fieldtype": "Select",
+		 "options": "\n" + "\n".join(CARD_NETWORKS),
+		 "insert_after": "payment_mode", "no_copy": 1, "search_index": 1},
+		{"fieldname": "card_last4", "label": "Card Last 4 Digits", "fieldtype": "Data", "length": 4,
+		 "insert_after": "card_network", "no_copy": 1},
 	],
 	"Reservation": [
 		{"fieldname": "kamra_custom_section", "label": "Kamra Custom", "fieldtype": "Section Break",
