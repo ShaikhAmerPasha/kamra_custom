@@ -12,6 +12,7 @@ import { useT } from "../lib/i18n"
 import { cn } from "../lib/utils"
 import { Button } from "../components/ui/button"
 import { Sheet } from "../components/ui/sheet"
+import { DeskPage } from "./DeskPage"
 import { SignaturePad } from "../components/SignaturePad"
 import CheckInGuests, { type GuestOccupant } from "../components/CheckInGuests"
 import { ComplimentaryBox } from "./CustomComplimentary"
@@ -101,6 +102,7 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
   const stayProblems = problems.filter((p) => p.topic !== "id")
   const idDone = flow.guest.id_on_file && flow.ids.ok
   const full = view === "full"
+  const Done = full ? DeskPage : Sheet
   const current: "id" | "stay" = step ?? (idDone ? "stay" : "id")
   const shownProblem = full ? problems[0] : (current === "id" ? idProblems : stayProblems)[0]
 
@@ -155,7 +157,7 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
 
   if (done !== false) {
     return (
-      <Sheet
+      <Done
         wide
         title={title}
         description={description}
@@ -176,12 +178,13 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
             {done ? t("{name} is checked in to room {room}", { name: r.guest_name, room: done }) : t("{name} is checked in", { name: r.guest_name })}
           </p>
         </div>
-      </Sheet>
+      </Done>
     )
   }
 
+  const Shell = full ? DeskPage : Sheet
   return (
-    <Sheet
+    <Shell
       wide
       title={title}
       description={description}
@@ -206,33 +209,33 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
         </div>
       }
     >
-      <div className="space-y-5">
-          <div className="flex"><FormViewSwitch view={view} onChange={setView} /></div>
-          {info && <StayDetails detail={info.detail} />}
-        {info && <StayFacts reservation={info.detail.name} />}
+      <div className={full ? "kd-grid" : "space-y-5"}>
+          <div className="kd-wide flex"><FormViewSwitch view={view} onChange={setView} /></div>
+          {info && (full ? <StayDetails detail={info.detail} dense /> : <StayDetails detail={info.detail} />)}
+        {info && <div data-bar={full ? "Price night by night" : undefined}><StayFacts reservation={info.detail.name} /></div>}
           {info && (
-            <StayChecklist
+            <div data-bar={full ? "Checks" : undefined}><StayChecklist
               mode="in"
               items={checkInItems({ ...info, idMissing: !(idDone || (idType !== "" && idNumber.trim() !== "" && flow.ids.ok)), ownIdOnFile: flow.guest.id_on_file, othersMissing: flow.ids.missing.filter((n) => n !== r.guest_name).length })}
               money={(n) => `${cur()}${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-            />
+            /></div>
           )}
-        <div className={full ? "grid gap-6 lg:grid-cols-2 lg:items-start" : "space-y-5"}>
+        <div className={full ? "kd-flat" : "space-y-5"}>
         {(current === "id" || full) && (
-          <div className="space-y-5">
-          <section className="space-y-3">
-            <h3 className="text-sm font-semibold text-zinc-800">{t("Guest ID")}</h3>
+          <div className={full ? "kd-flat" : "space-y-5"}>
+          <section data-bar={full ? "Guest ID" : undefined} className="space-y-3">
+            <h3 className="kd-hide text-sm font-semibold text-zinc-800">{t("Guest ID")}</h3>
             <p className="text-sm text-zinc-600">{r.guest_name}{flow.guest.phone ? ` · ${flow.guest.phone}` : ""}</p>
             <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <label className={label} htmlFor="x-id-type">{t("ID type")}</label>
+              <div className="kd-row">
+                <label className={label + " kd-lab"} htmlFor="x-id-type">{t("ID type")}</label>
                 <select id="x-id-type" className={input} value={idType} onChange={(e) => setIdType(e.target.value)}>
                   <option value="">{t("Choose…")}</option>
                   {flow.vocabulary.id_types.map((x) => <option key={x} value={x}>{t(x)}</option>)}
                 </select>
               </div>
-              <div>
-                <label className={label} htmlFor="x-id-number">
+              <div className="kd-row">
+                <label className={label + " kd-lab"} htmlFor="x-id-number">
                   {flow.guest.id_on_file ? t("New ID number (leave empty to keep)") : t("ID number")}
                 </label>
                 <input id="x-id-number" className={input} autoComplete="off" value={idNumber} onChange={(e) => setIdNumber(e.target.value)} />
@@ -241,7 +244,7 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
           </section>
 
           {r.adults + r.children > 1 && (
-            <section className="space-y-3">
+            <section data-bar={full ? "Everyone staying" : undefined} className="space-y-3">
               <CheckInGuests
                 key={flow.ids.occupants.map((o) => o.row).join(",")}
                 reservation={r.name}
@@ -261,9 +264,9 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
           </div>
         )}
         {(current === "stay" || full) && (
-          <div className="space-y-5">
-          <section className="space-y-3">
-            <h3 className="text-sm font-semibold text-zinc-800">{t("Room")}</h3>
+          <div className={full ? "kd-flat" : "space-y-5"}>
+          <section data-bar={full ? "Room" : undefined} className="space-y-3">
+            <h3 className="kd-hide text-sm font-semibold text-zinc-800">{t("Room")}</h3>
             {hasRoom ? (
               <p className="rounded-xl border border-zinc-200 bg-white px-4 py-3 text-lg font-semibold">
                 {t("Room {n}", { n: flow.room.room_number ?? "" })}
@@ -291,7 +294,7 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
                   return m.problem ? <p role="alert" className="mt-1 text-xs text-amber-700">{t(m.problem)}</p> : null
                 })()}
               </div>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div className="kd-keep grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {flow.rooms.map((x) => {
                   const blocked = flags.clean_rooms_only && !isCleanRoom(x.housekeeping_status)
                   return (
@@ -321,7 +324,7 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
 
           <ComplimentaryBox reservation={props.reservation} onChanged={load} />
 
-          <dl className="divide-y divide-zinc-100 rounded-xl border border-zinc-200 bg-white px-4 text-sm">
+          <dl data-bar={full ? "Summary" : undefined} className="divide-y divide-zinc-100 rounded-xl border border-zinc-200 bg-white px-4 text-sm">
             {[
               [t("Guest"), r.guest_name],
               [t("ID"), flow.guest.id_on_file && !idNumber ? t("On file") : `${idType} ${idNumber ? "•••" + idNumber.slice(-4) : ""}`],
@@ -336,18 +339,18 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
               {t("The guest already signed (online or earlier). Check in, or ask them to sign again below.")}
             </p>
           ) : null}
-          <div>
-            <p className="mb-1 text-sm font-medium text-zinc-700">{t("Guest signs here")}</p>
+          <div data-bar={full ? "Guest signs here" : undefined}>
+            <p className="kd-hide mb-1 text-sm font-medium text-zinc-700">{t("Guest signs here")}</p>
             <SignaturePad onChange={setSignature} />
+            <label className="mt-1 flex items-center gap-2 text-base">
+              <input type="checkbox" className="size-5" checked={onPaper} onChange={(e) => setOnPaper(e.target.checked)} />
+              {t("The guest signed the printed card")}
+            </label>
           </div>
-          <label className="flex items-center gap-2 text-base">
-            <input type="checkbox" className="size-5" checked={onPaper} onChange={(e) => setOnPaper(e.target.checked)} />
-            {t("The guest signed the printed card")}
-          </label>
           </div>
         )}
         </div>
       </div>
-    </Sheet>
+    </Shell>
   )
 }

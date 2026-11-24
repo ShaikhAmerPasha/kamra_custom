@@ -1,0 +1,171 @@
+--- a/src/components/BookingDialog.tsx	2026-11-24 14:02:40.556487845 +0530
++++ b/src/components/BookingDialog.tsx	2026-11-24 14:02:40.557248802 +0530
+@@ -36,6 +36,7 @@
+ import TillCard, { useTill } from "./TillCard"
+ import { CardNetworkPicker } from "../custom/CardNetworkPicker"
+ import { cardArgs, cardProblem, isCard } from "../custom/cardNetwork"
++import "../custom/desk.css"
+ 
+ /** Reservation.market_segment options (same list as the doctype). */
+ const MARKET_SEGMENTS = ["Corporate", "Leisure", "Group", "MICE", "Government", "Wedding",
+@@ -64,18 +65,18 @@
+ }
+ 
+ const inputCls =
+-  "w-full rounded-lg border border-zinc-300 bg-white px-3.5 py-2.5 text-base " +
++  "w-full rounded-sm border border-zinc-300 bg-white px-1.5 py-0.5 text-xs " +
+   "focus:outline-2 focus:outline-offset-1 focus:outline-brand-600"
+ 
+ 
+-function Field(props: { label: string; children: React.ReactNode }) {
++function Field(props: { label: string; children: React.ReactNode; req?: boolean }) {
+   useUILanguage()
+   return (
+-    <label className="block">
+-      <span className="mb-1.5 block text-sm font-medium text-zinc-600">
++    <label className={"kd-row block" + (props.req ? " kd-req" : "")}>
++      <span className="kd-lab mb-1.5 block text-sm font-medium text-zinc-600">
+         {translate(props.label)}
+       </span>
+-      {props.children}
++      <div className="kd-ctl">{props.children}</div>
+     </label>
+   )
+ }
+@@ -207,7 +208,7 @@
+   const slotArgs = dayUse
+     ? { check_in_time: slot.from, check_out_time: slot.to }
+     : stayTimeArgs(stayTimes)
+-  const [moreOpen, setMoreOpen] = useState(false)
++  const [moreOpen, setMoreOpen] = useState(true)
+   const [moreRooms, setMoreRooms] = useState<ExtraRoom[]>([])
+   const custom = useCustomBooking()
+   // the meal is part of the room rate: the quote shows no separate meal charge (Kamra Custom)
+@@ -322,7 +323,7 @@
+       setMoreRooms([])
+       setGroupName("")
+       setAddonQty({})
+-      setMoreOpen(false)
++      setMoreOpen(true)
+     }
+   }
+ 
+@@ -906,9 +907,9 @@
+         aria-hidden
+       />
+       <div
+-        className="absolute inset-y-0 right-0 flex h-full w-full flex-col bg-white shadow-2xl animate-sheet-in md:w-2/3"
++        className="kd absolute inset-0 flex h-full w-full flex-col bg-white shadow-2xl"
+       >
+-        <header className="flex shrink-0 items-center justify-between gap-4 border-b border-zinc-200 px-6 py-4 md:px-8">
++        <header className="kd-head flex shrink-0 items-center justify-between gap-4 border-b border-zinc-200 px-6 py-4 md:px-8">
+           <div className="min-w-0">
+             <h2 className="text-xl font-semibold tracking-tight text-zinc-900">
+               {walkIn ? t("Walk-in") : t("New booking")}
+@@ -961,7 +962,7 @@
+         </header>
+ 
+         {done ? (
+-          <div className="space-y-5 overflow-y-auto px-6 py-8 md:px-8">
++          <div className="kd-done space-y-5 overflow-y-auto px-6 py-8 md:px-8">
+             {done.walkIn ? (
+               <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-800">
+                 <p className="text-lg font-semibold">
+@@ -1127,8 +1128,8 @@
+         ) : (
+           <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+             {/* Form */}
+-            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5 md:px-8 md:py-6">
+-              <div className="w-full max-w-none space-y-6">
++            <div className="kd-body min-h-0 flex-1 overflow-y-auto px-6 py-5 md:px-8 md:py-6">
++              <div className="kd-grid w-full max-w-none space-y-6">
+                 {options?.property?.sell_message && (
+                   <div className="flex items-start gap-2 rounded-xl bg-brand-50 px-4 py-3 text-sm text-brand-900">
+                     <Megaphone
+@@ -1139,8 +1140,8 @@
+                   </div>
+                 )}
+ 
+-                <div className="grid gap-4 sm:grid-cols-2">
+-                  <Field label={t("Guest name")}>
++                <div data-bar="Guest" className="grid gap-4 sm:grid-cols-2">
++                  <Field req label={t("Guest name")}>
+                     <div className="relative">
+                       <input
+                         className={inputCls}
+@@ -1333,7 +1334,7 @@
+                 )}
+ 
+                 {walkIn && (
+-                  <div className="grid gap-3 sm:grid-cols-3">
++                  <div data-bar="Identity" className="grid gap-3 sm:grid-cols-3">
+                     <Field label={t("ID type")}>
+                       <select
+                         className={inputCls}
+@@ -1371,8 +1372,8 @@
+                   </div>
+                 )}
+ 
+-                <div className={walkIn ? "grid gap-3 sm:grid-cols-2" : "grid gap-3 sm:grid-cols-3"}>
+-                <Field label={t("Room type")}>
++                <div data-bar="Room and rate" className={walkIn ? "grid gap-3 sm:grid-cols-2" : "grid gap-3 sm:grid-cols-3"}>
++                <Field req label={t("Room type")}>
+                   <select
+                     className={inputCls}
+                     value={form.room_type}
+@@ -1505,7 +1506,7 @@
+                   ))}
+                 </div>
+ 
+-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
++                <div data-bar="Stay" className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+                   <Field label={t("Check-in")}>
+                     <input
+                       type="date"
+@@ -1726,8 +1727,8 @@
+                 )}
+ 
+                 {walkIn && (
+-                  <div className="space-y-3 rounded-xl border border-zinc-200 p-4">
+-                    <h3 className="text-sm font-semibold text-zinc-800">
++                  <div data-bar="Payment" className="space-y-3 rounded-xl border border-zinc-200 p-4">
++                    <h3 className="kd-hide text-sm font-semibold text-zinc-800">
+                       {t("Payment")}
+                     </h3>
+                     <div
+@@ -1981,7 +1982,7 @@
+                   </button>
+                 )}
+ 
+-                <div className="grid gap-3 sm:grid-cols-3">
++                <div data-bar="Booking source" className="grid gap-3 sm:grid-cols-3">
+                   <Field label={translate("Booked via")}>
+                     <select
+                       className={inputCls}
+@@ -2061,7 +2062,7 @@
+                 <div className="border-t border-zinc-100 pt-2">
+                   <button
+                     type="button"
+-                    className="flex w-full items-center justify-between py-2 text-left text-sm font-medium text-zinc-700"
++                    className="kd-hide flex w-full items-center justify-between py-2 text-left text-sm font-medium text-zinc-700"
+                     onClick={() => setMoreOpen((o) => !o)}
+                     aria-expanded={moreOpen}
+                   >
+@@ -2076,7 +2077,7 @@
+                   </button>
+ 
+                   {moreOpen && (
+-                    <div className="space-y-5 pb-2 pt-1">
++                    <div data-bar="Billing, add-ons and requests" className="space-y-5 pb-2 pt-1">
+                       <div className="grid gap-3 sm:grid-cols-2">
+                         <Field label={translate("Company (bill corporate)")}>
+                           <select
+@@ -2368,7 +2369,7 @@
+             </div>
+ 
+             {/* Quote rail - always visible on lg */}
+-            <aside className="flex w-full shrink-0 flex-col border-t border-zinc-200 bg-zinc-50 lg:w-80 lg:border-l lg:border-t-0 xl:w-[22rem]">
++            <aside className="kd-quote flex w-full shrink-0 flex-col border-t border-zinc-200 bg-zinc-50 lg:w-80 lg:border-l lg:border-t-0 xl:w-[22rem]">
+               <div className="flex-1 overflow-y-auto px-6 py-5 md:px-7">
+                 <div className="mb-4 flex items-center justify-between">
+                   <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">

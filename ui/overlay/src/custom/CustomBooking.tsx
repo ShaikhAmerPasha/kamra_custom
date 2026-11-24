@@ -136,7 +136,7 @@ export function CustomBookingFields(props: {
   }, [key])
 
   return (
-    <div className="space-y-4">
+    <div data-bar="Remarks and rate" className="space-y-4">
       <div>
         <label className={label} htmlFor="custom-internal-remarks">Internal remarks</label>
         <textarea
@@ -256,8 +256,8 @@ export function RateAmount(props: { custom: CustomBooking; inputCls: string; dis
   const p = custom.previews[0]
   const system = typeof p === "object" ? p.tax_included_rates?.[0] : undefined
   return (
-    <div>
-      <label className={label} htmlFor="custom-amount-0">{NIGHT_PRICE}</label>
+    <div className="kd-row">
+      <label className={`${label} kd-lab`} htmlFor="custom-amount-0">{NIGHT_PRICE}</label>
       <input
         id="custom-amount-0"
         inputMode="decimal"

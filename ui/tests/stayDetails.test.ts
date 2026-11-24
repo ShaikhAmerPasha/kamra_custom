@@ -67,3 +67,33 @@ describe("stay details", () => {
     expect(paid.find((x) => x.key === "money")?.alert).toBe(false)
   })
 })
+
+import { denseSections } from "../overlay/src/custom/stayDetails"
+describe("denseSections", () => {
+  const base2: DetailInput = {
+    name: "RES-1", check_in_date: "2026-11-24", check_out_date: "2026-11-26", nights: 2, adults: 2, children: 0,
+    room_number: "302", room_type_name: "Deluxe Room", meal_plan: "EP", rate_plan: null, source: "Manual", channel: null,
+    company: null, travel_agent: null, special_requests: null, guest: { full_name: "A B", vip: 0, stays: 0, last_stay: null },
+  }
+  const f2 = { money: (n: number) => `₹${n}`, day: (s: string | null | undefined) => s ?? "" }
+  it("gives one field to a row, grouped in bars", () => {
+    const b = denseSections({ ...base2, night_rates: [{ rate: 3000 }, { rate: 3200 }] }, f2)
+    expect(b.map((x) => x.title)).toEqual(["Stay", "Rate", "Booking"])
+    const stay = b[0].rows.map((r) => [r.label, r.value])
+    expect(stay).toContainEqual(["Arrival", "2026-11-24"])
+    expect(stay).toContainEqual(["Nights", "2"])
+    expect(stay).toContainEqual(["Room type", "Deluxe Room"])
+    expect(b[1].rows.find((r) => r.label === "Rate a night")?.value).toBe("₹3100")
+  })
+  it("leaves out empty rows and empty bars", () => {
+    const b = denseSections(base2, f2)
+    expect(b.some((x) => x.title === "Deposits")).toBe(false)
+    expect(b.some((x) => x.title === "Notes")).toBe(false)
+  })
+  it("marks money still to collect", () => {
+    const b = denseSections({ ...base2, deposit: { expected: 2000, paid: 500, due: 1500 } }, f2)
+    const dep = b.find((x) => x.title === "Deposits")!
+    expect(dep.rows.find((r) => r.label === "To collect")).toMatchObject({ value: "₹1500", tone: "warn" })
+    expect(dep.rows.find((r) => r.label === "Received")?.value).toBe("₹500")
+  })
+})

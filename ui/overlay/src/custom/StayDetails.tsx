@@ -8,7 +8,7 @@ import { useT } from "../lib/i18n"
 import { cur } from "../lib/money"
 import { toFullPath } from "../lib/routing"
 import { cn } from "../lib/utils"
-import { detailRows, sections, statusBanner, type BannerTone, type DetailInput, type SectionKey } from "./stayDetails"
+import { denseSections, detailRows, sections, statusBanner, type BannerTone, type DetailInput, type SectionKey } from "./stayDetails"
 import { showDate } from "./showDate"
 
 const BANNER: Record<BannerTone, string> = {
@@ -21,7 +21,7 @@ const BANNER: Record<BannerTone, string> = {
 
 const money = (n: number) => `${cur()}${Math.round(n).toLocaleString("en-IN")}`
 
-export function StayDetails(props: { detail: DetailInput & { folio_name?: string | null } }) {
+export function StayDetails(props: { detail: DetailInput & { folio_name?: string | null }; dense?: boolean }) {
   const { t } = useT()
   const d = props.detail
   const [open, setOpen] = useState<SectionKey | null>(null)
@@ -30,6 +30,39 @@ export function StayDetails(props: { detail: DetailInput & { folio_name?: string
   const shown = parts.find((p) => p.key === open)
   const btn = "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium"
   const link = `${btn} border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50`
+  if (props.dense) {
+    // one page: every fact as a labelled row in its own bar, nothing hidden behind a button
+    const blocks = denseSections(d, { money, day: (iso) => showDate(iso) })
+    return (
+      <div className="kd-flat" aria-label={t("Stay details")}>
+        <div className="kd-wide flex flex-wrap items-center gap-2">
+          <span className={cn("rounded-full px-3 py-1 text-xs font-semibold tracking-wide", BANNER[banner.tone])}>{t(banner.label)}</span>
+          <span className="text-xs text-zinc-500">{d.name}</span>
+          <div className="ms-auto flex flex-wrap gap-2">
+            {d.folio_name && (
+              <a className={link} href={toFullPath(`/billing/${encodeURIComponent(d.folio_name)}`)} target="_blank" rel="noreferrer">{t("Take payment")}</a>
+            )}
+            {d.folio_name && (
+              <a className={link} href={toFullPath(`/billing/${encodeURIComponent(d.folio_name)}`)} target="_blank" rel="noreferrer">{t("Bill, discounts and splits")}</a>
+            )}
+            <a className={link} href={toFullPath(`/grc/${encodeURIComponent(d.name)}`)} target="_blank" rel="noreferrer">{t("Registration card")}</a>
+            <a className={link} href={toFullPath(`/grc/${encodeURIComponent(d.name)}`)} target="_blank" rel="noreferrer">{t("Change room")}</a>
+            <a className={link} href={toFullPath(`/activity?record=${encodeURIComponent(d.name)}`)} target="_blank" rel="noreferrer">{t("History")}</a>
+          </div>
+        </div>
+        {blocks.map((b) => (
+          <div key={b.title} data-bar={t(b.title)}>
+            {b.rows.map((r) => (
+              <div key={r.key} className="kd-row">
+                <span className="kd-lab">{t(r.label)}</span>
+                <span className={cn("kd-val min-w-0 break-words", r.tone === "warn" && "font-semibold text-amber-700")}>{r.value}</span>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    )
+  }
   return (
     <div className="space-y-2" aria-label={t("Stay details")}>
       <div className="flex flex-wrap items-center gap-2">

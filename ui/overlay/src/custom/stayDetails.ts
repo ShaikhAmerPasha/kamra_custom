@@ -94,6 +94,68 @@ export function detailRows(d: DetailInput, f: Fmt): DetailRow[] {
 }
 
 
+export interface DenseBlock {
+  title: string
+  rows: { key: string; label: string; value: string; tone?: "warn" | "ok" }[]
+}
+
+/** The same facts as detailRows, one field to a row, grouped as the bars of a one-page form
+    (Stay, Rate, Booking, Deposits, Notes). Empty rows and empty bars are left out. */
+export function denseSections(d: DetailInput, f: Fmt): DenseBlock[] {
+  const blocks: DenseBlock[] = []
+  const bar = (title: string, rows: [string, string, string | number | null | undefined, ("warn" | "ok")?][]) => {
+    const mine = rows
+      .map(([key, label, value, tone]) => ({ key, label, value: (value ?? "").toString().trim(), tone }))
+      .filter((r) => r.value !== "")
+    if (mine.length) blocks.push({ title, rows: mine })
+  }
+  const guests = `${d.adults} adult${d.adults === 1 ? "" : "s"}${d.children ? ` + ${d.children} child${d.children === 1 ? "" : "ren"}` : ""}`
+  bar("Stay", [
+    ["arrive", "Arrival", f.day(d.check_in_date)],
+    ["leave", "Departure", f.day(d.check_out_date)],
+    ["nights", "Nights", d.nights],
+    ["guests", "Guests", guests],
+    ["rtype", "Room type", d.room_type_name],
+    ["room", "Room", d.room_number],
+  ])
+  const avg = averageRate(d.night_rates)
+  bar("Rate", [
+    ["meal", "Meal plan", d.meal_plan_name || d.meal_plan],
+    ["plan", "Rate plan", d.rate_plan],
+    ["avg", "Rate a night", avg > 0 ? f.money(avg) : ""],
+  ])
+  const history = d.guest
+    ? d.guest.stays > 0
+      ? `${d.guest.stays} earlier stay${d.guest.stays === 1 ? "" : "s"}${d.guest.last_stay ? `, last ${f.day(d.guest.last_stay)}` : ""}`
+      : "First stay"
+    : ""
+  bar("Booking", [
+    ["source", "Booked thru", d.source === "OTA" ? d.channel || "OTA" : d.source],
+    ["company", "Company", d.company],
+    ["agent", "Travel agent", d.travel_agent],
+    ["history", "History", [d.guest?.vip ? "VIP" : "", history].filter(Boolean).join(" · ")],
+  ])
+  const dep = d.deposit
+  const sd = d.security_deposit
+  bar("Deposits", [
+    ["dep-req", "Required", dep && dep.expected > 0 ? f.money(dep.expected) : ""],
+    ["dep-got", "Received", dep && (dep.expected > 0 || dep.paid > 0) ? f.money(dep.paid) : ""],
+    ["dep-due", "To collect", dep && dep.due > 0 ? f.money(dep.due) : "", "warn"],
+    [
+      "security",
+      "Security deposit",
+      sd && sd.status !== "None" && sd.status !== "Waived" && (sd.required > 0 || sd.held > 0 || sd.collected > 0)
+        ? `${sd.status}${sd.held > 0 ? ` · held ${f.money(sd.held)}` : sd.required > 0 ? ` · required ${f.money(sd.required)}` : ""}`
+        : "",
+    ],
+  ])
+  bar("Notes", [
+    ["requests", "Guest requests", d.special_requests],
+    ["staff", "Staff notes", d.internal_remarks],
+  ])
+  return blocks
+}
+
 export type BannerTone = "blue" | "green" | "grey" | "red" | "amber"
 
 /** The status banner at the top of a stay panel: one word, in capitals, with a colour. */

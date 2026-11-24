@@ -1,0 +1,103 @@
+/* The desk skin (Kamra Custom): dense one-page forms in the style front-desk staff already know.
+   Small type, tight rows, label on the left, section bars, three columns, nothing to scroll on a
+   normal desktop screen. Applied by the `kd` class on a form's outermost panel. */
+
+.kd { font-size: 12px; line-height: 1.25; color: #1f2933; }
+.kd, .kd * { letter-spacing: 0; }
+
+/* header: one thin bar */
+.kd .kd-head { padding: 4px 10px !important; gap: 10px; background: #e9edf1; border-bottom: 1px solid #aab3bd; }
+.kd .kd-head h2 { font-size: 14px !important; font-weight: 600; line-height: 1.2; }
+.kd .kd-head p { display: none; }
+.kd .kd-head button, .kd .kd-head [role="radio"] { font-size: 12px; padding: 2px 8px; }
+
+/* body: form columns on the left, quote on the right */
+.kd .kd-body { padding: 8px 10px !important; background: #f5f6f8; }
+.kd .kd-grid { display: block !important; column-count: 3; column-gap: 14px; margin: 0 !important; }
+.kd .kd-grid > * { margin: 0 0 8px 0 !important; min-width: 0; break-inside: avoid; }
+.kd .kd-grid > .kd-wide, .kd .kd-grid > div[class*="bg-brand-50"], .kd .kd-grid > div[class*="bg-rose"], .kd .kd-grid > div[class*="bg-amber"], .kd .kd-grid > div[class*="border-rose"], .kd .kd-grid > div[class*="border-amber"] { column-span: all; }
+.kd .kd-grid .space-y-6 > *, .kd .kd-grid .space-y-5 > *, .kd .kd-grid .space-y-4 > *, .kd .kd-grid .space-y-3 > *, .kd .kd-grid .space-y-2 > * { margin-top: 0 !important; margin-bottom: 0 !important; }
+.kd .kd-grid .space-y-6, .kd .kd-grid .space-y-5, .kd .kd-grid .space-y-4, .kd .kd-grid .space-y-3, .kd .kd-grid .space-y-2 { display: grid; gap: 3px; }
+
+/* every inner grid of fields becomes one tight column of rows */
+.kd .kd-grid .grid { grid-template-columns: minmax(0, 1fr) !important; gap: 3px !important; }
+
+/* section bar */
+.kd [data-bar] { background: #fff; border: 1px solid #c3cad2; padding: 0 0 4px 0 !important; border-radius: 0; }
+.kd [data-bar]::before { content: attr(data-bar); display: block; background: #5b6670; color: #fff; text-align: center; font-weight: 600; font-size: 11px; padding: 1px 6px; margin-bottom: 4px; }
+.kd [data-bar] > * { margin-left: 6px; margin-right: 6px; }
+.kd [data-bar] > .kd-row { margin-left: 6px; }
+
+/* a field: label on the left, right-aligned, control fills the row */
+.kd .kd-row { display: grid !important; grid-template-columns: 84px minmax(0, 1fr); align-items: center; column-gap: 6px; margin: 0 !important; }
+.kd .kd-lab { text-align: right; font-size: 11px !important; font-weight: 400 !important; color: #3b4651 !important; margin: 0 !important; line-height: 1.15; }
+.kd .kd-ctl { min-width: 0; }
+.kd .kd-ctl > p, .kd .kd-ctl > div > p { font-size: 10px; margin: 1px 0 0 0 !important; }
+.kd .kd-req input, .kd .kd-req select { background: #fffbd1 !important; }
+
+/* controls */
+.kd input:not([type="checkbox"]):not([type="radio"]), .kd select { height: 24px !important; min-height: 24px; padding: 1px 6px !important; font-size: 12px !important; border-radius: 2px !important; border: 1px solid #aeb7c0 !important; background-color: #fff; }
+.kd textarea { padding: 2px 6px !important; font-size: 12px !important; border-radius: 2px !important; border: 1px solid #aeb7c0 !important; min-height: 38px; }
+.kd input[type="checkbox"], .kd input[type="radio"] { width: 13px; height: 13px; }
+.kd select { padding-right: 20px !important; }
+.kd [role="radiogroup"] button, .kd button[aria-pressed] { padding: 1px 8px !important; font-size: 12px !important; }
+.kd details { padding: 2px 6px !important; border-radius: 0 !important; }
+.kd summary { font-size: 11px !important; }
+
+/* buttons (the footer and the verbs): small, flat, green for the main one */
+.kd button { font-size: 12px; }
+.kd .kd-actions { display: flex; gap: 6px; padding: 6px 10px; background: #e9edf1; border-top: 1px solid #aab3bd; }
+.kd .kd-actions button { min-height: 24px !important; height: 26px !important; padding: 0 12px !important; border-radius: 2px !important; font-size: 12px !important; }
+
+/* the quote column */
+.kd .kd-quote { width: 250px !important; background: #fff; border-left: 1px solid #aab3bd; }
+.kd .kd-quote > div { padding: 8px 10px !important; }
+.kd .kd-quote h3 { background: #5b6670; color: #fff; text-align: center; padding: 1px 6px; font-size: 11px !important; text-transform: none; letter-spacing: 0; }
+
+/* the custom rate box and other stock labels */
+.kd .uppercase { text-transform: none !important; letter-spacing: 0 !important; font-size: 11px !important; }
+.kd .rounded-xl { border-radius: 2px !important; }
+.kd [class*="text-base"] { font-size: 12px !important; }
+.kd [class*="text-lg"] { font-size: 13px !important; }
+
+/* hide what a dense page does not need */
+.kd .kd-hide { display: none !important; }
+
+@media (max-width: 1100px) { .kd .kd-grid { column-count: 2; } }
+@media (max-width: 720px) { .kd .kd-grid { column-count: 1; } .kd .kd-quote { width: 100% !important; } }
+
+/* small print in the form */
+.kd .kd-grid p { font-size: 11px; }
+.kd .kd-quote button { height: 28px !important; min-height: 28px !important; font-size: 12px !important; border-radius: 2px !important; padding: 0 10px !important; }
+
+/* a wrapper that adds no box of its own: its children flow in the page's columns */
+.kd .kd-flat { display: contents; }
+.kd .kd-grid [data-bar] { margin-bottom: 8px !important; }
+
+/* sections never split across columns, even inside a wrapper that adds no box */
+.kd .kd-grid [data-bar], .kd .kd-grid .kd-wide { break-inside: avoid; }
+/* verbs and tabs at the top: small flat buttons */
+.kd .kd-wide button, .kd .kd-wide a { height: 24px; padding: 0 10px !important; font-size: 12px !important; border-radius: 2px !important; display: inline-flex; align-items: center; }
+.kd .kd-wide span[class*="rounded-full"] { font-size: 11px; padding: 1px 8px; }
+/* a grid that must stay a grid (the room lookup) */
+.kd .kd-grid .grid.kd-keep { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; gap: 4px !important; }
+.kd .kd-keep button { padding: 3px 6px !important; border-radius: 2px !important; }
+.kd .kd-keep button span:first-child { font-size: 13px !important; display: inline; margin-right: 4px; }
+.kd .kd-keep button span { font-size: 11px !important; }
+/* stock components dropped into a form (everyone staying, signature) */
+.kd [class*="rounded-2xl"], .kd [class*="rounded-xl"], .kd [class*="rounded-lg"] { border-radius: 2px !important; }
+.kd [class*="py-3"] { padding-top: 4px !important; padding-bottom: 4px !important; }
+.kd [class*="py-4"] { padding-top: 5px !important; padding-bottom: 5px !important; }
+.kd [class*="p-4"], .kd [class*="p-3"] { padding: 5px !important; }
+.kd [class*="px-4"] { padding-left: 6px !important; padding-right: 6px !important; }
+
+/* a read-only fact: label and value on one row */
+.kd .kd-val { font-size: 12px; font-weight: 500; }
+.kd [data-bar] label[class*="uppercase"], .kd [data-bar] label[class*="text-xs"] { font-size: 11px; }
+.kd [data-bar] > div { padding-left: 6px; padding-right: 6px; }
+
+/* the booked-confirmation card: compact, top left, not stretched across the page */
+.kd .kd-done { max-width: 880px; padding: 8px 10px !important; display: grid; gap: 6px; }
+.kd .kd-done > * { margin: 0 !important; }
+.kd .kd-done .text-lg, .kd .kd-done .text-2xl, .kd .kd-done .text-3xl { font-size: 15px !important; }
+.kd .kd-done button { height: 26px !important; padding: 0 12px !important; font-size: 12px !important; border-radius: 2px !important; }
