@@ -11,10 +11,9 @@ export interface Flags {
   express_checkout: boolean
   clean_rooms_only: boolean
   assign_room_at_checkin: boolean
-  payment_links: boolean
 }
 
-const ON: Flags = { grc_staff_name: true, checkout_date_on_booking: true, merge_meal_in_room_line: true, express_checkin: false, express_checkout: false, clean_rooms_only: false, assign_room_at_checkin: false, payment_links: false }
+const ON: Flags = { grc_staff_name: true, checkout_date_on_booking: true, merge_meal_in_room_line: true, express_checkin: false, express_checkout: false, clean_rooms_only: false, assign_room_at_checkin: false }
 let loaded: Promise<Flags> | null = null
 
 export function useFlags(): Flags {
