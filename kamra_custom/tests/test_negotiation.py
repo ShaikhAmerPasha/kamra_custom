@@ -310,6 +310,28 @@ class TestTaxIncludedAmount(_Site):
 		p = negotiation.preview(PROP, RT, start, end, rates=[3000, 3000], tax_in=1)
 		self.assertAlmostEqual(p["negotiated"]["amount_after_tax"], 6000, delta=0.2)
 
+	def test_a_day_use_slot_takes_one_agreed_rate(self):
+		day = add_days(nowdate(), 60)
+		p = negotiation.preview(PROP, RT, day, day, rates=[2000], tax_in=1, check_in_time="10:00", check_out_time="18:00")
+		self.assertEqual(len(p["system"]["nightly"]), 1)
+		self.assertTrue(p["system"]["day_use"])
+		self.assertAlmostEqual(p["negotiated"]["amount_after_tax"], 2000, delta=0.2)
+
+	def test_tax_extra_adds_the_tax_on_top_of_the_typed_price(self):
+		start, end = add_days(nowdate(), 60), add_days(nowdate(), 62)
+		p = negotiation.preview(PROP, RT, start, end, rates=[3000, 3000], all_in=1, tax_in=0)
+		neg = p["negotiated"]
+		self.assertAlmostEqual(neg["amount_before_tax"], 6000, delta=0.2)
+		self.assertGreater(neg["amount_after_tax"], 6000)
+
+	def test_the_discount_is_the_same_whether_the_tax_is_in_or_on_top(self):
+		start, end = add_days(nowdate(), 60), add_days(nowdate(), 61)
+		sys_pre = negotiation.preview(PROP, RT, start, end)["system"]
+		pre = sys_pre["room_total"] + sys_pre["meal_total"]
+		incl = negotiation.preview(PROP, RT, start, end, rates=[(pre * 0.95) * 1.05], tax_in=1)
+		extra = negotiation.preview(PROP, RT, start, end, rates=[pre * 0.95], all_in=1, tax_in=0)
+		self.assertAlmostEqual(incl["discount_pct"], extra["discount_pct"], delta=0.1)
+
 
 class TestCleanPaise(_Site):
 	def test_the_tax_is_never_a_half_paisa(self):

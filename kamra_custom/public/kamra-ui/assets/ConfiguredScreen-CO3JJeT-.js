@@ -1,1 +1,0 @@
-import{j as o}from"./vendor-BvWpGGIH.js";import{R as t,c as i}from"./configs-D56fal24.js";import"./index-CWCl5f4r.js";import"./card-DcMA9sXB.js";import"./ImageField-CRdLxUJO.js";import"./upload-BEzFFoTA.js";import"./columns-3-Df0lZgIa.js";import"./trash-2-BWDZ8k51.js";function a({config:r}){return o.jsx(t,{config:i[r]})}export{a as default};

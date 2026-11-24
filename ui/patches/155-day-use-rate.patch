@@ -1,0 +1,90 @@
+--- a/src/components/BookingDialog.tsx	2026-11-24 18:13:15.361862472 +0530
++++ b/src/components/BookingDialog.tsx	2026-11-24 18:13:15.362516184 +0530
+@@ -763,7 +763,7 @@
+         payment_reference: walk.pay_reference.trim() || undefined,
+         ...(amount > 0 ? cardArgs(walk.pay_mode, walk.pay_network, walk.pay_last4) : {}),
+         idempotency_key: walkInKey,
+-        ...(dayUse ? {} : custom.single()),
++        ...custom.single(),
+         ...slotArgs,
+         blacklist_override_reason: blacklistOverride,
+         ...viaArgs,
+@@ -865,7 +865,7 @@
+     payAmount < 0 ||
+     (payAmount > 0 && !!cardProblem(walk.pay_mode, walk.pay_network, walk.pay_last4)) ||
+     (!!walk.id_number.trim() && !walk.id_type) ||
+-    (!dayUse && custom.blocked)
++    custom.blocked
+ 
+   // the server judges the terms from today (season, tiers, free window);
+   // a window that has already closed reads as non-refundable, never as a
+@@ -1485,7 +1485,7 @@
+                     ))}
+                   </select>
+                 </Field>
+-                {!dayUse && <RateAmount custom={custom} inputCls={inputCls} />}
++                <RateAmount custom={custom} inputCls={inputCls} dayUse={dayUse} />
+                 </div>
+ 
+                 <div
+@@ -1725,12 +1725,14 @@
+                   />
+                 )}
+ 
+-                {walkIn && !dayUse && (
++                {walkIn && (
+                   <CustomBookingFields
+                     custom={custom}
+                     rooms={[{ room_type: form.room_type, adults: form.adults, children: form.children, meal_plan: form.meal_plan }]}
+                     checkIn={form.check_in_date}
+                     checkOut={checkOut}
++                    dayUse={dayUse}
++                    slot={slot}
+                   />
+                 )}
+ 
+@@ -2055,7 +2057,7 @@
+                   )}
+                 </div>
+ 
+-                {!dayUse && (
++                {(
+                   <CustomBookingFields
+                     custom={custom}
+                     rooms={[
+@@ -2064,6 +2066,8 @@
+                     ]}
+                     checkIn={form.check_in_date}
+                     checkOut={checkOut}
++                    dayUse={dayUse}
++                    slot={slot}
+                   />
+                 )}
+ 
+@@ -2458,7 +2462,7 @@
+                     )}
+                     <div className="flex justify-between text-zinc-600">
+                       <span>
+-                        {custom.adjust !== 0 ? t("Includes {tax}", { tax: loc.tax_label }) : `${loc.tax_label} ${quote.tax_percent}%`}
++                        {custom.adjust !== 0 ? (custom.taxExtra ? loc.tax_label : t("Includes {tax}", { tax: loc.tax_label })) : `${loc.tax_label} ${quote.tax_percent}%`}
+                       </span>
+                       <span className="tabular-nums">
+                         {cur()}
+@@ -2625,7 +2629,7 @@
+                 )}
+                 <Button
+                   className="w-full justify-center py-2.5 text-base"
+-                  disabled={busy || !form.guest_name || !quote || badDate || pastCheckIn || badPhone || badSlot || blacklistBlocked || creditBlocked || extraNeedsReason || (!dayUse && custom.blocked)}
++                  disabled={busy || !form.guest_name || !quote || badDate || pastCheckIn || badPhone || badSlot || blacklistBlocked || creditBlocked || extraNeedsReason || custom.blocked}
+                   onClick={() => submit()}
+                 >
+                   {busy ? t("Booking…") : t("Confirm booking")}
+@@ -2641,7 +2645,7 @@
+                   <Button
+                     variant="outline"
+                     className="justify-center"
+-                    disabled={busy || !form.guest_name || badDate || pastCheckIn || badPhone || badSlot || blacklistBlocked || extraNeedsReason || (!dayUse && custom.blocked)}
++                    disabled={busy || !form.guest_name || badDate || pastCheckIn || badPhone || badSlot || blacklistBlocked || extraNeedsReason || custom.blocked}
+                     onClick={() => submit(true)}
+                     title={t("Park this stay with no room; promote when inventory frees")}
+                   >

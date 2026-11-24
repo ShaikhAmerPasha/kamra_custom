@@ -33,6 +33,30 @@ interface Preview extends PreviewInfo {
 
 export const NIGHT_PRICE = "Amount per night (tax included)"
 
+/** Tax included / tax extra: one choice per agreed price. */
+export function TaxToggle(props: { value: boolean; onChange: (taxIn: boolean) => void; id: string }) {
+  return (
+    <div role="radiogroup" aria-label="Tax on the agreed amount" id={props.id}
+      className="inline-flex rounded-lg border border-zinc-200 bg-zinc-50 p-0.5 text-sm">
+      {([true, false] as const).map((on) => (
+        <button key={String(on)} type="button" role="radio" aria-checked={props.value === on}
+          onClick={() => props.onChange(on)}
+          className={"rounded-md px-3 py-1 font-medium " + (props.value === on ? "bg-white text-brand-800 shadow-sm" : "text-zinc-500 hover:text-zinc-700")}>
+          {on ? "Tax included" : "Tax extra"}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/** The system's price for one night in the way the desk is typing: with tax in it, or before tax. */
+export const systemPrice = (p: { tax_included_rates?: number[]; entry_rates: number[]; meal_per_night?: number; inclusive: boolean } | undefined, taxIn: boolean) =>
+  p ? (taxIn ? p.tax_included_rates?.[0] : p.inclusive ? undefined : p.entry_rates[0] + (p.meal_per_night ?? 0)) : undefined
+
+/** The label of the amount the desk types: it says whether tax is in it and what it covers. */
+export const amountLabel = (taxIn: boolean, dayUse: boolean) =>
+  `${dayUse ? "Amount for the slot" : "Amount per night"} (${taxIn ? "tax included" : "before tax"})`
+
 export interface CustomBooking {
   remarks: string
   setRemarks: (v: string) => void
@@ -44,6 +68,8 @@ export interface CustomBooking {
   setNights: (n: number) => void
   /** Something is wrong with an agreed rate, so the booking must wait. */
   blocked: boolean
+  /** Some room is priced before tax: the quote then shows the tax on top, not inside. */
+  taxExtra: boolean
   /** Agreed rates, in money: what the rooms cost more or less than the system rate (with tax). */
   adjust: number
   /** The same change split in two: what the agreed rate moves the price before tax and the tax by.
@@ -84,7 +110,10 @@ export function useCustomBooking(): CustomBooking {
       : sum
   }, { before: 0, tax: 0 })
 
+  const taxExtra = live.some((i) => (rates[i] ?? emptyRate()).agree && !(rates[i] ?? emptyRate()).taxIn)
+
   return {
+    taxExtra,
     adjustParts,
     remarks, setRemarks, rates, previews, setPreviews, nights, setNights, blocked, adjust, setRoomCount,
     setRate: (i, patch) => setRates((all) => ({ ...all, [i]: { ...(all[i] ?? emptyRate()), ...patch } })),
@@ -113,9 +142,14 @@ export function CustomBookingFields(props: {
   rooms: BookingRoom[]
   checkIn: string
   checkOut: string
+  /** A same-day stay: one price for the slot. */
+  dayUse?: boolean
+  slot?: { from: string; to: string }
 }) {
-  const { custom, rooms, checkIn, checkOut } = props
-  const nights = nightsBetween(checkIn, checkOut)
+  const { custom, rooms, checkIn, checkOut, dayUse, slot } = props
+  // a day-use slot is priced as one night
+  const nights = dayUse ? 1 : nightsBetween(checkIn, checkOut)
+  const slotWord = !!dayUse
   const property = getCurrentProperty()
   const { setNights, setRoomCount, setPreviews } = custom
 
@@ -123,7 +157,7 @@ export function CustomBookingFields(props: {
   useEffect(() => setRoomCount(rooms.length), [rooms.length, setRoomCount])
 
   // price each room at its agreed rate, so the desk sees the total and any rule it breaks
-  const key = JSON.stringify([property, checkIn, checkOut, rooms, custom.rates])
+  const key = JSON.stringify([property, checkIn, checkOut, rooms, custom.rates, dayUse, slot])
   useEffect(() => {
     if (nights < 1) return
     let alive = true
@@ -133,7 +167,8 @@ export function CustomBookingFields(props: {
         const rt = custom.rates[i] ?? emptyRate()
         call<Preview>("kamra_custom.negotiation.preview", {
           property, room_type: r.room_type, check_in_date: checkIn, check_out_date: checkOut,
-          adults: r.adults, children: r.children, meal_plan: r.meal_plan || undefined, rates: agreedRates(rt, nights), tax_in: 1,
+          adults: r.adults, children: r.children, meal_plan: r.meal_plan || undefined, rates: agreedRates(rt, nights), tax_in: rt.taxIn ? 1 : 0, all_in: 1,
+          ...(dayUse && slot ? { check_in_time: slot.from, check_out_time: slot.to } : {}),
         })
           .then((p) => alive && setPreviews((all) => ({ ...all, [i]: p })))
           .catch((e) => alive && setPreviews((all) => ({ ...all, [i]: rule(e) || "This room cannot be priced." })))
@@ -165,7 +200,6 @@ export function CustomBookingFields(props: {
             const p = custom.previews[i]
             const info = typeof p === "object" ? p : undefined
             const rt = custom.rates[i] ?? emptyRate()
-            const meal = info?.meal_per_night ?? 0
             const problem = rateProblem(rt, nights, info)
             return (
               <div key={i} className="space-y-2 rounded-xl border border-zinc-200 bg-zinc-50/50 p-3 text-sm">
@@ -174,7 +208,7 @@ export function CustomBookingFields(props: {
                     Room {i + 1}
                     {info ? (
                       <span className="font-normal text-zinc-500">
-                        {" "}· system price {fmtMoney(info.tax_included_rates?.[0] ?? info.entry_rates[0] + meal)} per night, tax included
+                        {" "}· system price {fmtMoney(systemPrice(info, rt.taxIn) ?? 0)} {slotWord ? "for the slot" : "per night"}, {rt.taxIn ? "tax included" : "before tax"}
                       </span>
                     ) : null}
                   </span>
@@ -200,11 +234,12 @@ export function CustomBookingFields(props: {
                 {typeof p === "string" ? <p className="text-rose-700">{p}</p> : null}
                 {rt.agree ? (
                   <div className="space-y-2">
+                    {i > 0 ? <TaxToggle id={`custom-tax-${i}`} value={rt.taxIn} onChange={(v) => custom.setRate(i, { taxIn: v })} /> : null}
                     {!rt.perNight ? (
                       <div className="flex flex-wrap items-end gap-3">
                         {i > 0 ? (
                           <div>
-                            <label className={label} htmlFor={`custom-rate-${i}`}>{NIGHT_PRICE}</label>
+                            <label className={label} htmlFor={`custom-rate-${i}`}>{amountLabel(rt.taxIn, slotWord)}</label>
                             <input id={`custom-rate-${i}`} inputMode="decimal" className={`${field} w-40`} value={rt.rate}
                               onChange={(e) => custom.setRate(i, { rate: e.target.value })} />
                           </div>
@@ -261,27 +296,33 @@ export function CustomBookingFields(props: {
 
 /** The amount for room 1, beside the room type: one price per night with every tax in it.
     Left blank, the system price stands. */
-export function RateAmount(props: { custom: CustomBooking; inputCls: string; disabled?: boolean }) {
+export function RateAmount(props: { custom: CustomBooking; inputCls: string; disabled?: boolean; dayUse?: boolean }) {
   const { custom, inputCls } = props
   const rt = custom.rates[0] ?? emptyRate()
   const p = custom.previews[0]
-  const system = typeof p === "object" ? p.tax_included_rates?.[0] : undefined
+  const system = typeof p === "object" ? systemPrice(p, rt.taxIn) : undefined
   return (
-    <div className="kd-row">
-      <label className={`${label} kd-lab`} htmlFor="custom-amount-0">{NIGHT_PRICE}</label>
-      <input
-        id="custom-amount-0"
-        inputMode="decimal"
-        className={inputCls}
-        disabled={props.disabled}
-        value={rt.perNight ? "" : rt.agree ? rt.rate : ""}
-        placeholder={rt.perNight ? "Each night below" : system !== undefined ? String(system) : "System price"}
-        onChange={(e) => {
-          const v = e.target.value
-          if (v.trim() === "") custom.setRate(0, { agree: false, perNight: false, rate: "", nightly: [] })
-          else custom.setRate(0, { agree: true, perNight: false, rate: v })
-        }}
-      />
-    </div>
+    <>
+      <div className="kd-row">
+        <label className={`${label} kd-lab`} htmlFor="custom-amount-0">{amountLabel(rt.taxIn, !!props.dayUse)}</label>
+        <input
+          id="custom-amount-0"
+          inputMode="decimal"
+          className={inputCls}
+          disabled={props.disabled}
+          value={rt.perNight ? "" : rt.agree ? rt.rate : ""}
+          placeholder={rt.perNight ? "Each night below" : system !== undefined ? String(system) : "System price"}
+          onChange={(e) => {
+            const v = e.target.value
+            if (v.trim() === "") custom.setRate(0, { agree: false, perNight: false, rate: "", nightly: [] })
+            else custom.setRate(0, { agree: true, perNight: false, rate: v })
+          }}
+        />
+      </div>
+      <div className="kd-row">
+        <span className={`${label} kd-lab`} id="custom-tax-0-lab">Tax</span>
+        <div><TaxToggle id="custom-tax-0" value={rt.taxIn} onChange={(v) => custom.setRate(0, { taxIn: v })} /></div>
+      </div>
+    </>
   )
 }

@@ -191,3 +191,24 @@ div:has(> .kv) { padding: 8px 12px !important; }
 .dark .kv { --kd-line: #3a3d42; color: #e6e8eb; }
 .dark .kv .kv-card, .dark .kv [data-testid="basic-details"], .dark .kv > .rounded-xl.border { background: #1f2023 !important; }
 .kd-pop button:focus-visible, .kd-popup-row button:focus-visible, .kv button:focus-visible, .kv input:focus-visible, .kv select:focus-visible { outline: 2px solid #2f9e7a; outline-offset: 1px; }
+
+/* ---- one look for every choice of two or three (Overnight/Day use, Tax included/extra, Guided/Full form,
+   Reservation/Walk-in): the chosen one is filled, the others are plain ---- */
+.kd { --kd-accent: #0f6b52; --kd-accent-text: #ffffff; }
+.dark .kd { --kd-accent: #2f9e7a; --kd-accent-text: #0b1f18; }
+.kd [role="radiogroup"] { display: inline-flex; border: 1px solid var(--kd-input-line) !important; border-radius: 2px !important; background: var(--kd-surface) !important; padding: 0 !important; overflow: hidden; }
+.kd [role="radiogroup"] button { border: 0 !important; border-radius: 0 !important; height: 28px; padding: 0 12px !important; font-size: 13px !important; font-weight: 500; background: transparent !important; color: var(--kd-label) !important; box-shadow: none !important; }
+.kd [role="radiogroup"] button + button { border-left: 1px solid var(--kd-input-line) !important; }
+.kd [role="radiogroup"] button[aria-checked="true"] { background: var(--kd-accent) !important; color: var(--kd-accent-text) !important; }
+.kd [role="radiogroup"] button:not([aria-checked="true"]):hover { background: var(--kd-head) !important; }
+/* a section's title bar always spans the whole section, whatever grid the section uses */
+.kd [data-bar]::before { grid-column: 1 / -1; }
+/* a field that spans two columns in Kamra's grid must not make a second column in our one-column form */
+.kd .kd-grid .grid > [class*="col-span"], .kd-pop .grid > [class*="col-span"] { grid-column: 1 / -1 !important; }
+
+/* the booking form keeps each section in the same column whatever is filled in: Guest/ID/Room, then Stay/Extra
+   guests, then Source/Remarks/Billing. Without forced breaks the columns re-balance and sections jump while typing. */
+@media (min-width: 1101px) {
+  .kd:has(.kd-quote) .kd-grid [data-bar="Stay"],
+  .kd:has(.kd-quote) .kd-grid [data-bar="Booking source"] { break-before: column; }
+}
