@@ -7,23 +7,23 @@ const memory = () => {
 }
 
 describe("saved answer", () => {
-  it("is empty until the person is asked", () => expect(readBackground(memory(), "a@x")).toBeNull())
+  it("is MyCloud until the person chooses another system: nobody is asked", () => expect(readBackground(memory(), "a@x")).toBe("mycloud"))
   it("remembers the answer per user", () => {
     const s = memory()
-    writeBackground(s, "a@x", "mycloud")
-    expect(readBackground(s, "a@x")).toBe("mycloud")
-    expect(readBackground(s, "b@x")).toBeNull()
+    writeBackground(s, "a@x", "opera")
+    expect(readBackground(s, "a@x")).toBe("opera")
+    expect(readBackground(s, "b@x")).toBe("mycloud")
   })
   it("ignores a value it does not know", () => {
     const s = memory()
     s.setItem("kamra:pms-background:a@x", "other-thing")
-    expect(readBackground(s, "a@x")).toBeNull()
+    expect(readBackground(s, "a@x")).toBe("mycloud")
   })
   it("survives storage that refuses", () => {
     const bad = { getItem: () => { throw new Error("no") }, setItem: () => { throw new Error("no") } }
-    expect(readBackground(bad, "a@x")).toBeNull()
+    expect(readBackground(bad, "a@x")).toBe("mycloud")
     expect(() => writeBackground(bad, "a@x", "mycloud")).not.toThrow()
-    expect(readBackground(null, "a@x")).toBeNull()
+    expect(readBackground(null, "a@x")).toBe("mycloud")
   })
 })
 
@@ -67,11 +67,11 @@ describe("screen names", () => {
 describe("last answer in the browser", () => {
   it("is remembered for the first paint", () => {
     const s = memory()
-    expect(readLastBackground(s)).toBeNull()
+    expect(readLastBackground(s)).toBe("mycloud")
     writeBackground(s, "a@x", "mycloud")
     expect(readLastBackground(s)).toBe("mycloud")
     writeBackground(s, "b@x", "none")
     expect(readLastBackground(s)).toBe("none")
   })
-  it("survives missing storage", () => expect(readLastBackground(null)).toBeNull())
+  it("survives missing storage", () => expect(readLastBackground(null)).toBe("mycloud"))
 })

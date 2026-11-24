@@ -13,9 +13,9 @@ export function chooseBackground(user: string | null | undefined, id: PmsId) {
   if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent(EVENT, { detail: id }))
 }
 
-/** This person's answer (null when not asked yet), kept current when it changes. */
-export function useBackground(user: string | null | undefined): PmsId | null {
-  const [id, setId] = useState<PmsId | null>(() => readBackground(store(), user))
+/** This person's choice (MyCloud when none was saved), kept current when it changes. */
+export function useBackground(user: string | null | undefined): PmsId {
+  const [id, setId] = useState<PmsId>(() => readBackground(store(), user))
   useEffect(() => {
     setId(readBackground(store(), user))
     const on = () => setId(readBackground(store(), user))

@@ -1,10 +1,10 @@
-/*  Mounted once in the app shell (Kamra Custom): applies the person's previous-system words, and asks the
-    question once, at the first sign-in. */
+/*  Mounted once in the app shell (Kamra Custom): applies the previous system's words (MyCloud unless the person chose
+    another one from the account menu). Nobody is asked at sign-in. */
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef } from "react"
 import { useAuth } from "../lib/auth"
 import { useT } from "../lib/i18n"
-import { useBackground, chooseBackground } from "./backgroundStore"
+import { useBackground } from "./backgroundStore"
 import { PMS_CHOICES, wordsFor, type PmsId } from "./pmsBackground"
 import { setVocabulary } from "./vocabulary"
 
@@ -31,38 +31,17 @@ export function BackgroundChoice(props: { value: PmsId | null; onPick: (id: PmsI
 }
 
 export function BackgroundHost() {
-  const { t } = useT()
   const { user } = useAuth()
   const id = useBackground(user)
-  const [pick, setPick] = useState<PmsId | null>(null)
 
   // the words follow the answer. The first paint already used the last answer; a change reloads the page once,
   // so every label on screen is drawn again with the new words.
-  const seen = useRef<PmsId | null | undefined>(undefined)
+  const seen = useRef<PmsId | undefined>(undefined)
   useEffect(() => {
     setVocabulary(wordsFor(id))
-    if (seen.current !== undefined && seen.current !== id && id !== null) window.location.reload()
+    if (seen.current !== undefined && seen.current !== id) window.location.reload()
     seen.current = id
   }, [id])
 
-  if (!user || id !== null) return null
-  return (
-    <div className="fixed inset-0 z-[60] grid place-items-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-label={t("Which system did you use before?")}>
-      <div className="w-full max-w-md space-y-4 rounded-2xl bg-white p-5 shadow-xl">
-        <div>
-          <h2 className="text-lg font-semibold">{t("Which system did you use before?")}</h2>
-          <p className="mt-1 text-sm text-zinc-600">{t("Kamra can use the words and layout you already know. You can change this any time from your account menu.")}</p>
-        </div>
-        <BackgroundChoice value={pick} onPick={setPick} />
-        <div className="flex justify-end gap-2">
-          <button type="button" className="rounded-lg border border-zinc-300 px-4 py-2 text-sm" onClick={() => chooseBackground(user, "none")}>
-            {t("Skip")}
-          </button>
-          <button type="button" disabled={!pick} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50" onClick={() => pick && chooseBackground(user, pick)}>
-            {t("Save")}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
+  return null
 }

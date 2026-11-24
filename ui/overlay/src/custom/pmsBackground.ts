@@ -33,13 +33,17 @@ interface Store {
   setItem(k: string, v: string): void
 }
 
-/** The saved answer, or null when this person has not been asked yet. */
-export function readBackground(store: Store | null | undefined, user: string | null | undefined): PmsId | null {
+/** The system this hotel's staff come from when nobody has chosen another one. Kamra Custom is built for a
+    hotel that ran MyCloud, so nobody is asked; the account menu can still switch it. */
+export const DEFAULT_BACKGROUND: PmsId = "mycloud"
+
+/** The saved choice, or the default when none was saved. */
+export function readBackground(store: Store | null | undefined, user: string | null | undefined): PmsId {
   try {
     const v = store?.getItem(storageKey(user))
-    return PMS_CHOICES.some((c) => c.id === v) ? (v as PmsId) : null
+    return PMS_CHOICES.some((c) => c.id === v) ? (v as PmsId) : DEFAULT_BACKGROUND
   } catch {
-    return null
+    return DEFAULT_BACKGROUND
   }
 }
 
@@ -47,12 +51,12 @@ const LAST_KEY = "kamra:pms-background:last"
 
 /** The most recent answer given in this browser, whoever gave it. Used for the first paint, before the
     signed-in user is known, so the screen does not flash Kamra's words and then change. */
-export function readLastBackground(store: Store | null | undefined): PmsId | null {
+export function readLastBackground(store: Store | null | undefined): PmsId {
   try {
     const v = store?.getItem(LAST_KEY)
-    return PMS_CHOICES.some((c) => c.id === v) ? (v as PmsId) : null
+    return PMS_CHOICES.some((c) => c.id === v) ? (v as PmsId) : DEFAULT_BACKGROUND
   } catch {
-    return null
+    return DEFAULT_BACKGROUND
   }
 }
 
