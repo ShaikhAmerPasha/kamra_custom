@@ -3,7 +3,7 @@
     The fields sit in a small centred card. The fields write straight into the form, so OK only
     closes the card; nothing is lost by closing it. A red dot on the row marks missing data. */
 
-import { useEffect, useState, type ReactNode } from "react"
+import { useEffect, useId, useRef, useState, type ReactNode } from "react"
 import { createPortal } from "react-dom"
 import { useT } from "../lib/i18n"
 import { Button } from "../components/ui/button"
@@ -22,6 +22,17 @@ export function DeskPopup(props: {
 }) {
   const { t } = useT()
   const [open, setOpen] = useState(false)
+  const titleId = useId()
+  const opener = useRef<HTMLButtonElement>(null)
+  const card = useRef<HTMLDivElement>(null)
+
+  // focus moves into the card on open (first field, else OK) and back to the button on close
+  useEffect(() => {
+    if (open) {
+      const first = card.current?.querySelector<HTMLElement>("input:not([type=hidden]), select, textarea")
+      ;(first ?? card.current?.querySelector<HTMLElement>("button"))?.focus()
+    } else opener.current?.focus({ preventScroll: true })
+  }, [open])
 
   useEffect(() => {
     if (!open) return
@@ -41,22 +52,23 @@ export function DeskPopup(props: {
     <div data-bar={props.title}>
       <div className="kd-popup-row">
         <span className={"kd-popup-sum" + (empty ? " kd-popup-none" : "")} title={props.summary}>
-          {props.missing ? <i className="kd-dot" aria-label={t("Something is missing")} /> : null}
+          {props.missing ? <i className="kd-dot" aria-hidden /> : null}
           {props.summary || t("None")}
+          {props.missing ? <b className="kd-need">{t("Required info missing")}</b> : null}
         </span>
-        <button type="button" onClick={() => setOpen(true)}>
+        <button type="button" ref={opener} onClick={() => setOpen(true)} aria-haspopup="dialog">
           {empty ? (props.addLabel ?? t("Add")) : t("Edit")}
         </button>
       </div>
       {open
         ? createPortal(
-            <div className="kd kd-modal" role="dialog" aria-modal="true" aria-label={props.title}
+            <div className="kd kd-modal" role="dialog" aria-modal="true" aria-labelledby={titleId}
               onMouseDown={(e) => e.target === e.currentTarget && setOpen(false)}>
-              <div className={"kd-pop" + (props.wide ? " kd-pop-wide" : "")}>
-                <div className="kd-pop-head">{props.title}</div>
+              <div ref={card} className={"kd-pop" + (props.wide ? " kd-pop-wide" : "")}>
+                <div className="kd-pop-head" id={titleId}>{props.title}</div>
                 <div className="kd-pop-body kd-grid-1">{props.children}</div>
                 <div className="kd-pop-foot">
-                  <Button className="h-8 px-6 text-sm" onClick={() => setOpen(false)} autoFocus>{t("OK")}</Button>
+                  <Button className="h-8 px-6 text-sm" onClick={() => setOpen(false)}>{t("OK")}</Button>
                 </div>
               </div>
             </div>,

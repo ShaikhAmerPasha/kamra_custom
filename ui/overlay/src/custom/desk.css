@@ -155,3 +155,39 @@
 /* a signature box that does not need half the screen */
 .kd canvas.h-40 { height: 84px !important; }
 .kd .kd-grid [data-bar] + .kd-flat { margin-top: 0; }
+
+/* ---- the reservation drawer (kv): the whole booking on one wide, dense page ---- */
+div[class*="md:w-2/3"]:has(.kv) { width: 100% !important; }
+div:has(> .kv) { padding: 8px 12px !important; }
+.kv { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px !important; align-items: start; font-size: 13px; line-height: 1.25; }
+.kv > * { grid-column: 1 / -1; margin: 0 !important; }
+.kv > .grid { display: contents; }
+.kv > .grid > .kv-card, .kv > .kv-card { grid-column: auto; }
+.kv .kv-card, .kv [data-testid="basic-details"] { padding: 6px 10px !important; border-radius: 2px !important; border-color: var(--kd-line, #c3cad2); }
+.kv .kv-head { margin-bottom: 4px !important; min-height: 0; }
+.kv .kv-head > div:first-child { font-size: 13px; }
+.kv dl.grid { gap: 4px 10px !important; margin-bottom: 4px !important; }
+.kv dt { font-size: 12px !important; }
+.kv dd { font-size: 13px !important; margin-top: 0 !important; }
+.kv input:not([type="checkbox"]), .kv select { height: 28px !important; padding: 1px 6px !important; font-size: 13px !important; border-radius: 2px !important; }
+.kv textarea { padding: 3px 6px !important; font-size: 13px !important; min-height: 34px !important; border-radius: 2px !important; }
+.kv .space-y-3 > * + *, .kv .space-y-2 > * + * { margin-top: 4px !important; }
+.kv .mb-3 { margin-bottom: 4px !important; }
+.kv .mt-2, .kv .mt-3 { margin-top: 3px !important; }
+.kv .p-3, .kv .p-4 { padding: 6px !important; }
+.kv .py-2, .kv .py-3 { padding-top: 3px !important; padding-bottom: 3px !important; }
+.kv button { font-size: 13px !important; }
+.kv .text-lg, .kv .text-xl, .kv .text-2xl { font-size: 15px !important; }
+@media (max-width: 1100px) { .kv { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 720px) { .kv { grid-template-columns: 1fr; } }
+/* the top strip (who, checks, status), the instructions and cashiering share rows with the cards */
+.kv > .flex.items-center:not([class*="border-t"]), .kv > .rounded-xl.border:not([data-testid]) { grid-column: auto; }
+.kv > .space-y-4 { grid-column: span 2; }
+.kv > .rounded-xl.border:not([data-testid]) { padding: 6px 10px !important; border-radius: 2px !important; }
+
+.kd-need { margin-left: 8px; color: #be123c; font-weight: 600; font-size: 12px; }
+.dark .kd-need { color: #fda4af; }
+.kv { --kd-line: #c3cad2; }
+.dark .kv { --kd-line: #3a3d42; color: #e6e8eb; }
+.dark .kv .kv-card, .dark .kv [data-testid="basic-details"], .dark .kv > .rounded-xl.border { background: #1f2023 !important; }
+.kd-pop button:focus-visible, .kd-popup-row button:focus-visible, .kv button:focus-visible, .kv input:focus-visible, .kv select:focus-visible { outline: 2px solid #2f9e7a; outline-offset: 1px; }
