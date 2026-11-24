@@ -17,7 +17,8 @@
   "complimentary_pos_nc",
   "merge_meal_in_room_line",
   "express_checkin",
-  "express_checkout"
+  "express_checkout",
+  "payment_links"
  ],
  "fields": [
   {
@@ -104,12 +105,19 @@
    "fieldname": "express_checkout",
    "fieldtype": "Check",
    "label": "One-page check-out"
+  },
+  {
+   "default": "0",
+   "description": "Off until the payment gateway is integrated: hides Send payment link and the Payment Link mode, because a link cannot be paid without a gateway. Turn on once Payment Gateway Settings are filled in and tested.",
+   "fieldname": "payment_links",
+   "fieldtype": "Check",
+   "label": "Payment links (needs a payment gateway)"
   }
  ],
  "index_web_pages_for_search": 0,
  "issingle": 1,
  "links": [],
- "modified": "2026-10-17 20:30:00.000000",
+ "modified": "2026-11-24 13:00:00.000000",
  "modified_by": "Administrator",
  "module": "Kamra Custom",
  "name": "Kamra Custom Settings",
