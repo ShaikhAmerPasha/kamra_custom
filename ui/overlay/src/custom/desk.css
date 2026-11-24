@@ -23,14 +23,12 @@
 .kd .kd-grid .grid { grid-template-columns: minmax(0, 1fr) !important; gap: 3px !important; }
 
 /* section bar */
-.kd [data-bar] { background: #fff; border: 1px solid #c3cad2; padding: 0 0 4px 0 !important; border-radius: 0; }
-.kd [data-bar]::before { content: attr(data-bar); display: block; background: #5b6670; color: #fff; text-align: center; font-weight: 600; font-size: 11px; padding: 1px 6px; margin-bottom: 4px; }
-.kd [data-bar] > * { margin-left: 6px; margin-right: 6px; }
-.kd [data-bar] > .kd-row { margin-left: 6px; }
+.kd [data-bar] { background: #fff; border: 1px solid #c3cad2; padding: 0 6px 4px 6px !important; border-radius: 0; }
+.kd [data-bar]::before { content: attr(data-bar); display: block; background: #5b6670; color: #fff; text-align: center; font-weight: 600; font-size: 11px; padding: 1px 6px; margin: 0 -6px 4px -6px; }
 
 /* a field: label on the left, right-aligned, control fills the row */
-.kd .kd-row { display: grid !important; grid-template-columns: 84px minmax(0, 1fr); align-items: center; column-gap: 6px; margin: 0 !important; }
-.kd .kd-lab { text-align: right; font-size: 11px !important; font-weight: 400 !important; color: #3b4651 !important; margin: 0 !important; line-height: 1.15; }
+.kd .kd-row { display: grid !important; grid-template-columns: 84px minmax(0, 1fr); align-items: center; column-gap: 6px; margin: 0 0 3px 0 !important; }
+.kd .kd-lab { width: 84px; min-width: 0; overflow-wrap: anywhere; text-align: right; font-size: 11px !important; font-weight: 400 !important; color: #3b4651 !important; margin: 0 !important; line-height: 1.15; }
 .kd .kd-ctl { min-width: 0; }
 .kd .kd-ctl > p, .kd .kd-ctl > div > p { font-size: 10px; margin: 1px 0 0 0 !important; }
 .kd .kd-req input, .kd .kd-req select { background: #fffbd1 !important; }
@@ -85,16 +83,15 @@
 .kd .kd-keep button span:first-child { font-size: 13px !important; display: inline; margin-right: 4px; }
 .kd .kd-keep button span { font-size: 11px !important; }
 /* stock components dropped into a form (everyone staying, signature) */
-.kd [class*="rounded-2xl"], .kd [class*="rounded-xl"], .kd [class*="rounded-lg"] { border-radius: 2px !important; }
-.kd [class*="py-3"] { padding-top: 4px !important; padding-bottom: 4px !important; }
-.kd [class*="py-4"] { padding-top: 5px !important; padding-bottom: 5px !important; }
-.kd [class*="p-4"], .kd [class*="p-3"] { padding: 5px !important; }
-.kd [class*="px-4"] { padding-left: 6px !important; padding-right: 6px !important; }
+.kd .rounded-2xl, .kd .rounded-xl, .kd .rounded-lg { border-radius: 2px !important; }
+.kd .py-3 { padding-top: 4px !important; padding-bottom: 4px !important; }
+.kd .py-4 { padding-top: 5px !important; padding-bottom: 5px !important; }
+.kd .p-4, .kd .p-3 { padding: 5px !important; }
+.kd .px-4 { padding-left: 6px !important; padding-right: 6px !important; }
 
 /* a read-only fact: label and value on one row */
 .kd .kd-val { font-size: 12px; font-weight: 500; }
 .kd [data-bar] label[class*="uppercase"], .kd [data-bar] label[class*="text-xs"] { font-size: 11px; }
-.kd [data-bar] > div { padding-left: 6px; padding-right: 6px; }
 
 /* the booked-confirmation card: compact, top left, not stretched across the page */
 .kd .kd-done { max-width: 880px; padding: 8px 10px !important; display: grid; gap: 6px; }

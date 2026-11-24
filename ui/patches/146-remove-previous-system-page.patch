@@ -1,0 +1,36 @@
+--- a/src/AppShell.tsx	2026-11-24 15:20:29.286515790 +0530
++++ b/src/AppShell.tsx	2026-11-24 15:20:29.287193546 +0530
+@@ -220,15 +220,6 @@
+             type="button"
+             role="menuitem"
+             className={itemCls}
+-            onClick={() => go("/old-system")}
+-          >
+-            <UserRound className="size-4 shrink-0 text-zinc-500" aria-hidden />
+-            {t("The system I used before")}
+-          </button>
+-          <button
+-            type="button"
+-            role="menuitem"
+-            className={itemCls}
+             onClick={() => go("/settings/general")}
+           >
+             <SettingsIcon className="size-4 shrink-0 text-zinc-500" aria-hidden />
+--- a/src/App.tsx	2026-11-24 15:20:29.290754945 +0530
++++ b/src/App.tsx	2026-11-24 15:20:29.291315352 +0530
+@@ -18,7 +18,6 @@
+ const Billing = lazy(() => import("./screens/Billing"))
+ const EndOfDay = lazy(() => import("./screens/EndOfDay"))
+ const HouseHub = lazy(() => import("./custom/HouseHub"))
+-const OldSystem = lazy(() => import("./custom/OldSystem"))
+ const EndOfDayWizard = lazy(() => import("./screens/EndOfDayWizard"))
+ const AuditPack = lazy(() => import("./screens/AuditPack"))
+ const PublicBooking = lazy(() => import("./screens/PublicBooking"))
+@@ -218,7 +217,6 @@
+           <Route path="calendar" element={<CalendarScreen />} />
+           <Route path="tape" element={<TapeChart />} />
+           <Route path="house" element={<HouseHub />} />
+-          <Route path="old-system" element={<OldSystem />} />
+           <Route
+             path="reservations"
+             element={<ConfiguredScreen config="reservationsConfig" />}

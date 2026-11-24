@@ -26,47 +26,17 @@ export const PMS_CHOICES: PmsChoice[] = [
   { id: "none", label: "None, I am new to hotel software", view: "guided", names: false },
 ]
 
-const storageKey = (user: string | null | undefined) => `kamra:pms-background:${user || "anonymous"}`
-
-interface Store {
-  getItem(k: string): string | null
-  setItem(k: string, v: string): void
-}
-
-/** The system this hotel's staff come from when nobody has chosen another one. Kamra Custom is built for a
-    hotel that ran MyCloud, so nobody is asked; the account menu can still switch it. */
+/** The system this hotel's staff come from. Kamra Custom is built for a hotel that ran MyCloud, so its
+    screen names and the full form are fixed: nobody is asked, and nothing is saved. */
 export const DEFAULT_BACKGROUND: PmsId = "mycloud"
 
-/** The saved choice, or the default when none was saved. */
-export function readBackground(store: Store | null | undefined, user: string | null | undefined): PmsId {
-  try {
-    const v = store?.getItem(storageKey(user))
-    return PMS_CHOICES.some((c) => c.id === v) ? (v as PmsId) : DEFAULT_BACKGROUND
-  } catch {
-    return DEFAULT_BACKGROUND
-  }
+export function readBackground(..._args: unknown[]): PmsId {
+  return DEFAULT_BACKGROUND
 }
 
-const LAST_KEY = "kamra:pms-background:last"
-
-/** The most recent answer given in this browser, whoever gave it. Used for the first paint, before the
-    signed-in user is known, so the screen does not flash Kamra's words and then change. */
-export function readLastBackground(store: Store | null | undefined): PmsId {
-  try {
-    const v = store?.getItem(LAST_KEY)
-    return PMS_CHOICES.some((c) => c.id === v) ? (v as PmsId) : DEFAULT_BACKGROUND
-  } catch {
-    return DEFAULT_BACKGROUND
-  }
-}
-
-export function writeBackground(store: Store | null | undefined, user: string | null | undefined, id: PmsId): void {
-  try {
-    store?.setItem(storageKey(user), id)
-    store?.setItem(LAST_KEY, id)
-  } catch {
-    /* storage refused: the answer lasts until the page is reloaded */
-  }
+/** The same, for the first paint before the signed-in user is known. */
+export function readLastBackground(..._args: unknown[]): PmsId {
+  return DEFAULT_BACKGROUND
 }
 
 /** The layout a person starts in, before they choose one. */
