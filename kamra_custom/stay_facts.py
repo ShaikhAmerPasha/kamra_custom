@@ -42,6 +42,21 @@ def nightly_rows(quote: dict, total: float) -> list[dict]:
 	return rows
 
 
+def unposted_amount(reservation: str, status: str, stay_total: float) -> float:
+	"""What a stay in house will still be billed for rooms: the booked total less the room charges already
+	on the guest bills. Kamra posts a night at the night audit and the rest at check-out, so a guest
+	checked in today shows nothing owed on the folio although the stay will be billed."""
+	if status != "Checked In" or stay_total <= 0:
+		return 0.0
+	folios = frappe.get_all("Folio", filters={"reservation": reservation, "folio_type": "Guest"}, pluck="name")
+	posted = 0.0
+	if folios:
+		posted = flt(frappe.db.sql(
+			"select coalesce(sum(total), 0) from `tabFolio Charge` where parent in %s and charge_type = 'Room'",
+			(tuple(folios),))[0][0])
+	return max(0.0, round(stay_total - posted, 2))
+
+
 @frappe.whitelist()
 @require_roles("Front Desk", "Night Auditor", "Kamra Agent", "Finance", "Revenue Manager")
 def stay_facts(reservation: str) -> dict:
@@ -62,6 +77,7 @@ def stay_facts(reservation: str) -> dict:
 	room_status = frappe.db.get_value("Room", r.room, "housekeeping_status") if r.room else ""
 	return {
 		"reservation": r.name,
+		"unposted": unposted_amount(r.name, r.status, flt(r.amount_after_tax)),
 		"id_on_file": not id_missing(r, guests_with_id([r.guest])),
 		"room_status": room_status or "",
 		"nightly": nightly_rows(quote, flt(r.amount_after_tax)),

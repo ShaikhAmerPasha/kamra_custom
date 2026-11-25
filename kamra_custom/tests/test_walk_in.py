@@ -45,3 +45,17 @@ class TestWalkIn(IntegrationTestCase):
 		out = self.walk_in()
 		doc = frappe.get_doc("Reservation", out["reservation"])
 		self.assertEqual(doc.rate_negotiated, 0)
+
+	def test_a_returning_guest_is_found_by_number_in_any_format(self):
+		"""Kamra's own guest matching reads the number, so the walk-in needs no lookup of ours."""
+		other = frappe.db.get_value(
+			"Room",
+			{"room_type": DLX, "occupancy_status": "Vacant", "housekeeping_status": "Clean", "name": ("!=", self.room)},
+		)
+		if not other:
+			self.skipTest("needs a second free Deluxe room")
+		first = self.walk_in(phone="9000077709")
+		second = self.walk_in(phone="+91 90000 77709", room=other, check_out_date=add_days(nowdate(), 2))
+		guests = [frappe.db.get_value("Reservation", o["reservation"], "guest") for o in (first, second)]
+		self.assertEqual(guests[0], guests[1])
+		self.assertEqual(frappe.db.count("Guest", {"phone_key": "919000077709"}), 1)

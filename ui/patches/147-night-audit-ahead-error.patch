@@ -1,0 +1,23 @@
+--- a/src/screens/EndOfDayWizard.tsx	2026-11-24 16:05:21.822041276 +0530
++++ b/src/screens/EndOfDayWizard.tsx	2026-11-24 16:05:21.822838394 +0530
+@@ -519,8 +519,10 @@
+         setActive(11)
+       }
+     } catch (e) {
+-      setErr(serverError(e))
++      // load() clears the error line, so show the server's message after it
++      const message = serverError(e)
+       await load(10)
++      setErr(message)
+     } finally {
+       setBusy(null)
+     }
+@@ -896,7 +898,7 @@
+           />
+         )}
+         {!state.ran && (
+-          <Button disabled={!!busy || blockedSteps.length > 0} onClick={runAudit}>
++          <Button disabled={!!busy || blockedSteps.length > 0 || state.business_date > state.server_date} onClick={runAudit}>
+             {busy === "run" ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <MoonStar className="size-4" aria-hidden />}
+             {busy === "run" ? t("Posting…") : t("Post room and tax and roll the business date")}
+           </Button>

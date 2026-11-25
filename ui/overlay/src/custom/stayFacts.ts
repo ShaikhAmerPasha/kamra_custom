@@ -46,3 +46,6 @@ export function trailLine(t: Trail): string {
 /** True when the rows show more than one rate, so the table is worth opening. */
 export const ratesVary = (rows: NightRow[]) =>
   new Set(rows.filter((r) => r.date).map((r) => r.room)).size > 1
+
+/** The room price of a night with the meal in it: the meal is never shown as its own charge. */
+export const roomWithMeal = (r: Pick<NightRow, "room" | "meal">) => Math.round((r.room + (r.meal || 0)) * 100) / 100

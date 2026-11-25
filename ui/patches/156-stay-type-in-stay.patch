@@ -1,0 +1,21 @@
+--- a/src/components/BookingDialog.tsx	2026-11-24 18:15:14.659430011 +0530
++++ b/src/components/BookingDialog.tsx	2026-11-24 18:15:14.660176253 +0530
+@@ -1488,6 +1488,8 @@
+                 <RateAmount custom={custom} inputCls={inputCls} dayUse={dayUse} />
+                 </div>
+ 
++                <div data-bar="Stay" className="grid grid-cols-2 gap-3 sm:grid-cols-5">
++                  <Field label={t("Stay type")}>
+                 <div
+                   role="radiogroup"
+                   aria-label={t("Stay type")}
+@@ -1514,8 +1516,7 @@
+                     </button>
+                   ))}
+                 </div>
+-
+-                <div data-bar="Stay" className="grid grid-cols-2 gap-3 sm:grid-cols-5">
++                  </Field>
+                   <Field label={t("Check-in")}>
+                     <input
+                       type="date"

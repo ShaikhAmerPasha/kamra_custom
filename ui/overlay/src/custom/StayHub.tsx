@@ -145,6 +145,7 @@ export function StayHub(props: {
   const chips = hubChips({
     status,
     due: d.money?.due ?? 0,
+    unposted: facts?.unposted ?? 0,
     idOnFile: facts ? !!facts.id_on_file : !info?.idMissing,
     depositPaid: d.deposit?.paid ?? 0,
     roomStatus: facts?.room_status ?? "",
@@ -242,6 +243,7 @@ export function StayHub(props: {
                 <Row k={t("Total")} v={money(d.money?.total ?? 0)} />
                 <Row k={t("Paid")} v={money(d.money?.paid ?? 0)} />
                 <Row k={t("To collect")} v={money(d.money?.due ?? 0)} tone={(d.money?.due ?? 0) > 0.005 ? "font-semibold text-rose-700" : ""} />
+                {(facts?.unposted ?? 0) > 0.005 && <Row k={t("Not billed yet")} v={money(facts?.unposted ?? 0)} tone="font-semibold text-amber-700" />}
                 {(d.deposit?.expected ?? 0) > 0 && <Row k={t("Deposit")} v={`${money(d.deposit?.paid ?? 0)} / ${money(d.deposit?.expected ?? 0)}`} />}
               </dl>
               <button type="button" className="mt-1 text-sm text-brand-700 underline" onClick={() => setTab("money")}>{t("See every charge and payment")}</button>

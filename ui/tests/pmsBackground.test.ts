@@ -1,29 +1,11 @@
 import { describe, expect, it } from "vitest"
-import { readLastBackground, MYCLOUD_SCREENS, MYCLOUD_WORDS, PMS_CHOICES, aliasTerms, defaultViewFor, readBackground, wordsFor, writeBackground } from "../overlay/src/custom/pmsBackground"
+import { readLastBackground, MYCLOUD_SCREENS, MYCLOUD_WORDS, PMS_CHOICES, aliasTerms, defaultViewFor, readBackground, wordsFor } from "../overlay/src/custom/pmsBackground"
 
-const memory = () => {
-  const m = new Map<string, string>()
-  return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v) }
-}
-
-describe("saved answer", () => {
-  it("is empty until the person is asked", () => expect(readBackground(memory(), "a@x")).toBeNull())
-  it("remembers the answer per user", () => {
-    const s = memory()
-    writeBackground(s, "a@x", "mycloud")
-    expect(readBackground(s, "a@x")).toBe("mycloud")
-    expect(readBackground(s, "b@x")).toBeNull()
-  })
-  it("ignores a value it does not know", () => {
-    const s = memory()
-    s.setItem("kamra:pms-background:a@x", "other-thing")
-    expect(readBackground(s, "a@x")).toBeNull()
-  })
-  it("survives storage that refuses", () => {
-    const bad = { getItem: () => { throw new Error("no") }, setItem: () => { throw new Error("no") } }
-    expect(readBackground(bad, "a@x")).toBeNull()
-    expect(() => writeBackground(bad, "a@x", "mycloud")).not.toThrow()
-    expect(readBackground(null, "a@x")).toBeNull()
+describe("the previous system", () => {
+  it("is always MyCloud: nobody is asked and nothing is saved", () => {
+    expect(readBackground()).toBe("mycloud")
+    expect(readLastBackground()).toBe("mycloud")
+    expect(defaultViewFor(readBackground())).toBe("full")
   })
 })
 
@@ -64,14 +46,3 @@ describe("screen names", () => {
   })
 })
 
-describe("last answer in the browser", () => {
-  it("is remembered for the first paint", () => {
-    const s = memory()
-    expect(readLastBackground(s)).toBeNull()
-    writeBackground(s, "a@x", "mycloud")
-    expect(readLastBackground(s)).toBe("mycloud")
-    writeBackground(s, "b@x", "none")
-    expect(readLastBackground(s)).toBe("none")
-  })
-  it("survives missing storage", () => expect(readLastBackground(null)).toBeNull())
-})

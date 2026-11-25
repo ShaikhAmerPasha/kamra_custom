@@ -11,9 +11,11 @@ export interface RoomRate {
   reason: string
   /** Who agreed the lower rate: MD Sir, GM Sir, Front Office ... */
   approver: string
+  /** The typed price has every tax in it (the default). False: the tax is added on top of it. */
+  taxIn: boolean
 }
 
-export const emptyRate = (): RoomRate => ({ agree: false, perNight: false, rate: "", nightly: [], reason: "", approver: "" })
+export const emptyRate = (): RoomRate => ({ agree: false, perNight: false, rate: "", nightly: [], reason: "", approver: "", taxIn: true })
 
 export function nightsBetween(from: string, to: string): number {
   if (!from || !to) return 0
@@ -39,8 +41,8 @@ export function customRate(
   nights: number,
 ): { rates: number[]; reason: string; approver: string; all_in: boolean; tax_in: boolean } | undefined {
   const rates = agreedRates(r, nights)
-  // the desk types one price per night with every tax in it; with a meal plan it covers room and meal
-  return rates ? { rates, reason: r.reason.trim(), approver: r.approver.trim(), all_in: true, tax_in: true } : undefined
+  // the desk types one price per night, with the tax in it or on top; with a meal plan it covers room and meal
+  return rates ? { rates, reason: r.reason.trim(), approver: r.approver.trim(), all_in: true, tax_in: r.taxIn } : undefined
 }
 
 export interface PreviewInfo {

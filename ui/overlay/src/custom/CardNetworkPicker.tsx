@@ -21,7 +21,7 @@ export function CardNetworkPicker({ network, last4, onChange, size = "sm" }: Pro
   const { t } = useT()
   const label = size === "sm" ? "mb-1 block text-xs text-zinc-600" : "mb-1.5 block text-sm font-medium text-zinc-600"
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_8rem] items-start gap-3">
+    <div className="kd-pair grid grid-cols-[minmax(0,1fr)_8rem] items-start gap-3">
       <label className="block">
         <span className={label}>{t("Card type (from the card machine slip)")}</span>
         <select

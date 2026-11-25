@@ -1,0 +1,15 @@
+--- a/src/components/BookingDialog.tsx	2026-11-24 17:31:04.332749369 +0530
++++ b/src/components/BookingDialog.tsx	2026-11-24 17:31:04.333633156 +0530
+@@ -1084,6 +1084,12 @@
+                       : ""}
+                   </dd>
+                 </div>
++                {grandTotal > 0 && (
++                  <div>
++                    <dt className="text-xs font-medium text-zinc-400">{t("Total, tax included")}</dt>
++                    <dd className="mt-1 font-semibold text-zinc-900">{cur()}{inr(grandTotal)}</dd>
++                  </div>
++                )}
+               </dl>
+             </div>
+ 

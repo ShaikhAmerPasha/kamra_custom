@@ -114,3 +114,40 @@ class TestStayMoney(IntegrationTestCase):
 		frappe.db.set_value("Guest", guest, "id_number", "123412341234")
 		self.assertTrue(stay_facts.stay_facts(name)["id_on_file"])
 		self.assertIn("room_status", facts)
+
+
+class TestUnposted(IntegrationTestCase):
+	"""A stay in house is billed later than it is checked in: the nights post at audit and check-out."""
+
+	def setUp(self):
+		frappe.set_user("Administrator")
+		from frappe.utils import add_days, nowdate
+
+		from kamra_custom import overrides
+
+		room = frappe.db.get_value(
+			"Room", {"room_type": "SR Continental-DLX", "occupancy_status": "Vacant", "housekeeping_status": "Clean"})
+		if not room:
+			self.skipTest("no free Deluxe room on this site")
+		out = overrides.walk_in(
+			property="SR Continental", room_type="SR Continental-DLX", room=room, check_out_date=add_days(nowdate(), 1),
+			guest_name="Unposted Test", phone="9000055501", id_type="Passport", id_number="UNP0001", adults=1)
+		self.res = out["reservation"]
+
+	def tearDown(self):
+		frappe.db.rollback()
+
+	def test_a_fresh_check_in_has_the_whole_stay_unposted(self):
+		total = frappe.db.get_value("Reservation", self.res, "amount_after_tax")
+		self.assertGreater(total, 0)
+		self.assertEqual(stay_facts.stay_facts(self.res)["unposted"], total)
+
+	def test_it_falls_to_zero_once_the_nights_are_posted(self):
+		from kamra.folio import post_remaining_nights
+
+		post_remaining_nights(frappe.get_doc("Reservation", self.res))
+		self.assertEqual(stay_facts.stay_facts(self.res)["unposted"], 0)
+
+	def test_a_stay_not_in_house_has_none(self):
+		self.assertEqual(stay_facts.unposted_amount(self.res, "Confirmed", 5000), 0)
+		self.assertEqual(stay_facts.unposted_amount(self.res, "Checked Out", 5000), 0)

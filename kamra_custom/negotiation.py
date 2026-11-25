@@ -221,11 +221,17 @@ def reprice(q: dict, property: str, room_type: str, entered: list) -> dict:
 
 
 def discount_pct(system: dict, negotiated: dict) -> float:
-	"""How far below the system's room price the agreed price is. Zero if above."""
-	base = flt(system.get("room_total"))
+	"""How far below the system's price for room and meal the agreed price is. Zero if above.
+
+	The meal is part of the price the desk agrees (one amount for room and meal), so the
+	percentage is taken on room and meal together, before tax. Measured on the room alone,
+	a plan with a meal in it would make the same cut look larger than the desk sees it.
+	"""
+	base = flt(system.get("room_total")) + flt(system.get("meal_total"))
 	if base <= 0:
 		return 0.0
-	return max(0.0, (base - flt(negotiated.get("room_total"))) / base * 100)
+	agreed = flt(negotiated.get("room_total")) + flt(negotiated.get("meal_total"))
+	return max(0.0, (base - agreed) / base * 100)
 
 
 # --- the rules ----------------------------------------------------------------
@@ -288,14 +294,20 @@ def quote_inputs_for(res) -> dict:
 @require_roles("Front Desk", "Revenue Manager", "Kamra Agent")
 def preview(property: str, room_type: str, check_in_date: str, check_out_date: str,
             adults: int = 2, children: int = 0, meal_plan: str | None = None,
-            rates=None, all_in: int = 0, tax_in: int = 0) -> dict:
-	"""The system price, and the price at the given nightly rates, without saving."""
+            rates=None, all_in: int = 0, tax_in: int = 0,
+            check_in_time: str | None = None, check_out_time: str | None = None) -> dict:
+	"""The system price, and the price at the given nightly rates, without saving.
+
+	A same-day stay (day use) has one "night": the slot. Give its times and one rate.
+	"""
 	inputs = {
 		"property": property, "room_type": room_type,
 		"check_in_date": check_in_date, "check_out_date": check_out_date,
 		"adults": int(adults), "children": int(children),
 		"meal_plan": meal_plan or None, "rate_plan": None, "voucher_code": None,
 	}
+	if check_in_date == check_out_date and check_in_time and check_out_time:
+		inputs.update(check_in_time=check_in_time, check_out_time=check_out_time)
 	system = quote(**inputs, check_voucher_limits=False)
 	inclusive = rates_include_tax(property)
 	result = {"system": system, "negotiated": None, "discount_pct": 0.0,
