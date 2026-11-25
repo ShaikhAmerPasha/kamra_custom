@@ -1,0 +1,29 @@
+--- a/src/App.tsx	2026-11-25 13:50:08.012027516 +0530
++++ b/src/App.tsx	2026-11-25 13:50:08.012883040 +0530
+@@ -57,6 +57,7 @@
+ const InHouse = lazy(() => import("./screens/InHouse"))
+ const DeskReports = lazy(() => import("./custom/DeskReports"))
+ const FindBooking = lazy(() => import("./custom/FindBooking"))
++const ReservationSearch = lazy(() => import("./custom/ReservationSearch"))
+ const RateCalendar = lazy(() => import("./screens/RateCalendar"))
+ const RevenueReports = lazy(() => import("./screens/RevenueReports"))
+ const OpsSLA = lazy(() => import("./screens/OpsSLA"))
+@@ -343,6 +344,7 @@
+           <Route path="reports/packs" element={<Reports key="packs" initialTab="packs" />} />
+           <Route path="in-house" element={<InHouse />} />
+           <Route path="find-booking/:action" element={<FindBooking />} />
++          <Route path="reservation-search" element={<ReservationSearch />} />
+           <Route path="desk-reports" element={<DeskReports />} />
+           <Route path="desk-reports/:report" element={<DeskReports />} />
+           <Route path="arrivals" element={<Navigate to="/in-house?tab=arrivals" replace />} />
+--- a/src/lib/apps.ts	2026-11-25 13:50:08.017030103 +0530
++++ b/src/lib/apps.ts	2026-11-25 13:50:08.017715743 +0530
+@@ -128,6 +128,8 @@
+         keywords: ["AI", "Assistant", "Copilot", "Ask"] },
+       { to: "/in-house", label: "In House", icon: BedDouble,
+         keywords: ["Arrivals", "Departures", "In-house guests", "Who is in", "Due out"] },
++      { to: "/reservation-search", label: "Find reservations", icon: ClipboardList,
++        keywords: ["Search", "Find booking", "Reservations", "Expected arrivals", "No shows", "Groups"] },
+       { to: "/reservations", label: "Reservations", icon: ClipboardList },
+       { to: "/find-booking/cancel", label: "Cancel a booking", icon: CalendarX,
+         keywords: ["Cancel", "Cancellation", "Cancel reservation"] },

@@ -165,3 +165,165 @@ def find_to_act_on(action: str, property: str, q: str = "", limit: int = 20) -> 
 		""",  # nosemgrep: frappe-sql-format-injection -- `where` is built from constants; values are parameters
 		params, as_dict=True,
 	)
+
+
+# --- the reservation search screen (MyCloud-style) --------------------------
+
+# MyCloud's status choices, as Kamra's statuses.
+SEARCH_STATUS = {
+	"reserved": ("Confirmed", "Pending Payment", "Requested"),
+	"hold": ("Held",),
+	"in_house": ("Checked In",),
+	"checked_out": ("Checked Out",),
+	"cancelled": ("Cancelled",),
+	"no_show": ("No Show",),
+	"waitlisted": ("Waitlist",),
+}
+SEARCH_SORT = {
+	"name": "guest_name", "arrival": "check_in_date", "departure": "check_out_date",
+	"room": "room", "status": "status", "reservation": "name", "created": "creation",
+}
+SEARCH_FIELDS = [
+	"name", "guest", "guest_name", "room", "room_type", "status", "check_in_date",
+	"check_out_date", "nights", "adults", "children", "amount_before_tax", "amount_after_tax",
+	"advance_paid", "agreed_rate", "ota_ref", "market_segment", "rate_plan", "company",
+	"source", "channel", "travel_agent", "group_booking", "booking_type", "is_day_use",
+]
+SEARCH_SHORTCUTS = ("arrivals_today", "arrivals_3_days", "no_shows_3_days", "multi_room")
+
+
+@frappe.whitelist()
+@require_roles("Front Desk", "Finance", "Revenue Manager", "Night Auditor", "Kamra Agent")
+def search(
+	property: str,
+	status: str = "reserved",
+	name: str = "",
+	date: str = "",
+	date_in: str = "arrival",
+	phone: str = "",
+	market_segment: str = "",
+	reservation: str = "",
+	room: str = "",
+	rate_plan: str = "",
+	group_name: str = "",
+	guest: str = "",
+	room_type: str = "",
+	include_accompanying: int = 0,
+	shortcut: str = "",
+	sort_by: str = "name",
+	descending: int = 0,
+	limit: int = 200,
+) -> dict:
+	"""Stays for the search screen: MyCloud's status choices, filters and shortcuts.
+
+	status: reserved, hold, in_house, checked_out, cancelled, no_show, waitlisted or all.
+	shortcut: arrivals_today, arrivals_3_days (today and the next 2 nights), no_shows_3_days
+	(no-shows whose arrival was in the last 3 days) or multi_room (group bookings).
+	Returns {rows, total, truncated}. Each row carries the balance and deposit, who leads a
+	group, whether the guest has stayed before and whether other guests travel with them.
+	"""
+	from kamra.api import _stay_balances
+	from kamra.business_date import get_business_date
+	from kamra.crs import assert_property_access
+	from frappe.utils import add_days, getdate
+
+	assert_property_access(property)
+	if shortcut and shortcut not in SEARCH_SHORTCUTS:
+		frappe.throw(_("Unknown shortcut."))
+	if status != "all" and status not in SEARCH_STATUS:
+		frappe.throw(_("Unknown status."))
+	limit = max(1, min(int(limit or 200), 500))
+
+	filters: list = [["property", "=", property]]
+	today = getdate(get_business_date(property))
+	if shortcut == "arrivals_today":
+		status = "reserved"
+		filters.append(["check_in_date", "=", today])
+	elif shortcut == "arrivals_3_days":
+		status = "reserved"
+		filters.append(["check_in_date", "between", [today, add_days(today, 2)]])
+	elif shortcut == "no_shows_3_days":
+		status = "no_show"
+		filters.append(["check_in_date", "between", [add_days(today, -3), today]])
+	elif shortcut == "multi_room":
+		filters.append(["group_booking", "is", "set"])
+	if status != "all":
+		filters.append(["status", "in", list(SEARCH_STATUS[status])])
+
+	if date:
+		filters.append([("check_out_date" if date_in == "departure" else "check_in_date"), "=", getdate(date)])
+	for field, value in (("market_segment", market_segment), ("room_type", room_type),
+	                     ("rate_plan", rate_plan), ("guest", guest)):
+		if value:
+			filters.append([field, "=", value])
+	if reservation:
+		filters.append(["name", "like", f"%{reservation.strip()}%"])
+	if room:
+		filters.append(["room", "in", frappe.get_all("Room", filters={"property": property, "room_number": ("like", f"%{room.strip()}%")}, pluck="name") or ["-"]])
+	if group_name:
+		groups = frappe.get_all("Group Booking", filters={"property": property, "group_name": ("like", f"%{group_name.strip()}%")}, pluck="name")
+		filters.append(["group_booking", "in", groups or ["-"]])
+
+	or_filters = None
+	q = (name or "").strip()
+	if q:
+		or_filters = [["guest_name", "like", f"%{q}%"]]
+		if int(include_accompanying or 0):
+			parents = frappe.get_all("Stay Occupant", filters={"full_name": ("like", f"%{q}%"), "parenttype": "Reservation"}, pluck="parent", limit=500)
+			if parents:
+				or_filters.append(["name", "in", parents])
+	if phone:
+		key = to_key(phone, property_region(property))
+		tail = digits(phone)
+		guests = frappe.get_all(
+			"Guest", or_filters=[["phone_key", "=", key], ["phone_key", "like", f"%{tail}"]],
+			pluck="name", limit=200,
+		) if tail else []
+		filters.append(["guest", "in", guests or ["-"]])
+
+	field = SEARCH_SORT.get(sort_by, "guest_name")
+	order = f"{field} {'desc' if int(descending or 0) else 'asc'}, creation desc"
+	total = len(frappe.get_all("Reservation", filters=filters, or_filters=or_filters, pluck="name", limit=100000))
+	rows = frappe.get_all("Reservation", filters=filters, or_filters=or_filters, fields=SEARCH_FIELDS,
+	                      order_by=order, limit=limit)
+	return {"rows": _search_extras(rows, _stay_balances), "total": total, "truncated": total > len(rows)}
+
+
+def _search_extras(rows: list[dict], balances_of) -> list[dict]:
+	"""Add balance, deposit, phone, nationality, group leader, repeater and travelling-with flags."""
+	if not rows:
+		return rows
+	names = [r["name"] for r in rows]
+	balances = balances_of(names)
+	guests = list({r["guest"] for r in rows if r.get("guest")})
+	gmap = {g.name: g for g in frappe.get_all("Guest", filters={"name": ("in", guests)}, fields=["name", "phone", "nationality", "guest_category"])} if guests else {}
+	grp_ids = list({r["group_booking"] for r in rows if r.get("group_booking")})
+	grp = {g.name: g for g in frappe.get_all("Group Booking", filters={"name": ("in", grp_ids)}, fields=["name", "group_name", "master_reservation"])} if grp_ids else {}
+	with_others = set(frappe.get_all("Stay Occupant", filters={"parent": ("in", names), "parenttype": "Reservation"}, pluck="parent"))
+	prior = set()
+	if guests:
+		for g in frappe.db.sql(
+			"""select guest, count(*) c from `tabReservation`
+			   where guest in %s and status = 'Checked Out' group by guest""", (tuple(guests),), as_dict=True):
+			if g.c:
+				prior.add(g.guest)
+	room_numbers = {r.name: r.room_number for r in frappe.get_all("Room", filters={"name": ("in", list({x["room"] for x in rows if x.get("room")}))}, fields=["name", "room_number"])} if any(x.get("room") for x in rows) else {}
+	for r in rows:
+		g = gmap.get(r.get("guest")) or {}
+		grp_row = grp.get(r.get("group_booking")) or {}
+		bal = balances.get(r["name"]) or {}
+		nights = int(r.get("nights") or 0) or 1
+		r["phone"] = g.get("phone")
+		r["nationality"] = g.get("nationality")
+		r["guest_class"] = g.get("guest_category")
+		r["group_name"] = grp_row.get("group_name")
+		r["is_leader"] = bool(grp_row) and grp_row.get("master_reservation") == r["name"]
+		r["repeater"] = r.get("guest") in prior
+		r["travels_with_others"] = r["name"] in with_others
+		r["room_number"] = room_numbers.get(r.get("room"))
+		r["room_rate"] = float(r.get("agreed_rate") or 0) or round(float(r.get("amount_before_tax") or 0) / nights, 2)
+		r["balance"] = float(bal.get("due") or 0)
+		r["deposit"] = float(r.get("advance_paid") or 0)
+		for k in ("check_in_date", "check_out_date"):
+			r[k] = str(r[k]) if r.get(k) else None
+	return rows
