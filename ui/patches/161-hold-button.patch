@@ -1,0 +1,42 @@
+--- a/src/components/BookingDialog.tsx	2026-11-25 14:08:31.953009781 +0530
++++ b/src/components/BookingDialog.tsx	2026-11-25 14:08:31.953661423 +0530
+@@ -26,6 +26,7 @@
+ import { useCashierAuth } from "../lib/cashierAuth"
+ import DepositPanel, { type DepositState } from "./DepositPanel"
+ import { DeskPopup } from "../custom/DeskPopup"
++import { HoldButton } from "../custom/HoldButton"
+ import { CustomBookingFields, RateAmount, customGuestSearch, useCustomBooking } from "../custom/CustomBooking"
+ import { StayLength } from "../custom/CustomStay"
+ import { StayTimes } from "../custom/StayTimes"
+@@ -560,7 +561,7 @@
+     return (e as Error).message
+   }
+ 
+-  async function submit(waitlist = false) {
++  async function submit(waitlist = false, hold = false) {
+     setBusy(true)
+     setError(null)
+     try {
+@@ -648,6 +649,7 @@
+           over_capacity_guests: form.over_capacity_guests || undefined,
+           over_capacity_charge: extraCharge || undefined,
+         ...custom.single(),
++        ...(hold ? custom.holdArgs(form.check_in_date) : {}),
+         guest_name: form.guest_name,
+         phone: form.phone || undefined,
+         guest: profile?.name,
+@@ -2653,6 +2655,14 @@
+                     {t("Waitlist")}
+                   </Button>
+                 </div>
++                {moreRooms.length === 0 && !dayUse && (
++                  <HoldButton
++                    choice={custom.holdChoice}
++                    onChoice={custom.setHoldChoice}
++                    disabled={busy || !form.guest_name || !quote || badDate || pastCheckIn || badPhone || badSlot || blacklistBlocked || creditBlocked || extraNeedsReason || custom.blocked}
++                    onHold={() => submit(false, true)}
++                  />
++                )}
+                 </>
+                 )}
+               </div>

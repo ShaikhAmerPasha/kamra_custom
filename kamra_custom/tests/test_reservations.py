@@ -65,3 +65,9 @@ class TestStays(IntegrationTestCase):
 		# test. What can fail is the setting that makes them: Kamra's track_changes on Reservation.
 		self.assertTrue(frappe.get_meta("Reservation").track_changes)
 		self.assertTrue(frappe.get_meta("Reservation").has_field("internal_remarks"))
+
+	def test_detail_names_the_guest_and_phone_so_a_booking_can_be_copied(self):
+		name = self.book(phone="9000055577", name="Copy Me")
+		d = reservations.detail(name)
+		self.assertEqual(d["guest"], frappe.db.get_value("Reservation", name, "guest"))
+		self.assertEqual(d["phone"], frappe.db.get_value("Guest", d["guest"], "phone"))

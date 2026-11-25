@@ -4,14 +4,22 @@
     totals follow. */
 
 import { useCallback, useEffect, useState } from "react"
+import { useOutletContext } from "react-router-dom"
 import { call } from "../lib/api"
 import { Button } from "../components/ui/button"
 import { fmtMoney } from "../lib/money"
 import { ApproverSelect } from "./ApproverSelect"
+import { copyInitial } from "./hold"
+import { BillingFields } from "./BillingFields"
+import { EMPTY_BILLING, auditParts, billingFromServer, billingProblem, billingSave, sameBilling, type AuditLine, type Billing } from "./billing"
 import { agreedRates, emptyRate, nightsBetween, rateProblem, type PreviewInfo, type RoomRate } from "./rates"
 
 interface Detail {
   reservation: string
+  status: string
+  guest: string | null
+  guest_name: string
+  phone: string | null
   property: string
   room_type: string
   check_in_date: string
@@ -60,6 +68,24 @@ export function CustomReservationPanel({ name, onChanged }: { name: string; onCh
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState("")
   const [error, setError] = useState("")
+  const [billing, setBilling] = useState<Billing>(EMPTY_BILLING)
+  const [savedBilling, setSavedBilling] = useState<Billing>(EMPTY_BILLING)
+  const [audit, setAudit] = useState<AuditLine | null>(null)
+  const [billingEditable, setBillingEditable] = useState(false)
+  const shell = useOutletContext<{ openBooking?: (i: Record<string, unknown>) => void; canBook?: boolean } | undefined>()
+
+  const loadBilling = useCallback(() => {
+    call<{ editable: boolean; values: Record<string, unknown>; audit: AuditLine }>("kamra_custom.analysis.get", { reservation: name })
+      .then((x) => {
+        const b = billingFromServer(x.values)
+        setBilling(b)
+        setSavedBilling(b)
+        setAudit(x.audit)
+        setBillingEditable(x.editable)
+      })
+      .catch(() => setAudit(null))
+  }, [name])
+  useEffect(loadBilling, [loadBilling])
 
   const load = useCallback(() => {
     call<Detail>("kamra_custom.reservations.detail", { reservation: name })
@@ -101,6 +127,7 @@ export function CustomReservationPanel({ name, onChanged }: { name: string; onCh
       await fn()
       setNote(done)
       load()
+      loadBilling()
       onChanged()
     } catch (e) {
       setError(message(e))
@@ -129,6 +156,28 @@ export function CustomReservationPanel({ name, onChanged }: { name: string; onCh
             Save remarks
           </Button>
         ) : null}
+      </div>
+
+      {shell?.openBooking && shell.canBook !== false ? (
+        <div className="flex items-center gap-3 text-sm">
+          <Button variant="outline" onClick={() => shell.openBooking?.(copyInitial(d, new Date().toLocaleDateString("en-CA")))}>
+            Copy this booking
+          </Button>
+          <span className="text-xs text-zinc-500">Starts a new booking for the same guest, room type and party. Nothing is booked until you confirm.</span>
+        </div>
+      ) : null}
+
+      <div className={box} aria-label="Billing and analysis">
+        <h3 className="text-sm font-semibold">Billing and analysis</h3>
+        <BillingFields idPrefix="stay" value={billing} onChange={(p) => setBilling((b) => ({ ...b, ...p }))} disabled={!billingEditable} />
+        {billingProblem(billing) ? <p role="alert" className="text-sm text-rose-700">{billingProblem(billing)}</p> : null}
+        {billingEditable && !sameBilling(billing, savedBilling) ? (
+          <Button variant="outline" disabled={busy || billingProblem(billing) !== ""}
+            onClick={() => run(() => call("kamra_custom.analysis.save", { reservation: name, values: billingSave(billing) }), "Billing details saved.")}>
+            Save billing details
+          </Button>
+        ) : null}
+        {!billingEditable && audit ? <p className="text-xs text-zinc-500">This booking is closed, so these details can no longer change.</p> : null}
       </div>
 
       <div className={box} aria-label="Agreed rate">
@@ -201,6 +250,14 @@ export function CustomReservationPanel({ name, onChanged }: { name: string; onCh
         {note ? <p role="status" className="text-sm text-emerald-700">{note}</p> : null}
         {error ? <p role="alert" className="text-sm text-rose-700">{error}</p> : null}
       </div>
+
+      {audit ? (
+        <dl aria-label="History" className="flex flex-wrap gap-x-6 gap-y-1 border-t border-zinc-200 pt-2 text-xs text-zinc-600">
+          {auditParts(audit).map(([k, v]) => (
+            <div key={k} className="flex gap-1"><dt className="font-medium">{k}:</dt><dd>{v || "-"}</dd></div>
+          ))}
+        </dl>
+      ) : null}
     </div>
   )
 }

@@ -110,3 +110,33 @@ class TestReservationSearch(IntegrationTestCase):
 		res = reservations.search(PROP, status="all", name="Sort", limit=1)
 		self.assertEqual(len(res["rows"]), 1)
 		self.assertTrue(res["truncated"])
+
+
+class TestHeldBookings(IntegrationTestCase):
+	"""A booking made with Hold is Held until its time runs out, and the search finds it under Hold."""
+
+	def setUp(self):
+		frappe.set_user("Administrator")
+		if not frappe.db.exists("Room Type", DLX):
+			self.skipTest("demo property not on this site")
+
+	def tearDown(self):
+		frappe.db.rollback()
+		frappe.set_user("Administrator")
+
+	def test_hold_status_shows_under_hold_and_not_under_reserved(self):
+		from frappe.utils import add_to_date, now_datetime
+
+		from kamra_custom import overrides
+
+		out = overrides.create_booking(
+			property=PROP, room_type=DLX, check_in_date=START, check_out_date=add_days(START, 1),
+			guest_name="Held Guest", phone="9000088801", status="Held",
+			hold_expires_on=str(add_to_date(now_datetime(), hours=24)),
+		)
+		name = out["reservation"]
+		self.assertEqual(frappe.db.get_value("Reservation", name, "status"), "Held")
+		held = [r["name"] for r in reservations.search(PROP, status="hold", name="Held Guest")["rows"]]
+		reserved = [r["name"] for r in reservations.search(PROP, status="reserved", name="Held Guest")["rows"]]
+		self.assertIn(name, held)
+		self.assertNotIn(name, reserved)

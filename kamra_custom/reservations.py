@@ -61,6 +61,7 @@ def detail(reservation: str) -> dict:
 		locked = _("This booking has a rate plan or voucher. Remove it before agreeing a rate by hand.")
 	return {
 		"reservation": res.name, "status": res.status, "property": res.property,
+		"guest": res.guest, "phone": frappe.db.get_value("Guest", res.guest, "phone") if res.guest else None,
 		"guest_name": res.guest_name, "room": res.room, "room_type": res.room_type,
 		"check_in_date": str(res.check_in_date), "check_out_date": str(res.check_out_date),
 		"adults": res.adults, "children": res.children, "meal_plan": res.meal_plan,

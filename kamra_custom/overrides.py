@@ -50,13 +50,18 @@ def _text(instructions) -> str:
 	)
 
 
-def _finish(name: str, special_requests: str = "", internal_remarks: str = "", custom_rate=None) -> dict | None:
-	"""Remarks and agreed rate on a reservation Kamra just created."""
+def _finish(name: str, special_requests: str = "", internal_remarks: str = "", custom_rate=None, billing=None) -> dict | None:
+	"""Remarks, billing and analysis fields and agreed rate on a reservation Kamra just created."""
 	special_requests = (special_requests or "").strip()
 	internal_remarks = (internal_remarks or "").strip()
-	if not (special_requests or internal_remarks or custom_rate):
+	billing = frappe.parse_json(billing) if isinstance(billing, str) else billing
+	if not (special_requests or internal_remarks or custom_rate or billing):
 		return None
 	doc = frappe.get_doc("Reservation", name)
+	if billing:
+		from kamra_custom import analysis
+
+		analysis.apply(doc, billing)
 	if special_requests:
 		doc.special_requests = special_requests
 	if internal_remarks:
@@ -73,7 +78,7 @@ def _finish(name: str, special_requests: str = "", internal_remarks: str = "", c
 
 
 @frappe.whitelist(methods=["POST"])
-def create_booking(*args, internal_remarks=None, custom_rate=None, **kwargs):
+def create_booking(*args, internal_remarks=None, custom_rate=None, billing=None, **kwargs):
 	"""kamra.api.create_booking, then our extras."""
 	from kamra.api import create_booking as kamra_create_booking
 
@@ -82,14 +87,14 @@ def create_booking(*args, internal_remarks=None, custom_rate=None, **kwargs):
 	from kamra_custom import extra_guest
 
 	res = kamra_create_booking(*args, **_accepted(kamra_create_booking, extra_guest.convert(kwargs)))
-	changed = _finish(res["reservation"], _text(kwargs.get("instructions")), internal_remarks, custom_rate)
+	changed = _finish(res["reservation"], _text(kwargs.get("instructions")), internal_remarks, custom_rate, billing)
 	if changed:
 		res = {**res, **changed}
 	return res
 
 
 @frappe.whitelist(methods=["POST"])
-def create_group_booking(*args, guest=None, special_requests=None, internal_remarks=None, **kwargs):
+def create_group_booking(*args, guest=None, special_requests=None, internal_remarks=None, billing=None, **kwargs):
 	"""kamra.api.create_group_booking, then the guest, remarks and agreed rates it leaves out."""
 	from kamra.api import create_group_booking as kamra_create_group_booking
 
@@ -122,12 +127,12 @@ def create_group_booking(*args, guest=None, special_requests=None, internal_rema
 		)
 
 	for i, name in enumerate(out["created"]):
-		_finish(name, special_requests or "", internal_remarks or "", rates[i] if i < len(rates) else None)
+		_finish(name, special_requests or "", internal_remarks or "", rates[i] if i < len(rates) else None, billing)
 	return out
 
 
 @frappe.whitelist(methods=["POST"])
-def walk_in(*args, internal_remarks=None, custom_rate=None, **kwargs):
+def walk_in(*args, internal_remarks=None, custom_rate=None, billing=None, **kwargs):
 	"""kamra.api.walk_in, then the remarks and the agreed rate.
 
 	Kamra's walk-in books through its own function, not through the wrapper above, so
@@ -139,7 +144,7 @@ def walk_in(*args, internal_remarks=None, custom_rate=None, **kwargs):
 	custom_rate = frappe.parse_json(custom_rate) if isinstance(custom_rate, str) else custom_rate
 
 	res = kamra_walk_in(*args, **_accepted(kamra_walk_in, kwargs))
-	changed = _finish(res["reservation"], "", internal_remarks, custom_rate)
+	changed = _finish(res["reservation"], "", internal_remarks, custom_rate, billing)
 	if changed:
 		res = {**res, **changed}
 	return res

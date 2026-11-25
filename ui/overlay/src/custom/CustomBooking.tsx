@@ -6,6 +6,9 @@ import { useEffect, useState } from "react"
 import { call, getCurrentProperty, type GuestHit } from "../lib/api"
 import { fmtMoney } from "../lib/money"
 import { ApproverSelect } from "./ApproverSelect"
+import { BillingFields } from "./BillingFields"
+import { holdArgs } from "./hold"
+import { EMPTY_BILLING, billingArgs, billingProblem, type Billing } from "./billing"
 import { agreedRates, customRate, emptyRate, nightsBetween, rateProblem, type PreviewInfo, type RoomRate } from "./rates"
 
 const field =
@@ -60,6 +63,14 @@ export const amountLabel = (taxIn: boolean, dayUse: boolean) =>
 export interface CustomBooking {
   remarks: string
   setRemarks: (v: string) => void
+  /** How the guest pays, GST and PAN, guaranteed, special guest and the like. */
+  billing: Billing
+  setBilling: (patch: Partial<Billing>) => void
+  /** How long a Hold keeps the room (see hold.ts). */
+  holdChoice: string
+  setHoldChoice: (v: string) => void
+  /** The extra arguments that make the booking a hold. */
+  holdArgs: (arrival: string) => ReturnType<typeof holdArgs>
   rates: Record<number, RoomRate>
   setRate: (i: number, patch: Partial<RoomRate>) => void
   previews: Record<number, Preview | string>
@@ -86,6 +97,8 @@ export interface CustomBooking {
 
 export function useCustomBooking(): CustomBooking {
   const [remarks, setRemarks] = useState("")
+  const [billing, setBillingState] = useState<Billing>(EMPTY_BILLING)
+  const [holdChoice, setHoldChoice] = useState("24")
   const [rates, setRates] = useState<Record<number, RoomRate>>({})
   const [previews, setPreviews] = useState<Record<number, Preview | string>>({})
   const [nights, setNights] = useState(0)
@@ -93,7 +106,7 @@ export function useCustomBooking(): CustomBooking {
 
   const rate = (i: number) => rates[i] ?? emptyRate()
   const live = Array.from({ length: roomCount }, (_, i) => i)
-  const blocked = live.some((i) => {
+  const blocked = billingProblem(billing) !== "" || live.some((i) => {
     const p = previews[i]
     return rateProblem(rate(i), nights, typeof p === "object" ? p : undefined) !== ""
   })
@@ -115,14 +128,16 @@ export function useCustomBooking(): CustomBooking {
   return {
     taxExtra,
     adjustParts,
+    billing, setBilling: (patch) => setBillingState((b) => ({ ...b, ...patch })),
+    holdChoice, setHoldChoice, holdArgs: (arrival) => holdArgs(new Date(), holdChoice, arrival),
     remarks, setRemarks, rates, previews, setPreviews, nights, setNights, blocked, adjust, setRoomCount,
     setRate: (i, patch) => setRates((all) => ({ ...all, [i]: { ...(all[i] ?? emptyRate()), ...patch } })),
     single: () => {
       const r = customRate(rate(0), nights)
-      return { internal_remarks: remarks.trim() || undefined, custom_rate: r }
+      return { internal_remarks: remarks.trim() || undefined, custom_rate: r, billing: billingArgs(billing) }
     },
     rateFor: (i) => customRate(rate(i), nights),
-    group: () => ({ internal_remarks: remarks.trim() || undefined }),
+    group: () => ({ internal_remarks: remarks.trim() || undefined, billing: billingArgs(billing) }),
   }
 }
 
@@ -194,6 +209,14 @@ export function CustomBookingFields(props: {
           placeholder="For staff only: for example advance taken, who agreed the rate"
         />
       </div>
+
+      <details className="rounded-xl border border-zinc-200 bg-zinc-50/50 p-3 text-sm">
+        <summary className="cursor-pointer font-medium">Billing and analysis</summary>
+        <div className="mt-2">
+          <BillingFields idPrefix="new-booking" value={custom.billing} onChange={custom.setBilling} />
+          {billingProblem(custom.billing) ? <p role="alert" className="mt-1 text-rose-700">{billingProblem(custom.billing)}</p> : null}
+        </div>
+      </details>
 
       {nights > 0
         ? rooms.map((_room, i) => {
