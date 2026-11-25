@@ -1,0 +1,36 @@
+--- a/src/components/ui/sheet.tsx	2026-11-25 14:30:53.702102882 +0530
++++ b/src/components/ui/sheet.tsx	2026-11-25 14:30:53.702781466 +0530
+@@ -1,6 +1,7 @@
+ import { useEffect } from "react"
+ import { X } from "lucide-react"
+ import { Button } from "./button"
++import { useBackClose } from "../../custom/useBackClose"
+ import { t as translate, useUILanguage } from "../../lib/i18n"
+ 
+ /**
+@@ -17,6 +18,7 @@
+   wide?: boolean
+ }) {
+   useUILanguage()
++  useBackClose(props.onClose)
+   useEffect(() => {
+     const onKey = (e: KeyboardEvent) => {
+       if (e.key === "Escape") props.onClose()
+--- a/src/components/BookingDialog.tsx	2026-11-25 14:30:53.705751887 +0530
++++ b/src/components/BookingDialog.tsx	2026-11-25 14:30:53.706296033 +0530
+@@ -26,6 +26,7 @@
+ import { useCashierAuth } from "../lib/cashierAuth"
+ import DepositPanel, { type DepositState } from "./DepositPanel"
+ import { DeskPopup } from "../custom/DeskPopup"
++import { useBackClose } from "../custom/useBackClose"
+ import { HoldButton } from "../custom/HoldButton"
+ import { CustomBookingFields, RateAmount, customGuestSearch, useCustomBooking } from "../custom/CustomBooking"
+ import { StayLength } from "../custom/CustomStay"
+@@ -129,6 +130,7 @@
+   onBooked: () => void
+ }) {
+   const { t, tn } = useT()
++  useBackClose(props.onClose)
+   const [options, setOptions] = useState<BookingOptions | null>(null)
+   const [quote, setQuote] = useState<Quote | null>(null)
+   const [quoting, setQuoting] = useState(false)

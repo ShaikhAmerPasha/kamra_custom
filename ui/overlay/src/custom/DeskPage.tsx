@@ -5,10 +5,12 @@
 import { useEffect, type ReactNode } from "react"
 import { X } from "lucide-react"
 import { useT } from "../lib/i18n"
+import { useBackClose } from "./useBackClose"
 import "./desk.css"
 
 export function DeskPage(props: { title: ReactNode; description?: ReactNode; onClose: () => void; footer?: ReactNode; children: ReactNode; wide?: boolean }) {
   const { t } = useT()
+  useBackClose(props.onClose)
   useEffect(() => {
     const prev = document.body.style.overflow
     document.body.style.overflow = "hidden"
