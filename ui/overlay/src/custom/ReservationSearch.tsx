@@ -3,6 +3,7 @@
     nothing about a booking is re-implemented here. */
 
 import { useCallback, useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { Crown, Repeat, Users, Layers } from "lucide-react"
 import { call, getCurrentProperty } from "../lib/api"
 import { Sheet } from "../components/ui/sheet"
@@ -12,6 +13,10 @@ import {
   EMPTY_FILTERS, SEARCH_SHORTCUTS, SEARCH_SORTS, SEARCH_STATUSES, STATUS_SHORT,
   marks, nameIsShort, searchArgs, withShortcut, withStatus, type SearchFilters,
 } from "./reservationSearch"
+import {
+  BULK_ACTIONS, cardsPath, headState, keepShown, summary, toggle, toggleAll,
+  type BulkAction, type BulkAnswer,
+} from "./bulk"
 import "./desk.css"
 
 interface Found {
@@ -65,13 +70,18 @@ export default function ReservationSearch() {
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState(false)
   const [open, setOpen] = useState<Found | null>(null)
+  const [ticked, setTicked] = useState<string[]>([])
+  const [working, setWorking] = useState<BulkAction | null>(null)
+  const [answer, setAnswer] = useState<{ action: BulkAction; data: BulkAnswer } | null>(null)
+  const [bulkError, setBulkError] = useState("")
+  const navigate = useNavigate()
   const [roomTypes, setRoomTypes] = useState<{ name: string; room_type_name: string }[]>([])
 
   const run = useCallback(
     (filters: SearchFilters) => {
       setBusy(true)
       call<Result>("kamra_custom.reservations.search", searchArgs(property, filters))
-        .then((r) => (setRes(r), setFailed(false)))
+        .then((r) => (setRes(r), setTicked((t0) => keepShown(t0, r.rows.map((x) => x.name))), setFailed(false)))
         .catch(() => setFailed(true))
         .finally(() => setBusy(false))
     },
@@ -84,6 +94,32 @@ export default function ReservationSearch() {
       doctype: "Room Type", filters: { property }, fields: ["name", "room_type_name"], limit_page_length: 100,
     }).then(setRoomTypes).catch(() => setRoomTypes([]))
   }, [property, run])
+
+  const shownNames = (res?.rows ?? []).map((r) => r.name)
+  const head = headState(ticked, shownNames)
+
+  function bulk(action: BulkAction) {
+    setWorking(action)
+    setBulkError("")
+    setAnswer(null)
+    call<BulkAnswer>("kamra_custom.bulk.run", { action, reservations: ticked })
+      .then((data) => {
+        setAnswer({ action, data })
+        run(f)
+      })
+      .catch((e) => {
+        let text = t("That did not work.")
+        try {
+          const body = JSON.parse((e as { body?: string }).body ?? "")
+          const msgs = body._server_messages ? JSON.parse(body._server_messages) : []
+          text = msgs.map((m: string) => JSON.parse(m).message).join(" ").replace(/<[^>]+>/g, "") || text
+        } catch {
+          /* not a Frappe error body */
+        }
+        setBulkError(text)
+      })
+      .finally(() => setWorking(null))
+  }
 
   const set = (patch: Partial<SearchFilters>) => setF((p) => ({ ...p, ...patch }))
   const go = (next: SearchFilters) => {
@@ -188,10 +224,38 @@ export default function ReservationSearch() {
         </span>
       </p>
 
+      <div className="flex flex-wrap items-center gap-2 text-sm" role="toolbar" aria-label={t("Actions on the ticked bookings")}>
+        <span className="text-xs text-zinc-600" aria-live="polite">{ticked.length ? t("{n} ticked", { n: ticked.length }) : t("Tick bookings to act on them.")}</span>
+        {BULK_ACTIONS.map(([key, label]) => (
+          <button key={key} type="button" disabled={!ticked.length || working !== null} onClick={() => bulk(key)} className="rounded border px-3 py-1 disabled:opacity-50">
+            {working === key ? t("Working…") : t(label)}
+          </button>
+        ))}
+        <button type="button" disabled={!ticked.length || working !== null} onClick={() => navigate(cardsPath(ticked))} className="rounded border px-3 py-1 disabled:opacity-50">
+          {t("Print registration cards")}
+        </button>
+      </div>
+      {bulkError ? <p role="alert" className="text-sm text-rose-700">{bulkError}</p> : null}
+      {answer ? (
+        <div role="status" className="border p-2 text-sm">
+          <p className="font-medium">{t(summary(answer.data, answer.action))}</p>
+          <ul className="mt-1 space-y-0.5">
+            {answer.data.results.map((r) => (
+              <li key={r.reservation} className={r.ok ? "text-emerald-700" : "text-rose-700"}>
+                {r.ok ? "✓" : "✗"} {r.guest_name || r.reservation} · {r.reservation}: {r.message}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
       <div className="overflow-x-auto border">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-brand-600 text-left text-white">
+              <th className="px-2 py-1">
+                <input type="checkbox" aria-label={t("Tick all")} checked={head === "all"} ref={(el) => { if (el) el.indeterminate = head === "some" }} onChange={() => setTicked(toggleAll(ticked, shownNames))} />
+              </th>
               {["", "Guest name", "Arrival", "Departure", "Firm name", "Room type", "Booked thru", "Status", "Room rate", "Balance", "Deposit", "Other reference #", "Nationality", "Class", "Reservation #"].map((h) => (
                 <th key={h} className="whitespace-nowrap px-2 py-1 font-medium">{h ? t(h) : ""}</th>
               ))}
@@ -200,6 +264,9 @@ export default function ReservationSearch() {
           <tbody>
             {(res?.rows ?? []).map((r) => (
               <tr key={r.name} className="cursor-pointer border-t hover:bg-zinc-100" onClick={() => setOpen(r)} tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setOpen(r)}>
+                <td className="px-2 py-1" onClick={(e) => e.stopPropagation()}>
+                  <input type="checkbox" aria-label={t("Tick {n}", { n: r.name })} checked={ticked.includes(r.name)} onChange={() => setTicked(toggle(ticked, r.name))} />
+                </td>
                 <td className="whitespace-nowrap px-2 py-1">
                   {marks(r).map((m) =>
                     m === "leader" ? <Crown key={m} className="inline size-3.5" aria-label={t("Group leader")} />
@@ -225,7 +292,7 @@ export default function ReservationSearch() {
               </tr>
             ))}
             {res && res.rows.length === 0 && !busy ? (
-              <tr><td colSpan={15} className="px-2 py-6 text-center text-zinc-600">{t("No booking found.")}</td></tr>
+              <tr><td colSpan={16} className="px-2 py-6 text-center text-zinc-600">{t("No booking found.")}</td></tr>
             ) : null}
           </tbody>
         </table>

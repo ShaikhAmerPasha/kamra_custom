@@ -1,0 +1,18 @@
+--- a/src/App.tsx	2026-11-25 14:34:22.535041694 +0530
++++ b/src/App.tsx	2026-11-25 14:34:22.535749115 +0530
+@@ -58,6 +58,7 @@
+ const DeskReports = lazy(() => import("./custom/DeskReports"))
+ const FindBooking = lazy(() => import("./custom/FindBooking"))
+ const ReservationSearch = lazy(() => import("./custom/ReservationSearch"))
++const RegistrationCards = lazy(() => import("./custom/RegistrationCards"))
+ const RateCalendar = lazy(() => import("./screens/RateCalendar"))
+ const RevenueReports = lazy(() => import("./screens/RevenueReports"))
+ const OpsSLA = lazy(() => import("./screens/OpsSLA"))
+@@ -345,6 +346,7 @@
+           <Route path="in-house" element={<InHouse />} />
+           <Route path="find-booking/:action" element={<FindBooking />} />
+           <Route path="reservation-search" element={<ReservationSearch />} />
++          <Route path="reservation-search/cards/*" element={<RegistrationCards />} />
+           <Route path="desk-reports" element={<DeskReports />} />
+           <Route path="desk-reports/:report" element={<DeskReports />} />
+           <Route path="arrivals" element={<Navigate to="/in-house?tab=arrivals" replace />} />
