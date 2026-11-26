@@ -29,7 +29,6 @@ describe("back closes the top pop-up", () => {
     expect(closed).toBe(1)
     expect(b.position()).toBe(0)
     expect(s.depth()).toBe(0)
-    expect(b.listeners.size).toBe(0)
   })
 
   it("closing with its own button removes its history entry, so Back is not stuck", () => {
@@ -39,7 +38,6 @@ describe("back closes the top pop-up", () => {
     release()
     expect(b.position()).toBe(0)
     expect(s.depth()).toBe(0)
-    expect(b.listeners.size).toBe(0)
   })
 
   it("closes only the top one when two are open", () => {
@@ -85,5 +83,29 @@ describe("back closes the top pop-up", () => {
     const s = createBackStack(b.win, b.hist)
     s.open(() => {})
     expect(b.hist.state).toMatchObject({ idx: 4, key: "k", kdPopup: 1 })
+  })
+
+  it("a pop-up closed by leaving the page leaves no step that Back lands on and seems to do nothing", () => {
+    const b = fakeBrowser()
+    const s = createBackStack(b.win, b.hist)
+    const release = s.open(() => {})
+    b.hist.pushState({ idx: 5 }, "") // a link inside the pop-up went to another screen
+    release() // the pop-up unmounts: its step is not the top one
+    expect(b.position()).toBe(2)
+    b.hist.back() // from the new screen: onto the pop-up's leftover step ...
+    expect(b.position()).toBe(0) // ... which is skipped, so one Back reaches the page before
+  })
+
+  it("an ordinary later pop-up still works after a skipped one", () => {
+    const b = fakeBrowser()
+    const s = createBackStack(b.win, b.hist)
+    const r1 = s.open(() => {})
+    b.hist.pushState({ idx: 5 }, "")
+    r1()
+    b.hist.back()
+    let closed = 0
+    s.open(() => closed++)
+    b.hist.back()
+    expect(closed).toBe(1)
   })
 })

@@ -10,10 +10,13 @@ export default function RegistrationCards() {
   const { t } = useT()
   const ids = idsFromQuery(useLocation().search)
   const navigate = useNavigate()
+  const loc = useLocation()
+  // opened straight from a link there is no earlier screen to go back to: go to the search
+  const goBack = () => (loc.key === "default" ? navigate("/reservation-search", { replace: true }) : navigate(-1))
   return (
     <div>
       <div className="mb-3 flex items-center gap-3 print:hidden">
-        <button type="button" className="rounded border px-3 py-1 text-sm" onClick={() => navigate(-1)}>{t("Back")}</button>
+        <button type="button" className="rounded border px-3 py-1 text-sm" onClick={goBack}>{t("Back")}</button>
         <button type="button" className="rounded bg-brand-600 px-3 py-1 text-sm text-white" onClick={() => window.print()} disabled={!ids.length}>
           {t("Print {n} cards", { n: ids.length })}
         </button>

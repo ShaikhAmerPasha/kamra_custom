@@ -136,7 +136,7 @@ export default function GroupDesk() {
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="text-lg font-semibold">{t("Groups")}</h1>
         <select aria-label={t("Group")} className="min-w-72 rounded border border-zinc-300 bg-white px-2 py-1 text-sm" value={group}
-          onChange={(e) => (setTicked([]), setTold(null), setParams(e.target.value ? { group: e.target.value } : {}))}>
+          onChange={(e) => (setTicked([]), setTold(null), setParams(e.target.value ? { group: e.target.value } : {}, { replace: true }))}>
           <option value="">{t("Choose a group")}</option>
           {groups.map((g) => <option key={g.name} value={g.name}>{g.group_name} · {day(g.check_in_date)}–{day(g.check_out_date)} · {g.status}</option>)}
         </select>

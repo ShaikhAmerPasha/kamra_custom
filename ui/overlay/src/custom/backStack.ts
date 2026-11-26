@@ -21,22 +21,36 @@ interface Entry {
 
 export function createBackStack(win: WindowLike, hist: HistoryLike) {
   const entries: Entry[] = []
+  // pop-ups that closed because their page was left by a link: their history step is still there, and Back
+  // must run straight through it instead of landing on a screen that looks unchanged
+  const dead = new Set<number>()
   let next = 1
   let skip = 0
+  let listening = false
 
   const onPop = () => {
     if (skip > 0) {
       skip -= 1
       return
     }
-    entries.pop()?.close()
-    if (entries.length === 0) win.removeEventListener("popstate", onPop)
+    if (entries.length > 0) {
+      entries.pop()?.close()
+      return
+    }
+    const at = (hist.state as { kdPopup?: number } | null)?.kdPopup
+    if (at != null && dead.has(at)) hist.back()
+  }
+  const listen = () => {
+    if (!listening) {
+      win.addEventListener("popstate", onPop)
+      listening = true
+    }
   }
 
   /** Register an open pop-up. Returns the function to call when it closes by itself. */
   function open(close: () => void): () => void {
     const entry: Entry = { id: next++, close }
-    if (entries.length === 0) win.addEventListener("popstate", onPop)
+    listen()
     entries.push(entry)
     hist.pushState({ ...(typeof hist.state === "object" && hist.state ? hist.state : {}), kdPopup: entry.id }, "")
     return () => {
@@ -44,12 +58,12 @@ export function createBackStack(win: WindowLike, hist: HistoryLike) {
       if (at < 0) return // Back closed it already
       const wasTop = at === entries.length - 1
       entries.splice(at, 1)
-      if (entries.length === 0) win.removeEventListener("popstate", onPop)
       const mine = (hist.state as { kdPopup?: number } | null)?.kdPopup === entry.id
       if (wasTop && mine) {
         skip += 1
-        if (entries.length > 0) win.addEventListener("popstate", onPop)
         hist.back()
+      } else {
+        dead.add(entry.id)
       }
     }
   }
