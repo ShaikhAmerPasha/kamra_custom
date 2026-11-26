@@ -108,7 +108,7 @@ export function TopNav({ apps, roles }: { apps: AppDef[]; roles: string[] }) {
   }
 
   return (
-    <nav ref={bar} aria-label={t("Main")} className="relative z-30 border-b border-zinc-200 bg-zinc-50 print:hidden">
+    <nav ref={bar} data-topnav aria-label={t("Main")} className="relative z-30 border-b border-zinc-200 bg-zinc-50 print:hidden">
       <div className="flex items-stretch gap-1 px-3">
         <NavLink to="/" className="mr-2 flex items-center gap-2 pr-2" onClick={close}>
           <img src={asset("kamra-mark.svg")} alt="" className="size-6" aria-hidden />

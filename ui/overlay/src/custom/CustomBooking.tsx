@@ -198,6 +198,7 @@ export function CustomBookingFields(props: {
   }, [key])
 
   return (
+    <>
     <div data-bar="Remarks and rate" className="space-y-4">
       <div>
         <label className={label} htmlFor="custom-internal-remarks">Internal remarks</label>
@@ -210,21 +211,6 @@ export function CustomBookingFields(props: {
           placeholder="For staff only: for example advance taken, who agreed the rate"
         />
       </div>
-
-      <DeskPopup
-        title="Billing and analysis"
-        addLabel="Add"
-        missing={billingProblem(custom.billing) !== ""}
-        summary={[
-          custom.billing.pay_by, custom.billing.gst_number && `GST ${custom.billing.gst_number}`, custom.billing.pan_number && `PAN ${custom.billing.pan_number}`,
-          custom.billing.guaranteed && "Guaranteed", custom.billing.tax_exempt && "Tax exempt", custom.billing.special_guest && "Special guest",
-          custom.billing.business_source, custom.billing.domicile,
-        ].filter(Boolean).join(" · ")}
-      >
-        <BillingFields idPrefix="new-booking" value={custom.billing} onChange={custom.setBilling} />
-        {billingProblem(custom.billing) ? <p role="alert" className="text-rose-700">{billingProblem(custom.billing)}</p> : null}
-      </DeskPopup>
-
       {nights > 0
         ? rooms.map((_room, i) => {
             const p = custom.previews[i]
@@ -321,6 +307,20 @@ export function CustomBookingFields(props: {
           })
         : null}
     </div>
+      <DeskPopup
+        title="Analysis and tax details"
+        addLabel="Add"
+        missing={billingProblem(custom.billing) !== ""}
+        summary={[
+          custom.billing.pay_by, custom.billing.gst_number && `GST ${custom.billing.gst_number}`, custom.billing.pan_number && `PAN ${custom.billing.pan_number}`,
+          custom.billing.guaranteed && "Guaranteed", custom.billing.tax_exempt && "Tax exempt", custom.billing.special_guest && "Special guest",
+          custom.billing.business_source, custom.billing.domicile,
+        ].filter(Boolean).join(" · ")}
+      >
+        <BillingFields idPrefix="new-booking" value={custom.billing} onChange={custom.setBilling} />
+        {billingProblem(custom.billing) ? <p role="alert" className="text-rose-700">{billingProblem(custom.billing)}</p> : null}
+      </DeskPopup>
+    </>
   )
 }
 

@@ -186,8 +186,8 @@ export function CustomReservationPanel({ name, onChanged }: { name: string; onCh
         ) : null}
       </div>
 
-      <div className="rounded border border-zinc-200 bg-white p-2" aria-label="Billing and analysis">
-        <DeskPopup title="Billing and analysis" summary={billingSummary} addLabel="Add">
+      <div className="rounded border border-zinc-200 bg-white p-2" aria-label="Analysis and tax details">
+        <DeskPopup title="Analysis and tax details" summary={billingSummary} addLabel="Add">
         <BillingFields idPrefix="stay" value={billing} onChange={(p) => setBilling((b) => ({ ...b, ...p }))} disabled={!billingEditable} />
         {billingProblem(billing) ? <p role="alert" className="text-sm text-rose-700">{billingProblem(billing)}</p> : null}
         {billingEditable && !sameBilling(billing, savedBilling) ? (

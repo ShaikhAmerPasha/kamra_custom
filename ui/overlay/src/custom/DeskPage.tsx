@@ -6,11 +6,13 @@ import { useEffect, type ReactNode } from "react"
 import { X } from "lucide-react"
 import { useT } from "../lib/i18n"
 import { useBackClose } from "./useBackClose"
+import { useBelowNav } from "./useBelowNav"
 import "./desk.css"
 
 export function DeskPage(props: { title: ReactNode; description?: ReactNode; onClose: () => void; footer?: ReactNode; children: ReactNode; wide?: boolean }) {
   const { t } = useT()
   useBackClose(props.onClose)
+  const below = useBelowNav()
   useEffect(() => {
     const prev = document.body.style.overflow
     document.body.style.overflow = "hidden"
@@ -22,7 +24,7 @@ export function DeskPage(props: { title: ReactNode; description?: ReactNode; onC
     }
   }, [props])
   return (
-    <div className="kd fixed inset-0 z-50 flex flex-col bg-white" role="dialog" aria-modal="true">
+    <div className="kd fixed inset-x-0 z-20 flex flex-col bg-white" style={{ top: below.top, bottom: below.bottom }} role="dialog" aria-modal="true">
       <header className="kd-head flex shrink-0 items-center gap-3">
         <h2 className="font-semibold">{props.title}</h2>
         {props.description ? <span className="truncate text-xs text-zinc-600">{props.description}</span> : null}

@@ -1,0 +1,28 @@
+--- a/src/components/BookingDialog.tsx	2026-11-26 11:00:24.294489129 +0530
++++ b/src/components/BookingDialog.tsx	2026-11-26 11:00:24.295333229 +0530
+@@ -27,6 +27,7 @@
+ import DepositPanel, { type DepositState } from "./DepositPanel"
+ import { DeskPopup } from "../custom/DeskPopup"
+ import { useBackClose } from "../custom/useBackClose"
++import { useBelowNav } from "../custom/useBelowNav"
+ import { HoldButton } from "../custom/HoldButton"
+ import { CustomBookingFields, RateAmount, customGuestSearch, useCustomBooking } from "../custom/CustomBooking"
+ import { StayLength } from "../custom/CustomStay"
+@@ -131,6 +132,7 @@
+ }) {
+   const { t, tn } = useT()
+   useBackClose(props.onClose)
++  const below = useBelowNav()
+   const [options, setOptions] = useState<BookingOptions | null>(null)
+   const [quote, setQuote] = useState<Quote | null>(null)
+   const [quoting, setQuoting] = useState(false)
+@@ -900,7 +902,8 @@
+ 
+   return (
+     <div
+-      className="fixed inset-0 z-50"
++      className="fixed inset-x-0 z-20"
++      style={{ top: below.top, bottom: below.bottom }}
+       role="dialog"
+       aria-modal="true"
+       aria-label={(walkIn ? t("Walk-in") : t("New booking"))}
