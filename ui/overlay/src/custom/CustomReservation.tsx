@@ -14,6 +14,7 @@ import {
   copyToAll, copyToFollowing, discountByAmount, discountByPercent, percentBelow, resetToSystem, systemNightly, toNumber,
 } from "./dayRates"
 import { BillingFields } from "./BillingFields"
+import { DeskPopup } from "./DeskPopup"
 import { EMPTY_BILLING, auditParts, billingFromServer, billingProblem, billingSave, sameBilling, type AuditLine, type Billing } from "./billing"
 import { agreedRates, emptyRate, nightsBetween, rateProblem, type PreviewInfo, type RoomRate } from "./rates"
 
@@ -50,7 +51,6 @@ interface Preview extends PreviewInfo {
 const field =
   "w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:outline-2 focus:outline-offset-1 focus:outline-brand-600"
 const label = "mb-1 block text-xs font-medium uppercase tracking-wide text-zinc-500"
-const box = "rounded-xl border border-zinc-200 bg-white p-4 space-y-3"
 
 function message(e: unknown): string {
   try {
@@ -163,11 +163,17 @@ export function CustomReservationPanel({ name, onChanged }: { name: string; onCh
   const hasMeal = d.night_rates.some((n) => (n.meal ?? 0) > 0)
   const remarksChanged = remarks !== (d.internal_remarks ?? "")
 
+  const billingSummary = [
+    billing.pay_by, billing.gst_number && `GST ${billing.gst_number}`, billing.pan_number && `PAN ${billing.pan_number}`,
+    billing.guaranteed && "Guaranteed", billing.tax_exempt && "Tax exempt", billing.special_guest && "Special guest",
+    billing.business_source, billing.domicile,
+  ].filter(Boolean).join(" · ")
+  const rateSummary = `${fmtMoney(d.amount_after_tax)} with tax · ${d.night_rates.length} night${d.night_rates.length === 1 ? "" : "s"}${d.rate_negotiated ? " · agreed rate" : ""}`
+
   return (
-    <div className="space-y-4">
-      <div className={box} aria-label="Internal remarks">
-        <h3 className="text-sm font-semibold">Internal remarks</h3>
-        <p className="text-xs text-zinc-500">For staff only. Never printed on an invoice or registration card.</p>
+    <div className="grid grid-cols-3 items-start gap-2">
+      <div className="rounded border border-zinc-200 bg-white p-2" aria-label="Internal remarks">
+        <h3 className="text-sm font-semibold">Internal remarks <span className="font-normal text-xs text-zinc-500">· staff only, never printed</span></h3>
         <textarea rows={2} className={field} value={remarks} onChange={(e) => setRemarks(e.target.value)}
           placeholder="For example advance taken, who agreed the rate" />
         {remarksChanged ? (
@@ -180,17 +186,8 @@ export function CustomReservationPanel({ name, onChanged }: { name: string; onCh
         ) : null}
       </div>
 
-      {shell?.openBooking && shell.canBook !== false ? (
-        <div className="flex items-center gap-3 text-sm">
-          <Button variant="outline" onClick={() => shell.openBooking?.(copyInitial(d, new Date().toLocaleDateString("en-CA")))}>
-            Copy this booking
-          </Button>
-          <span className="text-xs text-zinc-500">Starts a new booking for the same guest, room type and party. Nothing is booked until you confirm.</span>
-        </div>
-      ) : null}
-
-      <div className={box} aria-label="Billing and analysis">
-        <h3 className="text-sm font-semibold">Billing and analysis</h3>
+      <div className="rounded border border-zinc-200 bg-white p-2" aria-label="Billing and analysis">
+        <DeskPopup title="Billing and analysis" summary={billingSummary} addLabel="Add">
         <BillingFields idPrefix="stay" value={billing} onChange={(p) => setBilling((b) => ({ ...b, ...p }))} disabled={!billingEditable} />
         {billingProblem(billing) ? <p role="alert" className="text-sm text-rose-700">{billingProblem(billing)}</p> : null}
         {billingEditable && !sameBilling(billing, savedBilling) ? (
@@ -200,10 +197,11 @@ export function CustomReservationPanel({ name, onChanged }: { name: string; onCh
           </Button>
         ) : null}
         {!billingEditable && audit ? <p className="text-xs text-zinc-500">This booking is closed, so these details can no longer change.</p> : null}
+        </DeskPopup>
       </div>
 
-      <div className={box} aria-label="Agreed rate">
-        <h3 className="text-sm font-semibold">Rate</h3>
+      <div className="rounded border border-zinc-200 bg-white p-2" aria-label="Agreed rate">
+        <DeskPopup title="Rate" summary={rateSummary} wide>
         <p className="text-sm">
           Total <b>{fmtMoney(d.amount_after_tax)}</b> with tax
           {d.rate_negotiated ? (
@@ -319,15 +317,24 @@ export function CustomReservationPanel({ name, onChanged }: { name: string; onCh
         )}
         {note ? <p role="status" className="text-sm text-emerald-700">{note}</p> : null}
         {error ? <p role="alert" className="text-sm text-rose-700">{error}</p> : null}
+        </DeskPopup>
       </div>
 
-      {audit ? (
-        <dl aria-label="History" className="flex flex-wrap gap-x-6 gap-y-1 border-t border-zinc-200 pt-2 text-xs text-zinc-600">
-          {auditParts(audit).map(([k, v]) => (
-            <div key={k} className="flex gap-1"><dt className="font-medium">{k}:</dt><dd>{v || "-"}</dd></div>
-          ))}
-        </dl>
-      ) : null}
+      <div className="col-span-3 flex flex-wrap items-center gap-x-6 gap-y-1 border-t border-zinc-200 pt-1 text-xs text-zinc-600">
+        {shell?.openBooking && shell.canBook !== false ? (
+          <Button variant="outline" className="h-7 px-3 text-xs" title="Starts a new booking for the same guest, room type and party. Nothing is booked until you confirm."
+            onClick={() => shell.openBooking?.(copyInitial(d, new Date().toLocaleDateString("en-CA")))}>
+            Copy this booking
+          </Button>
+        ) : null}
+        {audit ? (
+          <dl aria-label="History" className="flex flex-wrap gap-x-6 gap-y-1">
+            {auditParts(audit).map(([k, v]) => (
+              <div key={k} className="flex gap-1"><dt className="font-medium">{k}:</dt><dd>{v || "-"}</dd></div>
+            ))}
+          </dl>
+        ) : null}
+      </div>
     </div>
   )
 }

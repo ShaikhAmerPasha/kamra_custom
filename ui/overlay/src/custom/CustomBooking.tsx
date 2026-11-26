@@ -7,6 +7,7 @@ import { call, getCurrentProperty, type GuestHit } from "../lib/api"
 import { fmtMoney } from "../lib/money"
 import { ApproverSelect } from "./ApproverSelect"
 import { BillingFields } from "./BillingFields"
+import { DeskPopup } from "./DeskPopup"
 import { holdArgs } from "./hold"
 import { EMPTY_BILLING, billingArgs, billingProblem, type Billing } from "./billing"
 import { agreedRates, customRate, emptyRate, nightsBetween, rateProblem, type PreviewInfo, type RoomRate } from "./rates"
@@ -210,13 +211,19 @@ export function CustomBookingFields(props: {
         />
       </div>
 
-      <details className="rounded-xl border border-zinc-200 bg-zinc-50/50 p-3 text-sm">
-        <summary className="cursor-pointer font-medium">Billing and analysis</summary>
-        <div className="mt-2">
-          <BillingFields idPrefix="new-booking" value={custom.billing} onChange={custom.setBilling} />
-          {billingProblem(custom.billing) ? <p role="alert" className="mt-1 text-rose-700">{billingProblem(custom.billing)}</p> : null}
-        </div>
-      </details>
+      <DeskPopup
+        title="Billing and analysis"
+        addLabel="Add"
+        missing={billingProblem(custom.billing) !== ""}
+        summary={[
+          custom.billing.pay_by, custom.billing.gst_number && `GST ${custom.billing.gst_number}`, custom.billing.pan_number && `PAN ${custom.billing.pan_number}`,
+          custom.billing.guaranteed && "Guaranteed", custom.billing.tax_exempt && "Tax exempt", custom.billing.special_guest && "Special guest",
+          custom.billing.business_source, custom.billing.domicile,
+        ].filter(Boolean).join(" · ")}
+      >
+        <BillingFields idPrefix="new-booking" value={custom.billing} onChange={custom.setBilling} />
+        {billingProblem(custom.billing) ? <p role="alert" className="text-rose-700">{billingProblem(custom.billing)}</p> : null}
+      </DeskPopup>
 
       {nights > 0
         ? rooms.map((_room, i) => {
