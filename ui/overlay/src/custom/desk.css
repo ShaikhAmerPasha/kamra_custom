@@ -212,3 +212,12 @@ div:has(> .kv) { padding: 8px 12px !important; }
   .kd:has(.kd-quote) .kd-grid [data-bar="Stay"],
   .kd:has(.kd-quote) .kd-grid [data-bar="Booking source"] { break-before: column; }
 }
+
+/* ---- proforma: on paper, only the invoice ---- */
+@media print {
+  body > *:not(.kd-proforma-modal) { display: none !important; }
+  .kd-proforma-modal { position: static !important; background: none !important; display: block !important; }
+  .kd-proforma-modal .kd-pop { width: 100% !important; max-height: none !important; border: 0 !important; box-shadow: none !important; }
+  .kd-proforma-modal .kd-pop-head, .kd-noprint { display: none !important; }
+  .kd-proforma-modal .kd-pop-body { overflow: visible !important; }
+}

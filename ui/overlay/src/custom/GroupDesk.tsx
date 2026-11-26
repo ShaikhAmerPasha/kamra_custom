@@ -11,6 +11,7 @@ import { Sheet } from "../components/ui/sheet"
 import { useT } from "../lib/i18n"
 import ReservationDetail from "../screens/ReservationDetail"
 import { DeskPopup } from "./DeskPopup"
+import { ProformaButton } from "./Proforma"
 import { toggle, toggleAll, headState } from "./bulk"
 import { useFillViewport } from "./useFillViewport"
 import {
@@ -158,6 +159,7 @@ export default function GroupDesk() {
               {t("Cancel ticked rooms")}
             </button>
           )}
+          <ProformaButton kind="group" id={group} label={t("Group proforma")} disabled={!d} className="h-auto px-3 py-1 text-sm" />
           <button type="button" className="rounded border px-3 py-1 text-sm" onClick={load} disabled={!d}>{t("Refresh")}</button>
         </span>
       </div>

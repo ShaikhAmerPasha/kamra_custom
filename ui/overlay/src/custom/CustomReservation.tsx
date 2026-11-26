@@ -16,6 +16,7 @@ import {
 import { BillingFields } from "./BillingFields"
 import { DeskPopup } from "./DeskPopup"
 import { FolioRouting } from "./FolioRouting"
+import { ProformaButton } from "./Proforma"
 import { EMPTY_BILLING, auditParts, billingFromServer, billingProblem, billingSave, sameBilling, type AuditLine, type Billing } from "./billing"
 import { agreedRates, emptyRate, nightsBetween, rateProblem, type PreviewInfo, type RoomRate } from "./rates"
 
@@ -330,6 +331,7 @@ export function CustomReservationPanel({ name, onChanged }: { name: string; onCh
             Copy this booking
           </Button>
         ) : null}
+        <ProformaButton kind="reservation" id={name} className="h-7 px-3 text-xs" />
         {audit ? (
           <dl aria-label="History" className="flex flex-wrap gap-x-6 gap-y-1">
             {auditParts(audit).map(([k, v]) => (
