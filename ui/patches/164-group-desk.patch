@@ -1,0 +1,29 @@
+--- a/src/App.tsx	2026-11-26 10:50:35.329430133 +0530
++++ b/src/App.tsx	2026-11-26 10:50:35.330191844 +0530
+@@ -59,6 +59,7 @@
+ const FindBooking = lazy(() => import("./custom/FindBooking"))
+ const ReservationSearch = lazy(() => import("./custom/ReservationSearch"))
+ const RegistrationCards = lazy(() => import("./custom/RegistrationCards"))
++const GroupDesk = lazy(() => import("./custom/GroupDesk"))
+ const RateCalendar = lazy(() => import("./screens/RateCalendar"))
+ const RevenueReports = lazy(() => import("./screens/RevenueReports"))
+ const OpsSLA = lazy(() => import("./screens/OpsSLA"))
+@@ -346,6 +347,7 @@
+           <Route path="in-house" element={<InHouse />} />
+           <Route path="find-booking/:action" element={<FindBooking />} />
+           <Route path="reservation-search" element={<ReservationSearch />} />
++          <Route path="group-desk" element={<GroupDesk />} />
+           <Route path="reservation-search/cards/*" element={<RegistrationCards />} />
+           <Route path="desk-reports" element={<DeskReports />} />
+           <Route path="desk-reports/:report" element={<DeskReports />} />
+--- a/src/lib/apps.ts	2026-11-26 10:50:35.334033411 +0530
++++ b/src/lib/apps.ts	2026-11-26 10:50:35.334684813 +0530
+@@ -128,6 +128,8 @@
+         keywords: ["AI", "Assistant", "Copilot", "Ask"] },
+       { to: "/in-house", label: "In House", icon: BedDouble,
+         keywords: ["Arrivals", "Departures", "In-house guests", "Who is in", "Due out"] },
++      { to: "/group-desk", label: "Group desk", icon: ClipboardList,
++        keywords: ["Groups", "Group booking", "Rooming list", "Group rooms", "Leader", "Block"] },
+       { to: "/reservation-search", label: "Find reservations", icon: ClipboardList,
+         keywords: ["Search", "Find booking", "Reservations", "Expected arrivals", "No shows", "Groups"] },
+       { to: "/reservations", label: "Reservations", icon: ClipboardList },
