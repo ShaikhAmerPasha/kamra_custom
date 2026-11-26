@@ -63,9 +63,13 @@ class TestReservationSearch(IntegrationTestCase):
 	def test_arrivals_shortcuts_follow_the_business_date(self):
 		from kamra.business_date import get_business_date
 		today = get_business_date(PROP)
-		now = self.book(name="Foxtrot Today", start=today, phone="9000066605")
-		soon = self.book(name="Golf Soon", start=add_days(today, 2), phone="9000066606")
-		later = self.book(name="Hotel Later", start=add_days(today, 3), phone="9000066607")
+		now = self.book(name="Foxtrot Today", start=add_days(START, 1), phone="9000066605")
+		soon = self.book(name="Golf Soon", start=add_days(START, 2), phone="9000066606")
+		later = self.book(name="Hotel Later", start=add_days(START, 3), phone="9000066607")
+		# Kamra refuses a booking dated before the calendar day, and the business date may trail it
+		# (night audit not run yet), so the dates are moved after booking.
+		for n, ahead in ((now, 0), (soon, 2), (later, 3)):
+			frappe.db.set_value("Reservation", n, {"check_in_date": add_days(today, ahead), "check_out_date": add_days(today, ahead + 1)})
 		self.assertIn(now, self.names(shortcut="arrivals_today"))
 		self.assertNotIn(soon, self.names(shortcut="arrivals_today"))
 		in3 = self.names(shortcut="arrivals_3_days")

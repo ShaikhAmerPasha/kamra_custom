@@ -10,6 +10,9 @@ import { Button } from "../components/ui/button"
 import { fmtMoney } from "../lib/money"
 import { ApproverSelect } from "./ApproverSelect"
 import { copyInitial } from "./hold"
+import {
+  copyToAll, copyToFollowing, discountByAmount, discountByPercent, percentBelow, resetToSystem, systemNightly, toNumber,
+} from "./dayRates"
 import { BillingFields } from "./BillingFields"
 import { EMPTY_BILLING, auditParts, billingFromServer, billingProblem, billingSave, sameBilling, type AuditLine, type Billing } from "./billing"
 import { agreedRates, emptyRate, nightsBetween, rateProblem, type PreviewInfo, type RoomRate } from "./rates"
@@ -37,6 +40,7 @@ interface Detail {
   special_requests: string | null
   rate_locked_reason: string | null
 }
+type SystemPreview = Parameters<typeof systemNightly>[0]
 interface Preview extends PreviewInfo {
   system: { amount_after_tax: number }
   negotiated: { amount_after_tax: number } | null
@@ -72,6 +76,9 @@ export function CustomReservationPanel({ name, onChanged }: { name: string; onCh
   const [savedBilling, setSavedBilling] = useState<Billing>(EMPTY_BILLING)
   const [audit, setAudit] = useState<AuditLine | null>(null)
   const [billingEditable, setBillingEditable] = useState(false)
+  const [system, setSystem] = useState<number[] | null>(null)
+  const [discPct, setDiscPct] = useState("")
+  const [discAmt, setDiscAmt] = useState("")
   const shell = useOutletContext<{ openBooking?: (i: Record<string, unknown>) => void; canBook?: boolean } | undefined>()
 
   const loadBilling = useCallback(() => {
@@ -97,6 +104,21 @@ export function CustomReservationPanel({ name, onChanged }: { name: string; onCh
       .catch(() => setD(null))
   }, [name])
   useEffect(load, [load])
+
+  // the system price of each night, to show beside the agreed one and to work a discount from
+  useEffect(() => {
+    if (!d) return
+    let alive = true
+    call<SystemPreview>("kamra_custom.negotiation.preview", {
+      property: d.property, room_type: d.room_type, check_in_date: d.check_in_date, check_out_date: d.check_out_date,
+      adults: d.adults, children: d.children, meal_plan: d.meal_plan || undefined,
+    })
+      .then((p) => alive && setSystem(systemNightly(p)))
+      .catch(() => alive && setSystem(null))
+    return () => {
+      alive = false
+    }
+  }, [d?.property, d?.room_type, d?.check_in_date, d?.check_out_date, d?.adults, d?.children, d?.meal_plan]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const nights = d ? nightsBetween(d.check_in_date, d.check_out_date) : 0
   const rates = agreedRates(rate, nights)
@@ -194,13 +216,16 @@ export function CustomReservationPanel({ name, onChanged }: { name: string; onCh
           <thead>
             <tr className="text-left text-xs uppercase tracking-wide text-zinc-500">
               <th className="py-1">Night</th>
+              {system ? <th className="py-1 text-right">System</th> : null}
               {/* the meal is part of the rate: one column, never room and meal apart */}
               <th className="py-1 text-right">{hasMeal ? "Rate" : "Room"}</th><th className="py-1 text-right">Tax</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
-            {d.night_rates.map((n) => (
-              <tr key={n.date}><td className="py-1">{n.date}</td><td className="py-1 text-right">{fmtMoney(n.rate + (n.meal ?? 0))}</td>
+            {d.night_rates.map((n, i) => (
+              <tr key={n.date}><td className="py-1">{n.date}</td>
+                {system ? <td className="py-1 text-right text-zinc-500">{fmtMoney(system[i] ?? 0)}</td> : null}
+                <td className="py-1 text-right">{fmtMoney(n.rate + (n.meal ?? 0))}</td>
                 <td className="py-1 text-right">{n.gst_rate}%</td></tr>
             ))}
           </tbody>
@@ -216,15 +241,60 @@ export function CustomReservationPanel({ name, onChanged }: { name: string; onCh
             </label>
             {rate.agree ? (
               <>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {d.night_rates.map((n, i) => (
-                    <div key={n.date}>
-                      <label className={label} htmlFor={`custom-edit-night-${i}`}>{n.date}{hasMeal ? " · room + meal" : ""}</label>
-                      <input id={`custom-edit-night-${i}`} inputMode="decimal" className={field} value={rate.nightly[i] ?? ""}
-                        onChange={(e) => setRate((r) => ({ ...r, nightly: Object.assign([...r.nightly], { [i]: e.target.value }) }))} />
+                {system ? (
+                  <div className="flex flex-wrap items-end gap-2 rounded border border-zinc-200 bg-white p-2" aria-label="Discount">
+                    <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">Discount on every night</span>
+                    <div>
+                      <label className={label} htmlFor="custom-disc-pct">Percent</label>
+                      <input id="custom-disc-pct" inputMode="decimal" className={`${field} w-24`} value={discPct} onChange={(e) => setDiscPct(e.target.value)} />
                     </div>
-                  ))}
-                </div>
+                    <Button variant="outline" disabled={discountByPercent(system, toNumber(discPct)) === null}
+                      onClick={() => setRate((r) => ({ ...r, perNight: true, nightly: discountByPercent(system, toNumber(discPct)) ?? r.nightly }))}>
+                      Apply %
+                    </Button>
+                    <div>
+                      <label className={label} htmlFor="custom-disc-amt">Amount a night</label>
+                      <input id="custom-disc-amt" inputMode="decimal" className={`${field} w-28`} value={discAmt} onChange={(e) => setDiscAmt(e.target.value)} />
+                    </div>
+                    <Button variant="outline" disabled={discountByAmount(system, toNumber(discAmt)) === null}
+                      onClick={() => setRate((r) => ({ ...r, perNight: true, nightly: discountByAmount(system, toNumber(discAmt)) ?? r.nightly }))}>
+                      Apply amount
+                    </Button>
+                    <Button variant="outline" onClick={() => setRate((r) => ({ ...r, perNight: true, nightly: resetToSystem(system) }))}>
+                      Reset to system price
+                    </Button>
+                  </div>
+                ) : null}
+                <table className="w-full text-sm" aria-label="Rate for each night">
+                  <thead>
+                    <tr className="text-left text-xs uppercase tracking-wide text-zinc-500">
+                      <th className="py-1">Night</th>
+                      {system ? <th className="py-1 text-right">System</th> : null}
+                      <th className="py-1 text-right">{hasMeal ? "Agreed (room + meal)" : "Agreed"}</th>
+                      {system ? <th className="py-1 text-right">Below system</th> : null}
+                      <th className="py-1 text-right">Copy</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-100">
+                    {d.night_rates.map((n, i) => (
+                      <tr key={n.date}>
+                        <td className="py-1"><label htmlFor={`custom-edit-night-${i}`}>{n.date}</label></td>
+                        {system ? <td className="py-1 text-right text-zinc-500">{fmtMoney(system[i] ?? 0)}</td> : null}
+                        <td className="py-1 text-right">
+                          <input id={`custom-edit-night-${i}`} inputMode="decimal" className={`${field} ml-auto w-32 text-right`} value={rate.nightly[i] ?? ""}
+                            onChange={(e) => setRate((r) => ({ ...r, nightly: Object.assign([...r.nightly], { [i]: e.target.value }) }))} />
+                        </td>
+                        {system ? <td className="py-1 text-right text-zinc-500">{percentBelow(system[i] ?? 0, toNumber(rate.nightly[i] ?? "")) || "-"}{percentBelow(system[i] ?? 0, toNumber(rate.nightly[i] ?? "")) ? "%" : ""}</td> : null}
+                        <td className="py-1 text-right whitespace-nowrap">
+                          <button type="button" className="text-xs underline" onClick={() => setRate((r) => ({ ...r, nightly: copyToAll(r.nightly, i) }))}>All nights</button>
+                          {i < d.night_rates.length - 1 ? (
+                            <button type="button" className="ml-2 text-xs underline" onClick={() => setRate((r) => ({ ...r, nightly: copyToFollowing(r.nightly, i) }))}>This and after</button>
+                          ) : null}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
                 {preview ? (
                   <p className="text-zinc-700">
                     New total <b>{fmtMoney(preview.negotiated?.amount_after_tax ?? preview.system.amount_after_tax)}</b>

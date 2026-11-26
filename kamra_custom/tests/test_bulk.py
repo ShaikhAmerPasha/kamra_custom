@@ -110,10 +110,13 @@ class TestBulkCheckIn(IntegrationTestCase):
 		from kamra.business_date import get_business_date
 
 		today = get_business_date(PROP)
-		now = create_stay(property=PROP, guest_name="Bulk Today", phone="9000099920", check_in_date=today,
-		                  check_out_date=add_days(today, 1), rooms=[{"room_type": DLX}])["reservations"][0]["reservation"]
-		later = create_stay(property=PROP, guest_name="Bulk Later", phone="9000099921", check_in_date=add_days(today, 3),
-		                    check_out_date=add_days(today, 4), rooms=[{"room_type": DLX}])["reservations"][0]["reservation"]
+		now = create_stay(property=PROP, guest_name="Bulk Today", phone="9000099920", check_in_date=add_days(START, 1),
+		                  check_out_date=add_days(START, 2), rooms=[{"room_type": DLX}])["reservations"][0]["reservation"]
+		later = create_stay(property=PROP, guest_name="Bulk Later", phone="9000099921", check_in_date=add_days(START, 5),
+		                    check_out_date=add_days(START, 6), rooms=[{"room_type": DLX}])["reservations"][0]["reservation"]
+		# the business date may trail the calendar day, which Kamra will not book into: move the dates after booking
+		frappe.db.set_value("Reservation", now, {"check_in_date": today, "check_out_date": add_days(today, 1)})
+		frappe.db.set_value("Reservation", later, {"check_in_date": add_days(today, 3), "check_out_date": add_days(today, 4)})
 		out = bulk.run("check_in", [now, later])
 		got = {r["reservation"]: r for r in out["results"]}
 		if not got[now]["ok"]:
