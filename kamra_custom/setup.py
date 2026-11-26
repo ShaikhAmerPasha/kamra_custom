@@ -97,6 +97,9 @@ CUSTOM_FIELDS = {
 		 "insert_after": "special_guest", "no_copy": 1},
 		{"fieldname": "domicile", "label": "Domicile", "fieldtype": "Link", "options": "Country",
 		 "insert_after": "business_source", "no_copy": 1},
+		{"fieldname": "folio_routes", "label": "Folio Routing Rules", "fieldtype": "Long Text",
+		 "insert_after": "domicile", "no_copy": 1, "read_only": 1,
+		 "description": "JSON list of {charge_type, target, date_from, date_to}. Set by Kamra Custom; applied with Kamra's own folio transfer."},
 	],
 }
 

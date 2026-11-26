@@ -15,6 +15,7 @@ import {
 } from "./dayRates"
 import { BillingFields } from "./BillingFields"
 import { DeskPopup } from "./DeskPopup"
+import { FolioRouting } from "./FolioRouting"
 import { EMPTY_BILLING, auditParts, billingFromServer, billingProblem, billingSave, sameBilling, type AuditLine, type Billing } from "./billing"
 import { agreedRates, emptyRate, nightsBetween, rateProblem, type PreviewInfo, type RoomRate } from "./rates"
 
@@ -319,6 +320,8 @@ export function CustomReservationPanel({ name, onChanged }: { name: string; onCh
         {error ? <p role="alert" className="text-sm text-rose-700">{error}</p> : null}
         </DeskPopup>
       </div>
+
+      <FolioRouting name={name} onChanged={onChanged} />
 
       <div className="col-span-3 flex flex-wrap items-center gap-x-6 gap-y-1 border-t border-zinc-200 pt-1 text-xs text-zinc-600">
         {shell?.openBooking && shell.canBook !== false ? (
