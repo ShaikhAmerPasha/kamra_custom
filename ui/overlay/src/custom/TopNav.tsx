@@ -1,171 +1,174 @@
 /*  Horizontal top navigation (Kamra Custom).
-    One menu per app the user may open, in Kamra's own order, built from the same
-    `apps` the sidebar used, so role and module rules do not change. An app's
-    pages drop down under it, grouped the way the sidebar grouped them. */
+    Displays the current app's navigation items horizontally across the top bar.
+    App switching (Front Desk, Housekeeping, Operations, F&B, etc.) is handled
+    by the 9-dot AppSwitcher in the header. */
 
-import { useEffect, useRef, useState } from "react"
+import { Fragment, useRef } from "react"
 import { NavLink, useLocation } from "react-router-dom"
-import { ChevronDown, Menu as MenuIcon, X } from "lucide-react"
 import { appForPath, type AppDef, type AppNavItem } from "../lib/apps"
 import { useT } from "../lib/i18n"
 import { asset } from "../lib/asset"
 import { cn } from "../lib/utils"
+import { AuditStrip } from "./AuditStrip"
 
 /** Patched into AppShell: the sidebar steps aside while this is on. */
 export const CUSTOM_NAV = true
 
 function visibleItems(app: AppDef, roles: string[]): AppNavItem[] {
-  return app.items.filter((i) => !i.roles || i.roles.some((r) => roles.includes(r)))
+  return (app?.items ?? [])
+    .filter((i) => i.to !== "/reservation-search")
+    .filter((i) => !i.roles || i.roles.some((r) => roles.includes(r)))
 }
 
-function grouped(items: AppNavItem[]): { group?: string; items: AppNavItem[] }[] {
-  const out: { group?: string; items: AppNavItem[] }[] = []
-  for (const item of items) {
-    const last = out[out.length - 1]
-    if (last && last.group === item.group) last.items.push(item)
-    else out.push({ group: item.group, items: [item] })
-  }
-  return out
-}
-
-function Item({ item, onPick }: { item: AppNavItem; onPick: () => void }) {
+function Item({ item, appId }: { item: AppNavItem; appId: string }) {
   const { t } = useT()
-  const cls = "flex items-center gap-2 rounded-md px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100"
-  const body = (
-    <>
-      <item.icon className="size-4 shrink-0 text-zinc-400" aria-hidden />
-      <span className="truncate">{t(item.label)}</span>
-    </>
+  const cls = cn(
+    "group flex h-8 items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 text-xs lg:text-[13px] font-medium transition-colors shrink-0",
+    item.featured
+      ? "border border-brand-200/80 bg-gradient-to-r from-brand-50 to-white text-brand-800 hover:border-brand-300 hover:from-brand-100"
+      : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900",
   )
-  if (item.href)
+
+  if (item.href) {
     return (
-      <a href={item.href} target="_blank" rel="noreferrer" className={cls} role="menuitem" onClick={onPick}>
-        {body}
+      <a
+        href={item.href}
+        target="_blank"
+        rel="noreferrer"
+        className={cls}
+        title={t(item.label)}
+      >
+        <item.icon className="size-4 shrink-0 text-zinc-400 group-hover:text-zinc-600" aria-hidden />
+        <span>{t(item.label)}</span>
       </a>
     )
+  }
+
   return (
     <NavLink
       to={item.to!}
+      state={{ app: appId }}
       end={item.to === "/"}
-      role="menuitem"
-      onClick={onPick}
-      className={({ isActive }) => cn(cls, isActive && "bg-brand-50 text-brand-700")}
+      title={t(item.label)}
+      className={({ isActive }) =>
+        cn(
+          cls,
+          isActive &&
+            (item.featured
+              ? "border-brand-700 bg-brand-600 text-white shadow-sm"
+              : "bg-brand-50 text-brand-700 font-semibold"),
+        )
+      }
     >
-      {body}
+      {({ isActive }) => (
+        <>
+          <item.icon
+            className={cn(
+              "size-4 shrink-0 transition-colors",
+              isActive
+                ? item.featured
+                  ? "text-white"
+                  : "text-brand-600"
+                : item.featured
+                  ? "text-brand-600"
+                  : "text-zinc-400 group-hover:text-zinc-600",
+            )}
+            aria-hidden
+          />
+          <span>{t(item.label)}</span>
+          {item.featured && (
+            <span
+              className={cn(
+                "rounded-full px-1.5 py-0.2 text-[9px] font-semibold uppercase tracking-wider",
+                isActive ? "bg-white/20 text-white" : "bg-brand-100 text-brand-700",
+              )}
+            >
+              {t("AI")}
+            </span>
+          )}
+        </>
+      )}
     </NavLink>
   )
 }
 
-function Panel({ app, roles, onPick }: { app: AppDef; roles: string[]; onPick: () => void }) {
+export function TopNav({
+  apps,
+  roles,
+  currentApp: currentAppProp,
+}: {
+  apps: AppDef[]
+  roles: string[]
+  currentApp?: AppDef
+}) {
   const { t } = useT()
-  return (
-    <div role="menu" aria-label={t(app.name)} className="min-w-52 p-1">
-      {grouped(visibleItems(app, roles)).map((g, i) => (
-        <div key={i} className={i ? "mt-1 border-t border-zinc-100 pt-1" : ""}>
-          {g.group ? (
-            <div className="px-3 pb-0.5 pt-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
-              {t(g.group)}
-            </div>
-          ) : null}
-          {g.items.map((item) => (
-            <Item key={(item.to ?? item.href) + item.label} item={item} onPick={onPick} />
-          ))}
-        </div>
-      ))}
-    </div>
-  )
-}
-
-export function TopNav({ apps, roles }: { apps: AppDef[]; roles: string[] }) {
-  const { t } = useT()
-  const { pathname } = useLocation()
-  const current = appForPath(pathname).id
-  const [open, setOpen] = useState<string | null>(null)
-  const [drawer, setDrawer] = useState(false)
+  const location = useLocation()
   const bar = useRef<HTMLElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    const away = (e: MouseEvent) => {
-      if (bar.current && !bar.current.contains(e.target as Node)) setOpen(null)
-    }
-    const esc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setOpen(null)
-        setDrawer(false)
+  const activeApp =
+    currentAppProp ??
+    (() => {
+      let last: string | undefined
+      try {
+        last = sessionStorage.getItem("kamra:app") ?? undefined
+      } catch {
+        last = undefined
       }
-    }
-    document.addEventListener("mousedown", away)
-    document.addEventListener("keydown", esc)
-    return () => {
-      document.removeEventListener("mousedown", away)
-      document.removeEventListener("keydown", esc)
-    }
-  }, [])
+      const stateApp = (location.state as { app?: string } | null)?.app ?? last
+      return appForPath(location.pathname, apps, stateApp)
+    })()
 
-  const close = () => {
-    setOpen(null)
-    setDrawer(false)
+  const app = apps.find((a) => a.id === activeApp.id) ?? activeApp ?? apps[0]
+  const items = visibleItems(app, roles)
+
+  const onWheel = (e: React.WheelEvent) => {
+    if (scrollRef.current && e.deltaY && !e.deltaX) {
+      scrollRef.current.scrollLeft += e.deltaY
+    }
   }
 
   return (
-    <nav ref={bar} data-topnav aria-label={t("Main")} className="relative z-30 border-b border-zinc-200 bg-zinc-50 print:hidden">
-      <div className="flex items-stretch gap-1 px-3">
-        <NavLink to="/" className="mr-2 flex items-center gap-2 pr-2" onClick={close}>
-          <img src={asset("kamra-mark.svg")} alt="" className="size-6" aria-hidden />
-          <span className="text-base font-semibold tracking-tight">kamra</span>
+    <nav
+      ref={bar}
+      data-topnav
+      aria-label={t("Navigation")}
+      className="relative z-30 border-b border-zinc-200 bg-zinc-50 print:hidden"
+    >
+      <div className="flex items-center gap-1 px-3 h-10">
+        <NavLink
+          to="/"
+          state={{ app: "front-desk" }}
+          className="mr-2 flex items-center gap-1.5 pr-2.5 border-r border-zinc-200 shrink-0 text-zinc-700 hover:text-zinc-900"
+          title={t("Home")}
+        >
+          <img src={asset("kamra-mark.svg")} alt="" className="size-5 shrink-0" aria-hidden />
+          <span className="text-sm font-semibold tracking-tight hidden sm:inline">kamra</span>
         </NavLink>
 
-        <ul className="hidden items-stretch md:flex">
-          {apps.map((app) => (
-            <li key={app.id} className="relative" onMouseLeave={() => setOpen((o) => (o === app.id ? null : o))}>
-              <button
-                type="button"
-                aria-haspopup="menu"
-                aria-expanded={open === app.id}
-                onClick={() => setOpen(open === app.id ? null : app.id)}
-                onMouseEnter={() => open && setOpen(app.id)}
-                className={cn(
-                  "flex h-10 items-center gap-1 px-3 text-sm font-medium",
-                  open === app.id
-                    ? "bg-white text-zinc-900"
-                    : current === app.id
-                      ? "text-brand-700"
-                      : "text-zinc-600 hover:text-zinc-900",
-                )}
-              >
-                {t(app.name)}
-                <ChevronDown className="size-3.5" aria-hidden />
-              </button>
-              {open === app.id ? (
-                <div className="absolute left-0 top-full z-50 rounded-b-md border border-t-0 border-zinc-200 bg-white shadow-lg">
-                  <Panel app={app} roles={roles} onPick={close} />
-                </div>
-              ) : null}
-            </li>
-          ))}
-        </ul>
-
-        <button
-          type="button"
-          aria-label={drawer ? t("Close menu") : t("Open menu")}
-          aria-expanded={drawer}
-          onClick={() => setDrawer(!drawer)}
-          className="ml-auto flex h-10 items-center gap-2 text-sm font-medium text-zinc-700 md:hidden"
+        <div
+          ref={scrollRef}
+          onWheel={onWheel}
+          className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
-          {drawer ? <X className="size-4" /> : <MenuIcon className="size-4" />} {t("Menu")}
-        </button>
-      </div>
-
-      {drawer ? (
-        <div className="max-h-[70vh] overflow-y-auto border-t border-zinc-200 bg-white md:hidden">
-          {apps.map((app) => (
-            <details key={app.id} className="border-b border-zinc-100" open={app.id === current}>
-              <summary className="cursor-pointer px-4 py-2.5 text-sm font-medium">{t(app.name)}</summary>
-              <Panel app={app} roles={roles} onPick={close} />
-            </details>
-          ))}
+          {items.map((item, idx) => {
+            const prev = items[idx - 1]
+            const showGroupDivider = prev && item.group && prev.group !== item.group
+            return (
+              <Fragment key={(item.to ?? item.href ?? "") + item.label}>
+                {showGroupDivider && (
+                  <div
+                    className="mx-1.5 h-4 w-px bg-zinc-200 shrink-0"
+                    aria-hidden
+                  />
+                )}
+                <Item item={item} appId={app.id} />
+              </Fragment>
+            )
+          })}
         </div>
-      ) : null}
+      </div>
+      <AuditStrip />
     </nav>
   )
 }

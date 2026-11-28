@@ -1,6 +1,6 @@
 --- a/src/components/BookingDialog.tsx	2026-11-24 17:24:24.785968038 +0530
 +++ b/src/components/BookingDialog.tsx	2026-11-24 17:24:24.786730485 +0530
-@@ -2078,8 +2078,12 @@
+@@ -2032,14 +2032,31 @@
                      />
                    </button>
  
@@ -8,14 +8,91 @@
 -                    <div data-bar="Billing, add-ons and requests" className="space-y-5 pb-2 pt-1">
 +                  <DeskPopup
 +                    wide
-+                    title={t("Billing, add-ons and requests")}
-+                    summary={[form.company ? (options?.companies.find((c) => c.name === form.company)?.company_name ?? form.company) : "", Object.values(addonQty).some((q) => q > 0) ? `${Object.values(addonQty).reduce((n, q) => n + q, 0)} ${t("add-ons")}` : ""].filter(Boolean).join(" · ")}
++                    title={t("Company & corporate billing")}
++                    summary={[form.company ? (options?.companies.find((c) => c.name === form.company)?.company_name ?? form.company) : (custom.billing.gst_number ? `GST ${custom.billing.gst_number}` : ""), Object.values(addonQty).some((q) => q > 0) ? `${Object.values(addonQty).reduce((n, q) => n + q, 0)} ${t("add-ons")}` : ""].filter(Boolean).join(" · ")}
 +                  >
 +                    <div className="space-y-5 pb-2 pt-1">
                        <div className="grid gap-3 sm:grid-cols-2">
                          <Field label={translate("Company (bill corporate)")}>
                            <select
-@@ -2364,7 +2368,7 @@
+                             className={inputCls}
+                             value={form.company}
+-                            onChange={(e) => set("company", e.target.value)}
++                            onChange={(e) => {
++                              const comp = e.target.value
++                              set("company", comp)
++                              if (comp) {
++                                const c = options?.companies.find((x) => x.name === comp)
++                                if (c?.gstin) {
++                                  custom.setBilling({
++                                    gst_number: c.gstin,
++                                    pan_number: c.gstin.length >= 12 ? c.gstin.slice(2, 12) : custom.billing.pan_number,
++                                    pay_by: custom.billing.pay_by || "Company",
++                                  })
++                                }
++                              }
++                            }}
+                           >
+                             <option value="">-</option>
+                             {options?.companies.map((c) => (
+@@ -2049,9 +2066,54 @@
+                             ))}
+                           </select>
+                         </Field>
+-                        {form.company ? (
++                        <Field label={translate("Company GST number")}>
++                          <input
++                            className={inputCls}
++                            maxLength={15}
++                            placeholder="e.g. 29AAAAA0000A1Z5"
++                            value={custom.billing.gst_number}
++                            onChange={(e) => {
++                              const gst = e.target.value.toUpperCase()
++                              custom.setBilling({
++                                gst_number: gst,
++                                ...(gst.length >= 12 ? { pan_number: gst.slice(2, 12) } : {}),
++                              })
++                              const m = options?.companies.find((c) => c.gstin?.toUpperCase() === gst)
++                              if (m && form.company !== m.name) set("company", m.name)
++                            }}
++                          />
++                        </Field>
++                        {(form.company || custom.billing.gst_number) ? (
+                           <div className="sm:col-span-2">
+-                            <CompanyDetails company={options?.companies.find((c) => c.name === form.company)} />
++                            <CompanyDetails
++                              company={options?.companies.find((c) => c.name === form.company || (c.gstin && c.gstin.toUpperCase() === custom.billing.gst_number.toUpperCase())) ?? (custom.billing.gst_number ? { company_name: "Corporate Guest", gstin: custom.billing.gst_number } : undefined)}
++                              onCompanyResolved={(comp) => {
++                                const cName = comp?.name || comp?.company_name
++                                const cLegal = comp?.company_name || comp?.name
++                                if (cName && cLegal) {
++                                  setOptions((prev) => {
++                                    if (!prev) return prev
++                                    if (prev.companies.some((x) => x.name === cName)) return prev
++                                    return {
++                                      ...prev,
++                                      companies: [...prev.companies, {
++                                        name: cName,
++                                        company_name: cLegal,
++                                        gstin: comp.gstin,
++                                        address_line: comp.address_line,
++                                        city: comp.city,
++                                      }],
++                                    }
++                                  })
++                                  set("company", cName)
++                                  custom.setBilling({
++                                    gst_number: comp.gstin || custom.billing.gst_number,
++                                    ...(comp.gstin && comp.gstin.length >= 12 ? { pan_number: comp.gstin.slice(2, 12) } : {}),
++                                    pay_by: custom.billing.pay_by || "Company",
++                                  })
++                                }
++                              }}
++                            />
+                           </div>
+                         ) : null}
+                         <Field label={translate("Travel agent")}>
+@@ -2318,7 +2380,7 @@
                          </>
                        )}
                      </div>

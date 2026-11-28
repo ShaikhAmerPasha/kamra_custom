@@ -1,5 +1,6 @@
 /*  The tape chart's legend and hover card (Kamra Custom). */
 
+import { showDate } from "./showDate"
 import { cn } from "../lib/utils"
 import { useT } from "../lib/i18n"
 import { LEGEND, legendCounts, nightsOf, rateLine, type LegendBooking, type LegendKey } from "./tapeLegend"
@@ -83,7 +84,7 @@ export function BookingCard(props: { b: CardBooking; x: number; y: number; money
         <span className="shrink-0 text-zinc-500">{t(b.status)}</span>
       </div>
       <dl className="mt-2 space-y-1">
-        <Row k={t("Stay")} v={`${b.check_in_date}${hhmm(b.planned_check_in_time) ? " " + hhmm(b.planned_check_in_time) : ""} → ${b.check_out_date}${hhmm(b.planned_check_out_time) ? " " + hhmm(b.planned_check_out_time) : ""} · ${nights} ${t(nights === 1 ? "night" : "nights")}`} />
+        <Row k={t("Stay")} v={`${showDate(b.check_in_date)}${hhmm(b.planned_check_in_time) ? " " + hhmm(b.planned_check_in_time) : ""} → ${showDate(b.check_out_date)}${hhmm(b.planned_check_out_time) ? " " + hhmm(b.planned_check_out_time) : ""} · ${nights} ${t(nights === 1 ? "night" : "nights")}`} />
         <Row k={t("Guests")} v={guests} />
         {b.meal_plan ? <Row k={t("Meal plan")} v={b.meal_plan} /> : null}
         {b.company ? <Row k={t("Company")} v={b.company} /> : b.source ? <Row k={t("Source")} v={b.source} /> : null}

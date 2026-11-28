@@ -170,7 +170,7 @@ export default function ReservationSearch() {
             </Row>
           </div>
           <div>
-            <Row label={t("Reservation #")}><input value={f.reservation} onChange={(e) => set({ reservation: e.target.value })} className="w-full" /></Row>
+            <Row label={t("Reservation # or channel ref")}><input value={f.reservation} onChange={(e) => set({ reservation: e.target.value })} className="w-full" /></Row>
             <Row label={t("Room number")}><input value={f.room} onChange={(e) => set({ room: e.target.value })} className="w-full" /></Row>
             <Row label={t("Room type")}>
               <select value={f.room_type} onChange={(e) => set({ room_type: e.target.value })} className="w-full">

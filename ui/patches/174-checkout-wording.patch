@@ -1,0 +1,22 @@
+--- a/src/components/CheckOutDialog.tsx	2026-11-27 14:06:46.530679128 +0530
++++ b/src/components/CheckOutDialog.tsx	2026-11-27 14:06:46.531319302 +0530
+@@ -863,7 +863,7 @@
+                 || Math.abs(ctx.bill_split.at_checkout - ctx.bill_split.on_folio_now) > EPS) && (
+                 <Section title={t("Why this total")} tone="warn">
+                   <p className="mb-2 text-sm text-zinc-700">
+-                    {t("Folio View shows what is posted today. Check-out uses the full stay once remaining nights are posted.")}
++                    {t("The night audit posts each night's room charge. Nights not posted yet are added when you check out, so this total is for the whole stay.")}
+                   </p>
+                   <dl className="space-y-1.5 text-sm">
+                     <div className="flex justify-between gap-3">
+@@ -876,8 +876,8 @@
+                           {t("Posts at check-out")}
+                           <span className="ms-1 text-xs text-amber-800">
+                             ({ctx.bill_split.will_post_lines.length === 1
+-                              ? t("1 night / charge")
+-                              : t("{n} nights / charges", { n: ctx.bill_split.will_post_lines.length })})
++                              ? t("1 line")
++                              : t("{n} lines", { n: ctx.bill_split.will_post_lines.length })})
+                           </span>
+                         </dt>
+                         <dd className="font-medium tabular-nums text-amber-900">

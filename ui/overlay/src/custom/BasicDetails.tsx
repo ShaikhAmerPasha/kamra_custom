@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react"
 import { Download, Mail, MessageCircle, Send, User } from "lucide-react"
 import { call } from "../lib/api"
 import { Button } from "../components/ui/button"
-import { whatsappUrl } from "./confirmation"
+import { KIND_LABEL, canDownload, defaultKind, lastSentLine, whatsappUrl, type SentRecord } from "./confirmation"
 
 const input =
   "w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:outline-2 focus:outline-offset-1 focus:outline-brand-600"
@@ -26,6 +26,9 @@ export function BasicDetails({ d, onChanged }: { d: Shown; onChanged: () => void
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState<{ tone: "ok" | "error"; text: string } | null>(null)
   const [menu, setMenu] = useState(false)
+  const [kind, setKind] = useState("confirmation")
+  const [history, setHistory] = useState<SentRecord[]>([])
+  const [stale, setStale] = useState(false)
   const box = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -41,6 +44,13 @@ export function BasicDetails({ d, onChanged }: { d: Shown; onChanged: () => void
     document.addEventListener("mousedown", close)
     return () => document.removeEventListener("mousedown", close)
   }, [menu])
+
+  // what was sent before, and whether the booking changed after the last confirmation
+  const loadSent = () =>
+    call<{ history: SentRecord[]; stale: boolean }>("kamra_custom.confirmation.details", { reservation: d.name })
+      .then((x) => { setHistory(x.history); setStale(x.stale); setKind((k) => (x.stale && k === "confirmation" ? defaultKind(true) : k)) })
+      .catch(() => undefined)
+  useEffect(() => { void loadSent() }, [d.name])
 
   const changed = phone.trim() !== (d.guest?.phone ?? "") || email.trim() !== (d.guest?.email ?? "")
   const say = (tone: "ok" | "error", text: string) => setNote({ tone, text })
@@ -77,18 +87,22 @@ export function BasicDetails({ d, onChanged }: { d: Shown; onChanged: () => void
   const download = () => {
     setMenu(false)
     if (needSaved()) return
-    window.open(`/api/method/kamra_custom.confirmation.download?reservation=${encodeURIComponent(d.name)}`, "_blank")
+    window.open(`/api/method/kamra_custom.confirmation.download?reservation=${encodeURIComponent(d.name)}&kind=${encodeURIComponent(kind)}`, "_blank")
+    window.setTimeout(() => void loadSent(), 1500)
   }
 
   const whatsapp = async () => {
     setMenu(false)
     if (needSaved()) return
     try {
-      const x = await call<{ phone: string; message: string }>("kamra_custom.confirmation.details", { reservation: d.name })
+      const x = await call<{ phone: string; message: string }>("kamra_custom.confirmation.details", { reservation: d.name, kind })
       const url = whatsappUrl(x.phone, x.message)
       if (!url) return say("error", "Add the guest's phone number first.")
       window.open(url, "_blank", "noopener")
       say("ok", "WhatsApp opened with the message ready to send.")
+      const r = await call<{ history: SentRecord[]; stale: boolean }>("kamra_custom.confirmation.log_sent", { reservation: d.name, kind, channel: "WhatsApp" })
+      setHistory(r.history)
+      setStale(r.stale)
     } catch (e) {
       say("error", why(e))
     }
@@ -99,8 +113,9 @@ export function BasicDetails({ d, onChanged }: { d: Shown; onChanged: () => void
     if (needSaved()) return
     setBusy(true)
     try {
-      const x = await call<{ to: string }>("kamra_custom.confirmation.send_email", { reservation: d.name })
-      say("ok", `Confirmation emailed to ${x.to}.`)
+      const x = await call<{ to: string }>("kamra_custom.confirmation.send_email", { reservation: d.name, kind })
+      say("ok", `${KIND_LABEL[kind] ?? "Document"} emailed to ${x.to}.`)
+      void loadSent()
     } catch (e) {
       say("error", why(e))
     } finally {
@@ -120,13 +135,21 @@ export function BasicDetails({ d, onChanged }: { d: Shown; onChanged: () => void
         <div className="relative" ref={box}>
           <Button variant="outline" onClick={() => setMenu((o) => !o)} aria-haspopup="menu" aria-expanded={menu} data-hk="send">
             <Send className="size-4" aria-hidden />
-            Send confirmation
+            Send
           </Button>
           {menu ? (
-            <div role="menu" className="absolute right-0 z-20 mt-1 w-56 rounded-lg border border-zinc-200 bg-white p-1 shadow-lg">
+            <div role="menu" className="absolute right-0 z-20 mt-1 w-64 rounded-lg border border-zinc-200 bg-white p-1 shadow-lg">
+              <div className="px-3 pb-1 pt-2">
+                <label className={label} htmlFor="send-kind">Document</label>
+                <select id="send-kind" className={input} value={kind} onChange={(e) => setKind(e.target.value)}>
+                  {Object.entries(KIND_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </div>
+              {canDownload(kind) ? (
               <button role="menuitem" type="button" className="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm hover:bg-zinc-50" onClick={download}>
                 <Download className="size-4" aria-hidden /> Download PDF
               </button>
+              ) : null}
               <button role="menuitem" type="button" className="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm hover:bg-zinc-50" onClick={whatsapp}>
                 <MessageCircle className="size-4" aria-hidden /> Send by WhatsApp
               </button>
@@ -155,6 +178,13 @@ export function BasicDetails({ d, onChanged }: { d: Shown; onChanged: () => void
           <dd className="text-sm text-zinc-800">{d.source ?? "-"}</dd>
         </div>
       </dl>
+      {history[0] ? <p className="mb-2 text-xs text-zinc-500">{lastSentLine(history[0])}</p> : null}
+      {stale ? (
+        <p role="status" className="mb-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          The booking changed after the last confirmation was sent, so the guest holds the old details.{" "}
+          <button type="button" className="font-medium underline" onClick={() => { setKind("amended"); setMenu(true) }}>Send an amended confirmation</button>
+        </p>
+      ) : null}
       <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
         <div>
           <label className={label} htmlFor="basic-phone">Phone</label>

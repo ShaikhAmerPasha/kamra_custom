@@ -1,0 +1,58 @@
+--- a/src/screens/InHouse.tsx	2026-11-27 13:36:29.858094238 +0530
++++ b/src/screens/InHouse.tsx	2026-11-27 13:36:29.858749347 +0530
+@@ -1,3 +1,4 @@
++import { NoShowButton } from "../custom/NoShowButton"
+ import { useCallback, useEffect, useState } from "react"
+ import { openStayHub } from "../custom/stayHub"
+ import { useNavigate, useOutletContext, useSearchParams } from "react-router-dom"
+@@ -267,6 +268,9 @@
+                     </td>
+                     <td className="px-4 py-2.5" onClick={(e) => e.stopPropagation()}>
+                       <div className="flex justify-end gap-1.5">
++                        {tab === "arrivals" && date === today && row.missed && (
++                          <NoShowButton reservation={row.name} guest={row.guest_name} canNoShow={row.can_no_show} onDone={load} />
++                        )}
+                         {tab === "arrivals" && date === today && (
+                           <Button className="whitespace-nowrap px-2.5 py-1 text-xs" onClick={() => setCheckingIn(row.name)}>
+                             {t("Check in")}
+--- a/src/screens/Today.tsx	2026-11-27 13:36:29.861897202 +0530
++++ b/src/screens/Today.tsx	2026-11-27 13:36:29.862625813 +0530
+@@ -1,3 +1,4 @@
++import { NoShowButton } from "../custom/NoShowButton"
+ import { hkCounts } from "../custom/roomStatus"
+ import { useCallback, useEffect, useState } from "react"
+ import { openStayHub } from "../custom/stayHub"
+@@ -889,12 +890,15 @@
+             rows={snap?.arrivals ?? []}
+             empty={t("No arrivals expected today.")}
+             action={(row) => (
+-              <Button
+-                disabled={busy === row.name}
+-                onClick={() => setCheckingIn(row.name)}
+-              >
+-                {t("Check in")}
+-              </Button>
++              <div className="flex items-center gap-1.5">
++                {row.missed && <NoShowButton reservation={row.name} guest={row.guest_name} canNoShow={row.can_no_show} onDone={refresh} />}
++                <Button
++                  disabled={busy === row.name}
++                  onClick={() => setCheckingIn(row.name)}
++                >
++                  {t("Check in")}
++                </Button>
++              </div>
+             )}
+           />
+         </CardContent>
+--- a/src/lib/api.ts	2026-11-27 13:36:29.866277409 +0530
++++ b/src/lib/api.ts	2026-11-27 13:36:29.867069689 +0530
+@@ -323,6 +323,9 @@
+   paid_total: number
+   balance_due: number
+   id_missing?: boolean
++  /** A confirmed arrival whose day has passed, and whether the desk may mark it no-show yet. */
++  missed?: boolean
++  can_no_show?: boolean
+   vip?: number
+   planned_check_in_time?: string | null
+   planned_check_out_time?: string | null

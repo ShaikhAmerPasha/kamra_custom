@@ -27,6 +27,12 @@ CUSTOM_FIELDS = {
 			"description": "Digits of the phone number in international form. Set by Kamra Custom.",
 		}
 	],
+	"Corporate Account": [
+		{"fieldname": "address_line", "label": "Address", "fieldtype": "Data",
+		 "insert_after": "contact_email", "no_copy": 1},
+		{"fieldname": "city", "label": "City", "fieldtype": "Data",
+		 "insert_after": "address_line", "no_copy": 1},
+	],
 	"Folio Payment": [
 		{"fieldname": "card_network", "label": "Card Network", "fieldtype": "Select",
 		 "options": "\n" + "\n".join(CARD_NETWORKS),

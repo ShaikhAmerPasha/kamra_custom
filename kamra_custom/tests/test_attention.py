@@ -93,3 +93,25 @@ class TestAttention(IntegrationTestCase):
 				for field, value in b.items():
 					self.assertEqual(a[field], value, field)
 		self.assertEqual(ours["rooms"], theirs["rooms"])
+
+
+class TestAuditStatus(IntegrationTestCase):
+	def setUp(self):
+		frappe.set_user("Administrator")
+
+	def tearDown(self):
+		frappe.db.rollback()
+
+	def test_says_how_many_days_the_business_date_is_behind(self):
+		from kamra.business_date import get_business_date
+
+		out = attention.audit_status(PROP)
+		self.assertEqual(out["today"], nowdate())
+		self.assertEqual(out["business_date"], str(get_business_date(PROP)))
+		self.assertEqual(out["behind"], max(0, frappe.utils.date_diff(nowdate(), out["business_date"])))
+
+	def test_never_negative(self):
+		from unittest.mock import patch
+
+		with patch("kamra.business_date.get_business_date", return_value=frappe.utils.getdate(add_days(nowdate(), 2))):
+			self.assertEqual(attention.audit_status(PROP)["behind"], 0)

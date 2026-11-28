@@ -9,6 +9,7 @@ import { Search } from "lucide-react"
 import { call, getCurrentProperty } from "../lib/api"
 import { Sheet } from "../components/ui/sheet"
 import { useT } from "../lib/i18n"
+import { showStay } from "./showDate"
 import ReservationDetail from "../screens/ReservationDetail"
 
 interface Found {
@@ -86,7 +87,7 @@ export default function FindBooking() {
             <span>
               <span className="block text-sm font-semibold">{r.guest_name} <span className="font-normal text-zinc-500">· {r.name}</span></span>
               <span className="block text-xs text-zinc-500">
-                {r.check_in_date} → {r.check_out_date} · {r.room_type ?? ""} · {r.room ? t("Room {n}", { n: r.room }) : t("Room not assigned yet")} · {r.adults + r.children} {t("guests")}
+                {showStay(r.check_in_date, r.check_out_date)} · {r.room_type ?? ""} · {r.room ? t("Room {n}", { n: r.room }) : t("Room not assigned yet")} · {r.adults + r.children} {t("guests")}
                 {r.phone ? ` · ${r.phone}` : ""}
               </span>
             </span>

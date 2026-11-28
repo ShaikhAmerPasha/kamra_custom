@@ -1,0 +1,74 @@
+--- a/src/AppShell.tsx
++++ b/src/AppShell.tsx
+@@ -475,6 +475,35 @@
+   const floor = location.pathname === "/pos" || location.pathname === "/kitchen"
+   const { on: kiosk } = useKiosk()
+   const canBook = BOOKING_ROLES.some((r) => roles.includes(r))
++  const isBookingUrl = new URLSearchParams(location.search).get("booking") === "new"
++
++  useEffect(() => {
++    if (isBookingUrl && !booking && canBook) {
++      setBooking({})
++    } else if (!isBookingUrl && booking) {
++      setBooking(null)
++    }
++  }, [isBookingUrl, canBook, booking])
++
++  const openQuickBooking = (initial: BookingInitial = {}) => {
++    if (!canBook) return
++    setBooking(initial)
++    const sp = new URLSearchParams(location.search)
++    if (sp.get("booking") !== "new") {
++      sp.set("booking", "new")
++      navigate({ pathname: location.pathname, search: "?" + sp.toString() })
++    }
++  }
++
++  const closeQuickBooking = () => {
++    setBooking(null)
++    const sp = new URLSearchParams(location.search)
++    if (sp.get("booking") === "new") {
++      sp.delete("booking")
++      const s = sp.toString()
++      navigate({ pathname: location.pathname, search: s ? "?" + s : "" }, { replace: true })
++    }
++  }
+ 
+   const items = (currentApp?.items ?? []).filter(
+     (item) => !item.roles || item.roles.some((r) => roles.includes(r)),
+@@ -735,7 +764,7 @@
+               </Button>
+             )}
+             {canBook && (
+-              <Button onClick={() => setBooking({})} aria-label={t("New booking")}>
++              <Button onClick={() => openQuickBooking({})} aria-label={t("New booking")}>
+                 <Plus className="size-4" aria-hidden />
+                 <span className="hidden sm:inline">{t("New booking")}</span>
+               </Button>
+@@ -766,7 +795,7 @@
+                 canBook,
+                 modules,
+                 openBooking: (initial) => {
+-                  if (canBook) setBooking(initial)
++                  if (canBook) openQuickBooking(initial)
+                 },
+               } satisfies ShellContext
+             }
+@@ -780,7 +809,7 @@
+         <Suspense fallback={null}>
+           <HelpPanel />
+           <CommandPalette />
+-          <Hotkeys onNewBooking={() => canBook && setBooking({})} />
++          <Hotkeys onNewBooking={() => canBook && openQuickBooking({})} />
+           <StayHubHost />
+           <BackgroundHost />
+           <OutOfOrderAsk />
+@@ -791,7 +820,7 @@
+         <Suspense fallback={null}>
+           <BookingDialog
+             initial={booking}
+-            onClose={() => setBooking(null)}
++            onClose={closeQuickBooking}
+             onBooked={() => setRefreshKey((k) => k + 1)}
+           />
+         </Suspense>

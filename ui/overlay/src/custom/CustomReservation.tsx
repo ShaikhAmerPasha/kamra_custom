@@ -3,6 +3,7 @@
     saves through our endpoints, and asks the screen to refresh so Kamra's own
     totals follow. */
 
+import { showDate } from "./showDate"
 import { useCallback, useEffect, useState } from "react"
 import { useOutletContext } from "react-router-dom"
 import { call } from "../lib/api"
@@ -223,7 +224,7 @@ export function CustomReservationPanel({ name, onChanged }: { name: string; onCh
           </thead>
           <tbody className="divide-y divide-zinc-100">
             {d.night_rates.map((n, i) => (
-              <tr key={n.date}><td className="py-1">{n.date}</td>
+              <tr key={n.date}><td className="py-1">{showDate(n.date)}</td>
                 {system ? <td className="py-1 text-right text-zinc-500">{fmtMoney(system[i] ?? 0)}</td> : null}
                 <td className="py-1 text-right">{fmtMoney(n.rate + (n.meal ?? 0))}</td>
                 <td className="py-1 text-right">{n.gst_rate}%</td></tr>

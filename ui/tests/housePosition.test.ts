@@ -17,6 +17,10 @@ describe("house position", () => {
     expect(p.rooms.find((r) => r.label === "Out of order")?.count).toBe(1)
     expect(p.today.map((r) => r.count)).toEqual([3, 7, 2, 1])
   })
+  it("counts a Ready room as Inspected", () => {
+    const p = housePosition({ housekeeping: { room_status: { Clean: 10, Inspected: 2, Ready: 3 } } })
+    expect(p.rooms.find((r) => r.label === "Inspected")?.count).toBe(5)
+  })
   it("shows zeros, never NaN, before the data arrives or with no rooms", () => {
     for (const d of [null, undefined, {}, { occupancy_now: { occupied: 0, sellable: 0 } }]) {
       const p = housePosition(d)

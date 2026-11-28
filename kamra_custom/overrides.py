@@ -25,6 +25,7 @@ from frappe import _
 
 from kamra_custom import negotiation
 from kamra_custom.booking import find_guest_by_phone
+from kamra_custom.timeutil import hhmm
 
 
 def _accepted(fn, kwargs: dict) -> dict:
@@ -261,22 +262,43 @@ def front_desk_snapshot(*args, **kwargs):
 
 	Each stay also says whether its ID is still missing, whether the guest is a VIP, and the
 	planned arrival and departure times, so a row shows what blocks the desk before anyone
-	opens it. Kamra's own rows and figures are unchanged.
+	opens it. Kamra's own rows and figures are unchanged, except that today's departures also list the
+	guests still checked in after their departure date (see departures.py) and today's arrivals the confirmed
+	bookings whose arrival date has passed (see arrivals.py).
 	"""
 	from kamra.api import front_desk_snapshot as kamra_snapshot
 
 	from kamra_custom.id_on_file import guests_with_id, id_missing
 
+	from kamra_custom.departures import overdue_rows
+
 	out = kamra_snapshot(*args, **_accepted(kamra_snapshot, kwargs))
+	# a guest still in after the departure date stays on the departures list until they leave
+	listed = {r["name"] for r in out.get("departures", [])}
+	late = [r for r in overdue_rows(kwargs.get("property") or (args[0] if args else None), out.get("date"))
+	        if r["name"] not in listed]
+	out["departures"] = late + list(out.get("departures", []))
+	# an arrival that did not come stays on the arrivals list, flagged, until it is checked in or marked no-show
+	from kamra_custom.arrivals import missed_rows
+
+	arrived = {r["name"] for r in out.get("arrivals", [])}
+	missed = [r for r in missed_rows(kwargs.get("property") or (args[0] if args else None), out.get("date"))
+	          if r["name"] not in arrived]
+	out["arrivals"] = missed + list(out.get("arrivals", []))
 	rows = [r for key in ("arrivals", "in_house", "departures") for r in out.get(key, [])]
 	if not rows:
 		return out
 	names = list({r["name"] for r in rows})
 	extra = {r.name: r for r in frappe.get_all(
 		"Reservation", filters={"name": ("in", names)},
-		fields=["name", "guest", "id_document", "id_document_discarded",
+		fields=["name", "guest", "company", "id_document", "id_document_discarded",
 		        "planned_check_in_time", "planned_check_out_time"])}
 	guests = {e.guest for e in extra.values() if e.guest}
+	phones = {g.name: g.phone for g in frappe.get_all(
+		"Guest", filters={"name": ("in", list(guests))}, fields=["name", "phone"])} if guests else {}
+	companies = {c for c in (e.company for e in extra.values()) if c}
+	company_names = {c.name: c.company_name for c in frappe.get_all(
+		"Corporate Account", filters={"name": ("in", list(companies))}, fields=["name", "company_name"])} if companies else {}
 	vip = set(frappe.get_all(
 		"Guest", filters={"name": ("in", list(guests)), "vip": 1}, pluck="name")) if guests else set()
 	with_id = guests_with_id(guests)
@@ -284,8 +306,11 @@ def front_desk_snapshot(*args, **kwargs):
 		e = extra.get(r["name"])
 		r["id_missing"] = bool(e and id_missing(e, with_id))
 		r["vip"] = 1 if e and e.guest in vip else 0
-		r["planned_check_in_time"] = str(e.planned_check_in_time)[:5] if e and e.planned_check_in_time else None
-		r["planned_check_out_time"] = str(e.planned_check_out_time)[:5] if e and e.planned_check_out_time else None
+		# the list can be searched and read by phone and company without opening each stay
+		r["phone"] = (phones.get(e.guest) or "") if e else ""
+		r["company_name"] = (company_names.get(e.company) or "") if e and e.company else ""
+		r["planned_check_in_time"] = (hhmm(e.planned_check_in_time) or None) if e else None
+		r["planned_check_out_time"] = (hhmm(e.planned_check_out_time) or None) if e else None
 	return out
 
 
@@ -309,10 +334,12 @@ def booking_options(*args, **kwargs):
 	if companies:
 		extra = {r.name: r for r in frappe.get_all(
 			"Corporate Account", filters={"name": ("in", [c["name"] for c in companies])},
-			fields=["name", "gstin", "contact_name", "contact_phone"])}
+			fields=["name", "gstin", "contact_name", "contact_phone", "address_line", "city"])}
 		for c in companies:
 			e = extra.get(c["name"])
 			c["gstin"] = (e.gstin or "") if e else ""
 			c["contact_name"] = (e.contact_name or "") if e else ""
 			c["contact_phone"] = (e.contact_phone or "") if e else ""
+			c["address_line"] = (e.address_line or "") if e else ""
+			c["city"] = (e.city or "") if e else ""
 	return out

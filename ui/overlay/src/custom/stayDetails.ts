@@ -1,3 +1,4 @@
+import { securityInUse } from "./depositNotice"
 /*  The facts a desk wants beside the check-in and check-out buttons (Kamra Custom): who the guest is,
     the stay, the rate, who pays, deposits, and notes. Pure: it reads what reservation_detail returns,
     and leaves out anything that is empty, so the list stays short. */
@@ -25,7 +26,7 @@ export interface DetailInput {
   amount_after_tax?: number
   guest: { full_name: string; vip: number; stays: number; last_stay: string | null } | null
   deposit?: { expected: number; paid: number; due: number } | null
-  security_deposit?: { status: string; held: number; collected: number; required: number } | null
+  security_deposit?: { status: string; held: number; collected: number; required: number; policy_amount?: number } | null
 }
 
 export type SectionKey = "guest" | "stay" | "money" | "notes"
@@ -88,7 +89,7 @@ export function detailRows(d: DetailInput, f: Fmt): DetailRow[] {
   if (d.deposit && d.deposit.expected > 0)
     add("deposit", "money", "Deposit", `required ${f.money(d.deposit.expected)} · received ${f.money(d.deposit.paid)}${d.deposit.due > 0 ? ` · still due ${f.money(d.deposit.due)}` : ""}`, d.deposit.due > 0 ? "warn" : "ok")
   const sd = d.security_deposit
-  if (sd && sd.status !== "None" && sd.status !== "Waived" && (sd.required > 0 || sd.held > 0 || sd.collected > 0))
+  if (sd && securityInUse(sd) && sd.status !== "Waived" && (sd.required > 0 || sd.held > 0 || sd.collected > 0))
     add("security", "money", "Security deposit", `${sd.status}${sd.held > 0 ? ` · held ${f.money(sd.held)}` : sd.required > 0 ? ` · required ${f.money(sd.required)}` : ""}`)
   add("requests", "notes", "Guest requests", d.special_requests)
   add("notes", "notes", "Staff notes", d.internal_remarks)
@@ -155,7 +156,7 @@ export function denseSections(d: DetailInput, f: Fmt): DenseBlock[] {
     [
       "security",
       "Security deposit",
-      sd && sd.status !== "None" && sd.status !== "Waived" && (sd.required > 0 || sd.held > 0 || sd.collected > 0)
+      sd && securityInUse(sd) && sd.status !== "Waived" && (sd.required > 0 || sd.held > 0 || sd.collected > 0)
         ? `${sd.status}${sd.held > 0 ? ` · held ${f.money(sd.held)}` : sd.required > 0 ? ` · required ${f.money(sd.required)}` : ""}`
         : "",
     ],

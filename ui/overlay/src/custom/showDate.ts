@@ -14,3 +14,10 @@ export function showDate(iso: string | null | undefined, locale?: string | strin
 export function showStay(from: string | null | undefined, to: string | null | undefined, locale?: string | string[]): string {
   return `${showDate(from, locale)} → ${showDate(to, locale)}`
 }
+
+/** "18 Nov 2026 14:30" from "2026-11-18 14:30:05" or "2026-11-18T14:30"; a plain date shows as a date. */
+export function showMoment(iso: string | null | undefined, locale?: string | string[]): string {
+  if (!iso) return ""
+  const m = /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})/.exec(String(iso))
+  return m ? `${showDate(m[1], locale)} ${m[2]}` : showDate(iso, locale)
+}

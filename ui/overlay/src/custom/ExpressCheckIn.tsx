@@ -3,6 +3,7 @@
     It uses Kamra's own check-in calls, one after another, so the records are the same as the
     six-step check-in leaves: nothing is skipped silently, steps not asked are marked as skipped with a reason. */
 
+import { hkLabel } from "./roomStatus"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { CircleCheck, Printer } from "lucide-react"
 import { call } from "../lib/api"
@@ -29,6 +30,7 @@ import { StayDetails } from "./StayDetails"
 import { StayFacts } from "./StayFacts"
 import { FormViewSwitch, useFormView } from "./FormViewSwitch"
 import { checkInItems } from "./stayChecks"
+import { depositNotice, securityInUse } from "./depositNotice"
 
 interface Flow {
   reservation: { name: string; guest_name: string; room_type: string; check_in_date: string; check_out_date: string; nights: number; adults: number; children: number }
@@ -306,20 +308,26 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
         )}
         {(current === "stay" || full) && (
           <div className={full ? "kd-flat" : "space-y-5"}>
-          {flow.deposit.applies && (
+          {flow.deposit.applies && (securityInUse(flow.deposit.security) || flow.deposit.advance_due > 0) && (
             <section data-bar={full ? "Deposit and advance" : undefined} className="space-y-3">
-              {!flow.deposit.satisfied && <TillCard till={flow.till} onOpened={load} purpose={t("to take the deposit")} />}
-              {flow.deposit.security.status !== "None" && (
+              {depositNotice(flow.deposit).kind === "due" && <TillCard till={flow.till} onOpened={load} purpose={t("to take the deposit")} />}
+              {securityInUse(flow.deposit.security) && (
                 <SecurityDepositPanel reservation={r.name} deposit={flow.deposit.security} canStart onChanged={load} />
               )}
               {flow.deposit.advance_due > 0 && (
                 <DepositPanel reservation={r.name} deposit={flow.deposit.advance} guestPhone={flow.guest.phone} onChanged={() => load()} />
               )}
-              <p className={flow.deposit.satisfied ? "text-sm text-emerald-700" : "text-sm font-medium text-amber-700"}>
-                {flow.deposit.satisfied
-                  ? flow.deposit.security.status === "Waived" ? t("Security deposit waived.") : t("Security deposit is taken.")
-                  : t("Take the deposit or waive it with a reason. You can also check in now and finish it later.")}
-              </p>
+              {(() => {
+                const n = depositNotice(flow.deposit)
+                if (n.kind === "none") return null
+                return (
+                  <p className={n.kind === "due" ? "text-sm font-medium text-amber-700" : "text-sm text-emerald-700"}>
+                    {n.kind === "waived" ? t("Security deposit waived.")
+                      : n.kind === "taken" ? t("Security deposit is taken.")
+                        : t("{amount} security deposit still to collect. Take it or waive it with a reason. You can also check in now and finish it later.", { amount: `${cur()}${Math.round(n.amount).toLocaleString("en-IN")}` })}
+                  </p>
+                )
+              })()}
             </section>
           )}
 
@@ -371,7 +379,7 @@ export default function ExpressCheckIn(props: { reservation: string; onDone: () 
                       )}
                     >
                       <span className="block text-lg font-semibold">{x.room_number}</span>
-                      <span className="text-xs text-zinc-500">{t(x.housekeeping_status || "Unknown")}</span>
+                      <span className="text-xs text-zinc-500">{t(hkLabel(x.housekeeping_status) || "Unknown")}</span>
                     </button>
                   )
                 })}

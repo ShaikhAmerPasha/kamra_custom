@@ -1,5 +1,6 @@
 /*  The balance strip and the payment ledger on a Kamra bill (Kamra Custom). */
 
+import { showMoment } from "./showDate"
 import { useState } from "react"
 import { cn } from "../lib/utils"
 import { useT } from "../lib/i18n"
@@ -150,7 +151,7 @@ function PaymentSection(p: {
       )}
       {p.rows.map((r) => (
         <tr key={r.key} className="border-b border-zinc-100">
-          <td className="py-1.5 pe-3 font-mono text-xs text-zinc-600">{r.when}</td>
+          <td className="py-1.5 pe-3 font-mono text-xs text-zinc-600">{showMoment(r.when)}</td>
           <td className="py-1.5 pe-3">
             {p.t(r.mode)}
             {r.kind !== "Payment" && (

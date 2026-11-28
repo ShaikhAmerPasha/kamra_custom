@@ -148,8 +148,6 @@ function focusForm(heading: RegExp): boolean {
   return false
 }
 
-const coarse = () => typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches
-
 export function Hotkeys({ onNewBooking }: { onNewBooking: () => void }) {
   const { t } = useT()
   const navigate = useNavigate()
@@ -163,7 +161,7 @@ export function Hotkeys({ onNewBooking }: { onNewBooking: () => void }) {
   const cursor = useRef<HTMLElement | null>(null)
   helpOpen.current = help
   const noteTimer = useRef<number | undefined>(undefined)
-  const showBar = !coarse()
+  const showBar = false
 
   const flash = useCallback((msg: string) => {
     setNote(msg)

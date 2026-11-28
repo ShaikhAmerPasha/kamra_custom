@@ -42,3 +42,15 @@ describe("desk rows", () => {
     expect(timeLabel(base, "in-house")).toBe("")
   })
 })
+
+describe("missed arrivals", () => {
+  it("are flagged on the arrivals tab with the day they were due", () => {
+    const flags = deskFlags({ ...base, missed: true, check_in_date: "2026-11-16" }, { R1: room("Clean") }, "arrivals", today, "10:00")
+    expect(flags.find((f) => f.key === "missed")?.label).toBe("Arrival was 16 Nov 2026")
+    expect(flags.find((f) => f.key === "missed")?.tone).toBe("rose")
+  })
+  it("are not flagged on other tabs or when not missed", () => {
+    expect(deskFlags({ ...base, missed: true }, {}, "in-house", today, "10:00").some((f) => f.key === "missed")).toBe(false)
+    expect(deskFlags(base, {}, "arrivals", today, "10:00").some((f) => f.key === "missed")).toBe(false)
+  })
+})

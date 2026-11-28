@@ -96,7 +96,83 @@ export interface CustomBooking {
   group: () => Record<string, unknown>
 }
 
+/** Tabbing sequence inspired by MyCloud: Guest Name -> Phone -> Check-in -> Arrival Time -> Check-out -> Departure Time -> Nights -> Room Type -> Adults -> Children -> Meal Plan -> Rate -> Source -> Remarks */
+export function useKeyboardFlow() {
+  useEffect(() => {
+    const dialog = document.querySelector(".kd-body")
+    if (!dialog) return
+
+    const getSequence = (): HTMLElement[] => {
+      const guest = dialog.querySelector<HTMLInputElement>('input[placeholder*="find or create"]')
+      const phone = dialog.querySelector<HTMLInputElement>('input[type="tel"]')
+      const idType = dialog.querySelector<HTMLSelectElement>('div[data-bar*="ID"] select')
+      const idNumber = dialog.querySelector<HTMLInputElement>('div[data-bar*="ID"] input[autocomplete="off"]')
+      const address = dialog.querySelector<HTMLInputElement>('div[data-bar*="ID"] input[placeholder*="Street"]')
+      const city = dialog.querySelector<HTMLInputElement>('div[data-bar*="ID"] input[placeholder*="City"]')
+      const checkIn = dialog.querySelector<HTMLInputElement>('div[data-bar="Stay"] input[type="date"]')
+      const stayTimes = dialog.querySelectorAll<HTMLInputElement>('div[data-bar="Arrival and departure time"] input[type="time"]')
+      const arrive = stayTimes[0]
+      const checkOut = dialog.querySelector<HTMLInputElement>('input[aria-label="Check-out"]')
+      const depart = stayTimes[1]
+      const nights = dialog.querySelector<HTMLInputElement>('div[data-bar="Stay"] input[type="number"]')
+      const roomType = dialog.querySelector<HTMLSelectElement>('div[data-bar="Room and rate"] select')
+      const adults = dialog.querySelectorAll<HTMLInputElement>('div[data-bar="Stay"] input[type="number"]')[1]
+      const children = dialog.querySelectorAll<HTMLInputElement>('div[data-bar="Stay"] input[type="number"]')[2]
+      const mealPlan = dialog.querySelectorAll<HTMLSelectElement>('div[data-bar="Room and rate"] select')[1]
+      const rate = dialog.querySelector<HTMLInputElement>('div[data-bar="Room and rate"] input[type="number"]')
+      const source = dialog.querySelector<HTMLSelectElement>('div[data-bar="Booking source"] select')
+      const remarks = dialog.querySelector<HTMLTextAreaElement>('div[data-bar="Remarks and rate"] textarea')
+
+      return [
+        guest,
+        phone,
+        idType,
+        idNumber,
+        address,
+        city,
+        checkIn,
+        arrive,
+        checkOut,
+        depart,
+        nights,
+        roomType,
+        adults,
+        children,
+        mealPlan,
+        rate,
+        source,
+        remarks,
+      ].filter(Boolean) as HTMLElement[]
+    }
+
+    const seq = getSequence()
+    seq.forEach((el, i) => {
+      el.tabIndex = i + 1
+    })
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return
+      const current = document.activeElement as HTMLElement
+      const sequence = getSequence()
+      const idx = sequence.indexOf(current)
+      if (idx !== -1) {
+        if (!e.shiftKey && idx < sequence.length - 1) {
+          e.preventDefault()
+          sequence[idx + 1].focus()
+        } else if (e.shiftKey && idx > 0) {
+          e.preventDefault()
+          sequence[idx - 1].focus()
+        }
+      }
+    }
+
+    dialog.addEventListener("keydown", onKeyDown as EventListener)
+    return () => dialog.removeEventListener("keydown", onKeyDown as EventListener)
+  })
+}
+
 export function useCustomBooking(): CustomBooking {
+  useKeyboardFlow()
   const [remarks, setRemarks] = useState("")
   const [billing, setBillingState] = useState<Billing>(EMPTY_BILLING)
   const [holdChoice, setHoldChoice] = useState("24")
@@ -308,7 +384,7 @@ export function CustomBookingFields(props: {
         : null}
     </div>
       <DeskPopup
-        title="Analysis and tax details"
+        title="Tax & account codes"
         addLabel="Add"
         missing={billingProblem(custom.billing) !== ""}
         summary={[

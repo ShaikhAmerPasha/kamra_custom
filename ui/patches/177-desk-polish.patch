@@ -1,0 +1,32 @@
+--- a/src/screens/configs.ts	2026-11-27 14:49:50.017163564 +0530
++++ b/src/screens/configs.ts	2026-11-27 14:49:50.017905028 +0530
+@@ -690,6 +690,7 @@
+     { field: "check_out_date", label: "Out" },
+     { field: "status", label: "Status", badge: true },
+     { field: "booking_type", label: "Type" },
++    { field: "company", label: "Company" },
+     { field: "source", label: "Source" },
+     { field: "amount_after_tax", label: `Total ${cur()}` },
+     { field: "advance_paid", label: `Advance ${cur()}` },
+--- a/src/components/BookingDialog.tsx	2026-11-27 14:49:50.021254456 +0530
++++ b/src/components/BookingDialog.tsx	2026-11-27 14:49:50.021924716 +0530
+@@ -2012,7 +2012,7 @@
+                       navigate("/groups?new=1")
+                     }}
+                   >
+-                    {t("Group booking with a main room")}
++                    {t("Booking a group? Open group booking")}
+                   </button>
+                 )}
+ 
+--- a/src/components/CommandPalette.tsx	2026-11-27 14:49:50.025561930 +0530
++++ b/src/components/CommandPalette.tsx	2026-11-27 14:49:50.026144100 +0530
+@@ -320,7 +320,7 @@
+       guests.map((g) => ({
+         id: `guest:${g.name}`,
+         label: g.full_name || g.name,
+-        hint: `${t("Guest")} · ${g.phone || g.name}`,
++        hint: `${t("Guest")} · ${g.phone || t("no phone on file")}`,
+         icon: UserCircle2,
+         onSelect: () => {
+           setOpen(false)

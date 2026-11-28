@@ -8,11 +8,26 @@ import frappe
 from frappe.utils import nowdate, now_datetime
 from kamra.authz import assert_property_access, require_roles
 
+from kamra_custom.timeutil import hhmm
+
 SHOW = 5
 
 
 def _clock_now() -> str:
 	return now_datetime().strftime("%H:%M")
+
+
+@frappe.whitelist()
+@require_roles("Front Desk", "Night Auditor", "Kamra Agent", "Finance", "Revenue Manager")
+def audit_status(property: str) -> dict:
+	"""How far the business date is behind the calendar. The top bar shows a notice on every screen when it is."""
+	from frappe.utils import date_diff
+	from kamra.business_date import get_business_date
+
+	assert_property_access(property)
+	today = nowdate()
+	business = get_business_date(property)
+	return {"behind": max(0, date_diff(today, business)), "business_date": str(business), "today": today}
 
 
 @frappe.whitelist()
@@ -44,7 +59,7 @@ def attention(property: str):
 
 	overdue, owing, no_room, not_ready, no_id, no_show = [], [], [], [], [], []
 	for r in in_house:
-		out_time = str(r.planned_check_out_time or "12:00:00")[:5]
+		out_time = hhmm(r.planned_check_out_time) or "12:00"
 		past = str(r.check_out_date) < today or (str(r.check_out_date) == today and now > out_time)
 		due = float((money.get(r.name) or {}).get("due") or 0)
 		if past:

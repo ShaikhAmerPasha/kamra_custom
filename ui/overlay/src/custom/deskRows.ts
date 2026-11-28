@@ -1,3 +1,5 @@
+import { showDate } from "./showDate"
+
 /*  What an arrivals, in-house or departures row tells the desk before anyone opens it (Kamra Custom).
     Pure: the screen passes the row, the rooms and the clock. */
 
@@ -12,6 +14,8 @@ export interface DeskRow {
   planned_check_in_time?: string | null
   planned_check_out_time?: string | null
   precheckin_status?: string | null
+  missed?: boolean
+  check_in_date?: string
 }
 
 export interface DeskRoom {
@@ -52,6 +56,7 @@ export function deskFlags(
 ): Flag[] {
   const out: Flag[] = []
   if (isOverdue(row, today, now)) out.push({ key: "overdue", label: "Past check-out time", tone: "rose" })
+  if (tab === "arrivals" && row.missed) out.push({ key: "missed", label: row.check_in_date ? `Arrival was ${showDate(row.check_in_date)}` : "Missed arrival", tone: "rose" })
   if (tab === "arrivals" && row.room) {
     const p = roomProblem(rooms[row.room])
     if (p) out.push({ key: "room", label: `Room ${p.toLowerCase()}`, tone: "amber" })

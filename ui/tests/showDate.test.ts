@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { showDate, showStay } from "../overlay/src/custom/showDate"
+import { showMoment, showDate, showStay } from "../overlay/src/custom/showDate"
 
 describe("showDate", () => {
   it("reads an ISO day as day, short month, year", () => {
@@ -16,5 +16,16 @@ describe("showDate", () => {
   })
   it("shows a stay", () => {
     expect(showStay("2026-11-18", "2026-11-20", "en-GB")).toBe("18 Nov 2026 → 20 Nov 2026")
+  })
+})
+
+describe("showMoment", () => {
+  it("shows a date and a time to the minute", () => {
+    expect(showMoment("2026-11-24 16:18:05.123")).toBe("24 Nov 2026 16:18")
+    expect(showMoment("2026-11-24T08:05")).toBe("24 Nov 2026 08:05")
+  })
+  it("shows a plain date as a date and nothing as nothing", () => {
+    expect(showMoment("2026-11-24")).toBe("24 Nov 2026")
+    expect(showMoment(null)).toBe("")
   })
 })

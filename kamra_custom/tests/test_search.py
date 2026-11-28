@@ -144,3 +144,31 @@ class TestHeldBookings(IntegrationTestCase):
 		reserved = [r["name"] for r in reservations.search(PROP, status="reserved", name="Held Guest")["rows"]]
 		self.assertIn(name, held)
 		self.assertNotIn(name, reserved)
+
+
+class TestSearchByExternalReference(TestReservationSearch):
+	"""An OTA booking is looked up by the id the channel gave it, as well as by our number."""
+
+	def test_the_search_screen_finds_a_stay_by_its_channel_reference(self):
+		a = self.book(name="Channel Guest", phone="9000066611")
+		frappe.db.set_value("Reservation", a, "ota_ref", "BKG-77123456")
+		self.assertIn(a, self.names(reservation="77123456"))
+		self.assertIn(a, self.names(reservation=a[-5:]))
+		self.assertNotIn(a, self.names(reservation="NOPE-0000"))
+
+	def test_quick_find_also_matches_the_channel_reference(self):
+		a = self.book(name="Quick Channel", phone="9000066612")
+		frappe.db.set_value("Reservation", a, "ota_ref", "AGD-99887766")
+		self.assertIn(a, [r["name"] for r in reservations.find(PROP, "99887766")])
+
+
+class TestBookingNote(TestReservationSearch):
+	def test_the_staff_note_is_returned_for_the_bill(self):
+		a = self.book(name="Noted Guest", phone="9000066621")
+		self.assertEqual(reservations.booking_note(a)["note"], "")
+		frappe.db.set_value("Reservation", a, "internal_remarks", "  Company pays room only. Cash for extras. ")
+		self.assertEqual(reservations.booking_note(a)["note"], "Company pays room only. Cash for extras.")
+
+	def test_an_unknown_booking_is_refused(self):
+		with self.assertRaises(frappe.ValidationError):
+			reservations.booking_note("RES-NOPE-1")

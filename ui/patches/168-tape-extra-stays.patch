@@ -1,0 +1,96 @@
+--- a/src/screens/TapeChart.tsx	2026-11-27 13:06:23.293504985 +0530
++++ b/src/screens/TapeChart.tsx	2026-11-27 13:06:23.294114340 +0530
+@@ -19,6 +19,8 @@
+ import CheckInDialog from "../components/CheckInDialog"
+ import RoomChangeDialog from "../components/RoomChangeDialog"
+ import { BookingCard, TapeLegend } from "../custom/TapeLegend"
++import { withExtraStays } from "../custom/TapeExtra"
++import { WAITING_TYPE, barSpan, isOverdue, isWaitingRow, overdueWords } from "../custom/tapeExtra"
+ import { arrivalNotReady, dayMovement, matches, type LegendKey } from "../custom/tapeLegend"
+ 
+ 
+@@ -266,7 +268,7 @@
+     if (mode === "day") {
+       call<TapeData>("kamra.api.tape_chart", {
+         property: getCurrentProperty(), start_date: start, days: DAYS,
+-      }).then(setData)
++      }).then((d) => withExtraStays(d, start, DAYS)).then(setData)
+     } else {
+       call<HourlyData>("kamra.api.tape_chart_hourly", {
+         property: getCurrentProperty(), date: start,
+@@ -602,7 +604,7 @@
+                     />
+                     {translate(g.label)}
+                     <span className="font-normal normal-case tracking-normal text-zinc-400">
+-                      {t("{rooms} rooms · {booked} in use", {
++                      {g.key === WAITING_TYPE ? t("{n} stays need a room", { n: g.rooms.reduce((n, r) => n + r.bookings.length, 0) }) : t("{rooms} rooms · {booked} in use", {
+                         rooms: g.rooms.length,
+                         booked,
+                       })}
+@@ -624,7 +626,7 @@
+                           </span>
+                         </div>
+                         {/* vacant cell: bars and blocks sit on top, so a click here is a free night */}
+-                        {data.dates.map((d) => canBook && d >= todayIso() ? (
++                        {data.dates.map((d) => canBook && d >= todayIso() && !isWaitingRow(room) ? (
+                           <button key={d} type="button" style={{ width: cellW }}
+                             aria-label={t("New booking")}
+                             onClick={() => newBooking({ room_type: room.room_type, room: room.name,
+@@ -659,8 +661,8 @@
+                         {/* booking bars */}
+                         {room.bookings.map((b) => {
+                           const dd = drag?.active && drag.b.name === b.name ? drag : null
+-                          let s0 = dayDiff(data.start, b.check_in_date)
+-                          let e0 = b.is_day_use ? s0 + 1 : dayDiff(data.start, b.check_out_date)
++                          let s0 = dayDiff(data.start, barSpan(b).inDate)
++                          let e0 = b.is_day_use ? s0 + 1 : dayDiff(data.start, barSpan(b).outDate)
+                           // live preview of the drag: sideways / edges snap to whole days
+                           if (dd?.mode === "move") { s0 += dd.days; e0 += dd.days }
+                           if (dd?.mode === "start") s0 += dd.days
+@@ -674,14 +676,14 @@
+                           const inConflict = data.conflicts?.some(
+                             (c) => c.in_res === b.name || c.out_res === b.name)
+                           const roomDrop = dd?.mode === "move" && dd.room !== b.room
+-                          const resizable = !b.is_day_use
++                          const resizable = !b.is_day_use && !isOverdue(b)
+                           return (
+                             <button key={b.name}
+                               type="button"
+                               data-stay={b.name}
+                               onMouseMove={(ev) => !drag && setHover({ b, x: ev.clientX, y: ev.clientY })}
+                               onMouseLeave={() => setHover(null)}
+-                              onPointerDown={(ev) => { setHover(null); beginDrag(ev, b, "move") }}
++                              onPointerDown={(ev) => { setHover(null); if (!isOverdue(b)) beginDrag(ev, b, "move") }}
+                               onClick={() => {
+                                 if (suppressClick.current) return
+                                 openBooking(b)
+@@ -693,7 +695,8 @@
+                               }}
+                               className={cn(
+                                 "group absolute top-1.5 flex h-8 cursor-pointer select-none items-center gap-1 truncate rounded-md px-1.5 text-start text-xs font-medium text-white",
+-                                b.status === "Checked In" ? "bg-brand-600 hover:bg-brand-700"
++                                isOverdue(b) ? "bg-rose-600 hover:bg-rose-700"
++                                  : b.status === "Checked In" ? "bg-brand-600 hover:bg-brand-700"
+                                   : "bg-sky-500 hover:bg-sky-600",
+                                 inConflict && "ring-2 ring-rose-500 ring-offset-1",
+                                 arrivalNotReady(b, room.housekeeping_status, todayIso()) && "ring-2 ring-amber-400 ring-offset-1",
+@@ -701,7 +704,8 @@
+                                 dd && "pointer-events-none z-20 cursor-grabbing opacity-90 shadow-lg ring-2 ring-white",
+                               )}
+                               aria-label={(arrivalNotReady(b, room.housekeeping_status, todayIso()) ? `${t("Room not ready")} · ` : "") + (`${b.guest_name} · ${t(seg.label)} · ${b.check_in_date}${eta ? ` ${eta}` : ""} → ${b.check_out_date}${etd ? ` ${etd}` : ""}` +
+-                                (inConflict ? ` · ${t("CHANGEOVER CONFLICT")}` : ""))}>
++                                (inConflict ? ` · ${t("CHANGEOVER CONFLICT")}` : "") +
++                                (isOverdue(b) ? ` · ${t(overdueWords(b.check_out_date, todayIso()))}` : ""))}>
+                               {/* drag handles: arrival (not once checked in) and departure */}
+                               {resizable && b.status === "Confirmed" && s0 >= 0 && (
+                                 <span aria-hidden data-handle="start"
+@@ -719,7 +723,8 @@
+                                 <span className={cn("size-2 shrink-0 rounded-full", seg.dot)} aria-hidden />
+                               )}
+                               <span className="truncate">
+-                                {eta && <span className="me-1 font-normal opacity-75">{eta}</span>}
++                                {eta && !isOverdue(b) && <span className="me-1 font-normal opacity-75">{eta}</span>}
++                                {isOverdue(b) && <span className="me-1 font-normal opacity-90">{t("Overdue")}</span>}
+                                 {b.guest_name}
+                               </span>
+                               {etd && (e - s) >= 2 && (

@@ -27,7 +27,8 @@ def find(property: str, query: str = "", limit: int = 20) -> list[dict]:
 	or_filters = None
 	if q:
 		like = f"%{q}%"
-		or_filters = [["name", "like", like], ["guest_name", "like", like], ["room", "like", like]]
+		or_filters = [["name", "like", like], ["guest_name", "like", like], ["room", "like", like],
+		              ["ota_ref", "like", like]]
 		if len(digits(q)) >= 4 and not any(c.isalpha() for c in q):
 			key = to_key(q, property_region(property))
 			guests = frappe.get_all(
@@ -258,7 +259,11 @@ def search(
 		if value:
 			filters.append([field, "=", value])
 	if reservation:
-		filters.append(["name", "like", f"%{reservation.strip()}%"])
+		# our number, or the id the booking channel gave it
+		like = f"%{reservation.strip()}%"
+		found = frappe.get_all("Reservation", filters={"property": property},
+		                       or_filters=[["name", "like", like], ["ota_ref", "like", like]], pluck="name", limit=1000)
+		filters.append(["name", "in", found or ["-"]])
 	if room:
 		filters.append(["room", "in", frappe.get_all("Room", filters={"property": property, "room_number": ("like", f"%{room.strip()}%")}, pluck="name") or ["-"]])
 	if group_name:
@@ -328,3 +333,17 @@ def _search_extras(rows: list[dict], balances_of) -> list[dict]:
 		for k in ("check_in_date", "check_out_date"):
 			r[k] = str(r[k]) if r.get(k) else None
 	return rows
+
+
+@frappe.whitelist()
+@require_roles("Front Desk", "Finance", "Revenue Manager", "Kamra Agent")
+def booking_note(reservation: str) -> dict:
+	"""The staff note on a booking ("company pays room only", "cash only"), for the bill and check-out screens.
+	Never printed for the guest."""
+	from kamra.crs import assert_property_access
+
+	row = frappe.db.get_value("Reservation", reservation, ["property", "internal_remarks"], as_dict=True)
+	if not row:
+		frappe.throw(_("Reservation not found."))
+	assert_property_access(row.property)
+	return {"note": (row.internal_remarks or "").strip()}

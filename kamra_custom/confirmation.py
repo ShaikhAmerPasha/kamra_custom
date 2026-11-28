@@ -18,8 +18,23 @@ from kamra.authz import require_roles
 from kamra.localization import money_text
 from kamra_custom.guests import property_region
 from kamra_custom.phone import to_key
+from kamra_custom.timeutil import hhmm
 
 ROLES = ("Front Desk", "Kamra Agent")
+
+# the documents the desk can send, and the ways to send them
+KINDS = {"confirmation": "Booking confirmation", "amended": "Amended booking confirmation",
+         "pre-arrival": "Pre-arrival message"}
+CHANNELS = ("Download", "WhatsApp", "Email")
+SENT = "Sent: "
+HISTORY_SHOWN = 5
+
+
+def _kind(kind: str | None) -> str:
+	kind = (kind or "confirmation").strip()
+	if kind not in KINDS:
+		frappe.throw(_("{0} is not a document that can be sent from here.").format(kind))
+	return kind
 
 
 def _reservation(name: str):
@@ -31,8 +46,7 @@ def _reservation(name: str):
 	return res
 
 
-def _hhmm(value) -> str:
-	return str(value)[:5] if value else ""
+_hhmm = hhmm
 
 
 def _12h(value) -> str:
@@ -76,13 +90,31 @@ def facts(res) -> dict:
 	}
 
 
-def message_text(f: dict) -> str:
-	"""The WhatsApp and email text."""
+def message_text(f: dict, kind: str = "confirmation", link: str = "") -> str:
+	"""The WhatsApp and email text for a confirmation, an amended confirmation or a pre-arrival message."""
+	if kind == "pre-arrival":
+		lines = [
+			_("Your stay at {0}").format(f["hotel"]),
+			"",
+			_("Dear {0},").format(f["guest"]),
+			_("We look forward to welcoming you on {0}{1}.").format(
+				f["check_in"], f" (from {f['arrival_time']})" if f["arrival_time"] else ""),
+			_("Booking {0}: {1}, {2} night(s).").format(f["booking"], f["room_type"], f["nights"]),
+		]
+		if link:
+			lines += ["", _("Save time at the desk. Add your details and ID here:"), link]
+		if f["hotel_address"]:
+			lines += ["", f["hotel_address"]]
+		if f["hotel_phone"]:
+			lines.append(_("Call us: {0}").format(f["hotel_phone"]))
+		return "\n".join(lines)
+	amended = kind == "amended"
 	lines = [
-		_("Booking confirmation - {0}").format(f["hotel"]),
+		(_("Booking updated - {0}") if amended else _("Booking confirmation - {0}")).format(f["hotel"]),
 		"",
 		_("Dear {0},").format(f["guest"]),
-		_("Your booking {0} is confirmed.").format(f["booking"]),
+		(_("Your booking {0} has been updated. These are the new details.") if amended
+		 else _("Your booking {0} is confirmed.")).format(f["booking"]),
 		"",
 		_("Check-in: {0}{1}").format(f["check_in"], f" ({f['arrival_time']})" if f["arrival_time"] else ""),
 		_("Check-out: {0}{1}").format(f["check_out"], f" ({f['departure_time']})" if f["departure_time"] else ""),
@@ -99,7 +131,7 @@ def message_text(f: dict) -> str:
 	return "\n".join(lines)
 
 
-def confirmation_html(f: dict) -> str:
+def confirmation_html(f: dict, kind: str = "confirmation") -> str:
 	rows = [
 		(_("Booking"), f["booking"]),
 		(_("Guest"), f["guest"]),
@@ -125,18 +157,77 @@ h1{{font-size:20pt;margin:0 0 2px}} h2{{font-size:13pt;color:#0f5132;margin:0 0 
 table{{border-collapse:collapse;width:100%;font-size:11pt}} th,td{{border-bottom:1px solid #ddd;padding:7px 4px;text-align:left}}
 th{{width:30%;color:#555;font-weight:600}} .foot{{margin-top:24px;font-size:9.5pt;color:#555}}
 </style></head><body>
-<h1>{escape_html(f['hotel'])}</h1><h2>{_('Booking confirmation')}</h2>
-<p>{_('Dear {0},').format(escape_html(f['guest']))} {_('your booking is confirmed.')}</p>
+<h1>{escape_html(f['hotel'])}</h1><h2>{_('Booking amended') if kind == 'amended' else _('Booking confirmation')}</h2>
+<p>{_('Dear {0},').format(escape_html(f['guest']))} {_('your booking has been updated. These are the new details.') if kind == 'amended' else _('your booking is confirmed.')}</p>
 <table>{body}</table>
 <p class="foot">{contact}</p></body></html>"""
 
 
+def precheckin_link(res) -> str:
+	"""The guest's online check-in link, made the first time it is wanted (the same link Kamra's own send uses)."""
+	token = res.get("precheckin_token")
+	if not token:
+		token = frappe.generate_hash(length=32)
+		frappe.db.set_value("Reservation", res.name, "precheckin_token", token)
+	return f"{frappe.utils.get_url()}/kamra/checkin/{token}"
+
+
+def _history(name: str) -> list[dict]:
+	rows = frappe.get_all(
+		"Comment",
+		filters={"reference_doctype": "Reservation", "reference_name": name, "comment_type": "Info",
+		         "content": ("like", f"{SENT}%")},
+		fields=["creation", "owner", "content"], order_by="creation desc", limit=HISTORY_SHOWN)
+	out = []
+	for r in rows:
+		# "Sent: <kind> | <channel> | <to>"
+		parts = [x.strip() for x in r.content[len(SENT):].split("|")]
+		out.append({"when": str(r.creation), "by": r.owner, "kind": parts[0],
+		            "channel": parts[1] if len(parts) > 1 else "", "to": parts[2] if len(parts) > 2 else ""})
+	return out
+
+
+def _stale(res, history: list[dict]) -> bool:
+	"""A confirmation went out and the booking changed after it, so the guest holds old details."""
+	if res.status != "Confirmed":
+		return False
+	last = next((h for h in history if h["kind"] in ("confirmation", "amended")), None)
+	return bool(last and frappe.utils.get_datetime(res.modified) > frappe.utils.get_datetime(last["when"]))
+
+
+def _remember(res, kind: str, channel: str, to: str = "") -> None:
+	frappe.get_doc({
+		"doctype": "Comment", "comment_type": "Info", "reference_doctype": "Reservation",
+		"reference_name": res.name, "content": f"{SENT}{kind} | {channel} | {to}".rstrip(" |"),
+	}).insert(ignore_permissions=True)
+
+
 @frappe.whitelist()
 @require_roles(*ROLES)
-def details(reservation: str) -> dict:
-	"""Everything the Send menu needs: the guest's phone and email, and the message text."""
-	f = facts(_reservation(reservation))
-	return {"phone": f["phone"], "email": f["email"], "guest": f["guest"], "message": message_text(f), "booking": f["booking"]}
+def details(reservation: str, kind: str = "confirmation") -> dict:
+	"""Everything the Send menu needs: the guest's phone and email, the text for the chosen document, what was
+	sent before, and whether the booking changed since the last confirmation."""
+	kind = _kind(kind)
+	res = _reservation(reservation)
+	f = facts(res)
+	history = _history(reservation)
+	return {"phone": f["phone"], "email": f["email"], "guest": f["guest"], "booking": f["booking"], "kind": kind,
+	        "message": message_text(f, kind, precheckin_link(res) if kind == "pre-arrival" else ""),
+	        "history": history, "stale": _stale(res, history), "kinds": KINDS}
+
+
+@frappe.whitelist(methods=["POST"])
+@require_roles(*ROLES)
+def log_sent(reservation: str, kind: str, channel: str) -> dict:
+	"""Remember that the desk sent a document, so the next person sees it on the booking."""
+	kind = _kind(kind)
+	if channel not in CHANNELS:
+		frappe.throw(_("{0} is not a way to send a document.").format(channel))
+	res = _reservation(reservation)
+	f = facts(res)
+	_remember(res, kind, channel, f["email"] if channel == "Email" else f["phone"] if channel == "WhatsApp" else "")
+	history = _history(reservation)
+	return {"history": history, "stale": _stale(res, history)}
 
 
 @frappe.whitelist(methods=["POST"])
@@ -159,26 +250,31 @@ def save_contact(reservation: str, phone: str | None = None, email: str | None =
 	return {"phone": guest.phone or "", "email": guest.email or "", "phone_key": to_key(guest.phone, property_region(res.property)) if guest.phone else ""}
 
 
-def _pdf(res) -> bytes:
+def _pdf(res, kind: str = "confirmation") -> bytes:
 	from frappe.utils.pdf import get_pdf
 
-	return get_pdf(confirmation_html(facts(res)))
+	return get_pdf(confirmation_html(facts(res), kind))
 
 
 @frappe.whitelist()
 @require_roles(*ROLES)
-def download(reservation: str):
-	"""The confirmation as a PDF file."""
+def download(reservation: str, kind: str = "confirmation"):
+	"""The confirmation, or the amended confirmation, as a PDF file."""
+	kind = _kind(kind)
+	if kind == "pre-arrival":
+		frappe.throw(_("The pre-arrival message is sent by WhatsApp or email, not as a file."))
 	res = _reservation(reservation)
-	frappe.local.response.filename = f"{res.name}-confirmation.pdf"
-	frappe.local.response.filecontent = _pdf(res)
+	_remember(res, kind, "Download")
+	frappe.local.response.filename = f"{res.name}-{kind}.pdf"
+	frappe.local.response.filecontent = _pdf(res, kind)
 	frappe.local.response.type = "pdf"
 
 
 @frappe.whitelist(methods=["POST"])
 @require_roles(*ROLES)
-def send_email(reservation: str, to: str | None = None) -> dict:
-	"""Email the confirmation, with the PDF attached, from the site's outgoing email."""
+def send_email(reservation: str, to: str | None = None, kind: str = "confirmation") -> dict:
+	"""Email a document, with the PDF attached for a confirmation, from the site's outgoing email."""
+	kind = _kind(kind)
 	res = _reservation(reservation)
 	f = facts(res)
 	to = (to or f["email"] or "").strip()
@@ -186,13 +282,20 @@ def send_email(reservation: str, to: str | None = None) -> dict:
 		frappe.throw(_("Add the guest's email address first."))
 	if not frappe.db.exists("Email Account", {"enable_outgoing": 1}) and not frappe.conf.get("mail_server"):
 		frappe.throw(_("Outgoing email is not set up on this site. Ask the administrator to add an email account."))
+	if kind == "pre-arrival":
+		message = escape_html(message_text(f, kind, precheckin_link(res))).replace("\n", "<br>")
+		attachments = []
+	else:
+		message = confirmation_html(f, kind)
+		attachments = [{"fname": f"{res.name}-{kind}.pdf", "fcontent": _pdf(res, kind)}]
 	frappe.sendmail(
 		recipients=[to],
-		subject=_("Booking confirmation {0} - {1}").format(res.name, f["hotel"]),
-		message=confirmation_html(f),
-		attachments=[{"fname": f"{res.name}-confirmation.pdf", "fcontent": _pdf(res)}],
+		subject=f"{_(KINDS[kind])} {res.name} - {f['hotel']}",
+		message=message,
+		attachments=attachments,
 		reference_doctype="Reservation",
 		reference_name=res.name,
 		now=False,
 	)
+	_remember(res, kind, "Email", to)
 	return {"queued": True, "to": to}

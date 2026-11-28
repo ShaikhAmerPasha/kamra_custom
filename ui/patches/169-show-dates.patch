@@ -1,0 +1,87 @@
+--- a/src/components/ResourceScreen.tsx	2026-11-27 13:23:42.573004736 +0530
++++ b/src/components/ResourceScreen.tsx	2026-11-27 13:23:42.573664289 +0530
+@@ -1,3 +1,4 @@
++import { showDate } from "../custom/showDate"
+ import {
+   useCallback,
+   useEffect,
+@@ -444,8 +445,8 @@
+       ? "-"
+       : typeof v === "string"
+         ? /^\d{4}-\d\d-\d\d[ T]\d\d:\d\d/.test(v)
+-          ? v.slice(0, 16).replace("T", " ") // a date-time reads to the minute, never seconds and fractions
+-          : t(v)
++          ? `${showDate(v.slice(0, 10))} ${v.slice(11, 16)}` // a date-time reads to the minute, never seconds and fractions
++          : /^\d{4}-\d\d-\d\d$/.test(v) ? showDate(v) : t(v)
+         : String(v)
+ 
+ export function ResourceScreen({
+--- a/src/screens/Guests.tsx	2026-11-27 13:23:42.577043226 +0530
++++ b/src/screens/Guests.tsx	2026-11-27 13:23:42.577678507 +0530
+@@ -1,3 +1,4 @@
++import { showDate } from "../custom/showDate"
+ import { useEffect, useState } from "react"
+ import { Columns3, Download, Search, Star } from "lucide-react"
+ import { useNavigate } from "react-router-dom"
+@@ -209,7 +210,7 @@
+                   </td>}
+                   {on("last_stay") && <td className="py-2.5 pr-4 text-zinc-500">
+                     {g.last_stay ? (
+-                      g.last_stay
++                      showDate(g.last_stay)
+                     ) : (
+                       <Badge tone="zinc">{t("never")}</Badge>
+                     )}
+--- a/src/components/CheckOutDialog.tsx	2026-11-27 13:23:42.580912982 +0530
++++ b/src/components/CheckOutDialog.tsx	2026-11-27 13:23:42.581638679 +0530
+@@ -1,3 +1,4 @@
++import { showStay } from "../custom/showDate"
+ import { allocate, isCash } from "../custom/expressCheckOut"
+ import { foldMealIntoRoom } from "../custom/mealInside"
+ import { Settlements } from "../custom/Settlements"
+@@ -755,7 +756,7 @@
+       description={(r ? [
+         r.room_number ? t("Room {n}", { n: r.room_number }) : null,
+         r.room_type_name,
+-        `${r.check_in_date} → ${r.check_out_date}`,
++        showStay(r.check_in_date, r.check_out_date),
+       ].filter(Boolean).join(" · ") : undefined)}
+       onClose={close}
+       footer={footer}
+--- a/src/screens/FolioView.tsx	2026-11-27 13:23:42.585599264 +0530
++++ b/src/screens/FolioView.tsx	2026-11-27 13:23:42.586386083 +0530
+@@ -1,3 +1,4 @@
++import { showDate, showMoment } from "../custom/showDate"
+ import { foldMealHead, foldMealIntoRoom, type Folded } from "../custom/mealInside"
+ import { PrintBillLines } from "../custom/PrintBillLines"
+ import { BalanceStrip, PaymentLedger } from "../custom/FolioLedger"
+@@ -872,7 +873,7 @@
+                 {doc?.number ?? folio.invoice_number ?? folio.name}
+               </p>
+               <p className="text-sm text-zinc-500">
+-                {doc?.date ?? ""}
++                {showDate(doc?.date)}
+               </p>
+               {property.place_of_supply && (
+                 <p className="mt-1 text-xs text-zinc-500">
+@@ -940,9 +941,9 @@
+             </Fact>
+             {(stay.arrival || stay.departure) && (
+               <Fact label={t("In / out")}>
+-                {(stay.arrival ?? "").slice(0, 16).replace("T", " ") || "-"}
++                {showMoment(stay.arrival) || "-"}
+                 {" → "}
+-                {(stay.departure ?? "").slice(0, 16).replace("T", " ") || "-"}
++                {showMoment(stay.departure) || "-"}
+               </Fact>
+             )}
+             </>)}
+@@ -1168,7 +1169,7 @@
+                               />}
+                             </td>
+                           )}
+-                          <td className="py-2 pr-3 text-zinc-500">{c.posting_date}</td>
++                          <td className="py-2 pr-3 text-zinc-500">{showDate(c.posting_date)}</td>
+                           <td className="py-2 pr-3">
+                             {/* on the guest's bill an allowance reads as a discount */}
+                             <span className="font-medium">{translate(c.charge_type === "Allowance" ? "Discount" : c.charge_type)}</span>

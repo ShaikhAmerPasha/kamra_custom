@@ -14,3 +14,26 @@ describe("whatsappUrl", () => {
     expect(whatsappUrl("12345", "Hi")).toBe("")
   })
 })
+
+import { canDownload, defaultKind, lastSentLine } from "../overlay/src/custom/confirmation"
+
+describe("what was sent", () => {
+  it("says what, how, when and by whom", () => {
+    expect(lastSentLine({ when: "2026-11-27 10:12:44.5", by: "desk@x", kind: "confirmation", channel: "WhatsApp", to: "+91" }))
+      .toBe("Confirmation sent by WhatsApp on 27 Nov 2026 10:12, by desk@x")
+    expect(lastSentLine({ when: "2026-11-27 10:12:00", by: "a", kind: "amended", channel: "Download", to: "" }))
+      .toBe("Amended confirmation downloaded on 27 Nov 2026 10:12, by a")
+  })
+  it("is empty when nothing was sent", () => {
+    expect(lastSentLine(undefined)).toBe("")
+    expect(lastSentLine(null)).toBe("")
+  })
+  it("offers the amended document when the booking changed", () => {
+    expect(defaultKind(true)).toBe("amended")
+    expect(defaultKind(false)).toBe("confirmation")
+  })
+  it("cannot download a pre-arrival message", () => {
+    expect(canDownload("pre-arrival")).toBe(false)
+    expect(canDownload("amended")).toBe(true)
+  })
+})

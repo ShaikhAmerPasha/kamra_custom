@@ -2,6 +2,7 @@
     grouped. A stay with several folios opens into one line for each, each with its own invoice
     and PDF. The rows come from kamra_custom.billing.stays. */
 
+import { showDate } from "./showDate"
 import { Fragment, useCallback, useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { ChevronDown, ChevronRight, FileText, Search } from "lucide-react"
@@ -62,7 +63,7 @@ export function FolioList() {
     return () => clearTimeout(t)
   }, [load, problem])
 
-  const day = (d: string) => (d ? d : "-")
+  const day = (d: string) => (d ? showDate(d) : "-")
   const pdf = (folio: string) => window.open(toFullPath(pdfPath(folio)), "_blank", "noopener")
 
   return (

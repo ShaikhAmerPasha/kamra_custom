@@ -1,0 +1,32 @@
+--- a/src/screens/Guests.tsx	2026-11-27 14:35:06.083261447 +0530
++++ b/src/screens/Guests.tsx	2026-11-27 14:35:06.084057252 +0530
+@@ -1,3 +1,4 @@
++import { DuplicateGuests } from "../custom/DuplicateGuests"
+ import { showDate } from "../custom/showDate"
+ import { useEffect, useState } from "react"
+ import { Columns3, Download, Search, Star } from "lucide-react"
+@@ -71,6 +72,7 @@
+   const on = (id: ColId) => !hidden.has(id)
+   const [rows, setRows] = useState<GuestRow[]>([])
+   const [search, setSearch] = useState("")
++  const [version, setVersion] = useState(0)
+   const [page, setPage] = useState(0)
+   const PAGE = 25
+   const navigate = useNavigate()
+@@ -85,7 +87,7 @@
+       })
+     }, 250)
+     return () => clearTimeout(timer)
+-  }, [search])
++  }, [search, version])
+ 
+   const visible = rows.slice(page * PAGE, page * PAGE + PAGE)
+ 
+@@ -171,6 +173,7 @@
+         </div>
+       </CardHeader>
+       <CardContent>
++        <DuplicateGuests onMerged={() => setVersion((v) => v + 1)} />
+         <div className="overflow-x-auto">
+           <table className="w-full text-sm">
+             <thead>

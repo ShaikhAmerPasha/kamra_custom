@@ -39,7 +39,16 @@ class TestHouse(IntegrationTestCase):
 	def test_the_room_counts_cover_every_room(self):
 		r = house.house_today(PROP)["rooms"]
 		self.assertEqual(r["total"], frappe.db.count("Room", {"property": PROP}))
-		self.assertLessEqual(r["clean"] + r["dirty"] + r["inspected"] + r["out_of_order"], r["total"])
+		self.assertEqual(r["clean"] + r["dirty"] + r["inspected"] + r["out_of_order"], r["total"])
+
+	def test_a_ready_room_counts_as_inspected(self):
+		# Kamra writes "Ready" when an inspection passes; it must not drop out of the counts
+		room = frappe.db.get_value("Room", {"property": PROP, "housekeeping_status": "Clean"})
+		before = house.house_today(PROP)["rooms"]
+		frappe.db.set_value("Room", room, "housekeeping_status", "Ready")
+		after = house.house_today(PROP)["rooms"]
+		self.assertEqual(after["inspected"], before["inspected"] + 1)
+		self.assertEqual(after["clean"], before["clean"] - 1)
 
 	def test_guests_in_house_match_the_in_house_reservations(self):
 		g = house.house_today(PROP)["guests"]

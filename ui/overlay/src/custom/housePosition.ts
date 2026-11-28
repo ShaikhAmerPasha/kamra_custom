@@ -36,7 +36,7 @@ export function housePosition(d: DashboardSlice | null | undefined): HousePositi
     rooms: [
       { label: "Occupied", count: occupied, tone: "plain" },
       { label: "Clean", count: n(status["Clean"]), tone: "ok" },
-      { label: "Inspected", count: n(status["Inspected"]), tone: "ok" },
+      { label: "Inspected", count: n(status["Inspected"]) + n(status["Ready"]), tone: "ok" },
       { label: "Dirty", count: n(status["Dirty"]), tone: "warn" },
       { label: "Out of order", count: n(status["Out of Order"]), tone: "bad" },
     ],

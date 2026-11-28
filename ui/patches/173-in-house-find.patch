@@ -1,0 +1,64 @@
+--- a/src/screens/InHouse.tsx	2026-11-27 14:06:40.116936865 +0530
++++ b/src/screens/InHouse.tsx	2026-11-27 14:06:40.117629030 +0530
+@@ -1,3 +1,5 @@
++import { DeskSearchBox } from "../custom/DeskSearchBox"
++import { contactLine, filterRows } from "../custom/deskSearch"
+ import { NoShowButton } from "../custom/NoShowButton"
+ import { useCallback, useEffect, useState } from "react"
+ import { openStayHub } from "../custom/stayHub"
+@@ -67,6 +69,7 @@
+   const [error, setError] = useState<string | null>(null)
+   // a link such as ?checkout=RES-... (from Needs attention) opens that stay's panel at once
+   const [checkingIn, setCheckingIn] = useState<string | null>(params.get("checkin"))
++  const [find, setFind] = useState("")
+   const [checkingOut, setCheckingOut] = useState<string | null>(params.get("checkout"))
+ 
+   const load = useCallback(() => {
+@@ -111,7 +114,7 @@
+     "in-house": snap?.in_house ?? [],
+     departures: snap?.departures ?? [],
+   }
+-  const shown = rows[tab]
++  const shown = filterRows(rows[tab], find)
+   const roomsByName: Record<string, DeskRoom> = Object.fromEntries((snap?.rooms ?? []).map((r) => [r.name, r]))
+   const clock = new Date().toTimeString().slice(0, 5)
+ 
+@@ -195,6 +198,8 @@
+         ))}
+       </div>
+ 
++      <DeskSearchBox value={find} onChange={setFind} />
++
+       {error && (
+         <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+           {translate(error)}
+@@ -204,7 +209,9 @@
+       <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
+         {shown.length === 0 ? (
+           <p className="px-4 py-10 text-center text-sm text-zinc-400">
+-            {tab === "arrivals"
++            {find.trim()
++              ? t("Nobody in this list matches \"{q}\".", { q: find.trim() })
++              : tab === "arrivals"
+               ? t("No arrivals on this day.")
+               : tab === "departures"
+                 ? t("No departures on this day.")
+@@ -239,6 +246,7 @@
+                         <Avatar name={row.guest_name} />
+                         <div className="min-w-0">
+                           <div className="truncate font-medium text-zinc-900">{row.guest_name}</div>
++                          {contactLine(row) && <div className="truncate text-xs text-zinc-400">{contactLine(row)}</div>}
+                           <div className="text-xs text-zinc-500">
+                             {t("{n} ad", { n: row.adults })}
+                             {row.children ? translate(" + {v0} ch", { v0: String(row.children) }) : ""}
+--- a/src/lib/api.ts	2026-11-27 14:06:40.121368750 +0530
++++ b/src/lib/api.ts	2026-11-27 14:06:40.122100710 +0530
+@@ -326,6 +326,8 @@
+   /** A confirmed arrival whose day has passed, and whether the desk may mark it no-show yet. */
+   missed?: boolean
+   can_no_show?: boolean
++  phone?: string | null
++  company_name?: string | null
+   vip?: number
+   planned_check_in_time?: string | null
+   planned_check_out_time?: string | null

@@ -42,7 +42,8 @@ def _rooms(property: str) -> dict:
 		(property,), as_dict=True)
 	by = {r.hk: int(r.n) for r in rows}
 	return {"total": sum(by.values()), "clean": by.get("Clean", 0), "dirty": by.get("Dirty", 0),
-	        "inspected": by.get("Inspected", 0), "out_of_order": by.get("Out of Order", 0)}
+	        # Kamra sets "Ready" once an inspection passes: the same state as "Inspected" for the desk
+	        "inspected": by.get("Inspected", 0) + by.get("Ready", 0), "out_of_order": by.get("Out of Order", 0)}
 
 
 def _guests_in_house(property: str) -> dict:

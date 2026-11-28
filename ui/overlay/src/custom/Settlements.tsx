@@ -1,6 +1,7 @@
 /*  What the guest has settled so far, on the check-out screens (Kamra Custom): each payment with its
     date, mode, reference and amount. Reads kamra_custom.checkout.settlements. */
 
+import { showMoment } from "./showDate"
 import { useEffect, useState } from "react"
 import { call } from "../lib/api"
 
@@ -34,7 +35,7 @@ export function Settlements(props: { reservation: string; money: (n: number) => 
         {lines.map((l, i) => (
           <li key={i} className="flex items-center justify-between gap-3 px-4 py-2">
             <span className="text-zinc-700">
-              {l.date} · {l.mode}{l.card ? ` · ${l.card}` : ""}
+              {showMoment(l.date)} · {l.mode}{l.card ? ` · ${l.card}` : ""}
               {l.kind && l.kind !== "Payment" ? <span className="ms-2 rounded bg-zinc-100 px-1.5 py-0.5 text-xs text-zinc-600">{l.kind}</span> : null}
               {l.reference ? <span className="ms-2 text-zinc-400">{l.reference}</span> : null}
             </span>

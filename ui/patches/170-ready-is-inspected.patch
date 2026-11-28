@@ -1,0 +1,181 @@
+--- a/src/components/RoomChangeDialog.tsx	2026-11-27 13:29:08.618207424 +0530
++++ b/src/components/RoomChangeDialog.tsx	2026-11-27 13:29:08.618870736 +0530
+@@ -3,6 +3,7 @@
+     same availability rules as the tape chart (movable_rooms / move_reservation);
+     the price effect is previewed before anything changes. */
+ 
++import { hkCleaned, hkLabel } from "../custom/roomStatus"
+ import { useEffect, useMemo, useState } from "react"
+ import { ArrowRight, BedDouble, Loader2, Search, X } from "lucide-react"
+ import { call } from "../lib/api"
+@@ -126,7 +127,7 @@
+     )
+     // free and clean first - the room the desk most likely wants
+     const rank = (r: MovableRoom) =>
+-      (r.free ? 0 : 2) + (r.housekeeping_status === "Clean" || r.housekeeping_status === "Inspected" ? 0 : 1)
++      (r.free ? 0 : 2) + (hkCleaned(r.housekeeping_status) ? 0 : 1)
+     return [...list].sort((a, b) => rank(a) - rank(b))
+   }, [rooms, scope, q])
+ 
+@@ -262,10 +263,10 @@
+                       <span
+                         className={cn(
+                           "mt-1 inline-block rounded px-1.5 py-0.5 text-[10px] font-medium",
+-                          r.free ? hkTone[r.housekeeping_status ?? ""] ?? "bg-zinc-100 text-zinc-600" : "bg-zinc-100 text-zinc-500",
++                          r.free ? hkTone[hkLabel(r.housekeeping_status)] ?? "bg-zinc-100 text-zinc-600" : "bg-zinc-100 text-zinc-500",
+                         )}
+                       >
+-                        {r.free ? t(r.housekeeping_status || "-") : t("Booked")}
++                        {r.free ? t(hkLabel(r.housekeeping_status) || "-") : t("Booked")}
+                       </span>
+                     </button>
+                   ))}
+@@ -345,7 +346,7 @@
+                   {t("The guest is in-house: the old room is marked Dirty for housekeeping.")}
+                 </span>
+               )}
+-              {pick.housekeeping_status && !["Clean", "Inspected"].includes(pick.housekeeping_status) && (
++              {pick.housekeeping_status && !hkCleaned(pick.housekeeping_status) && (
+                 <span className="basis-full text-xs text-amber-700">
+                   {t("{room} hasn't been cleaned yet.", { room: pick.room_number })}
+                 </span>
+--- a/src/components/BookingDialog.tsx	2026-11-27 13:29:08.622537662 +0530
++++ b/src/components/BookingDialog.tsx	2026-11-27 13:29:08.623271633 +0530
+@@ -1,3 +1,4 @@
++import { hkCleaned } from "../custom/roomStatus"
+ import { RateOptions } from "./RateOptions"
+ import { useEffect, useState } from "react"
+ import { htmlToText } from "../lib/utils"
+@@ -526,8 +527,7 @@
+       .then((rs) => {
+         if (!live) return
+         const rank = (r: FreeRoom) =>
+-          r.housekeeping_status === "Clean" ||
+-          r.housekeeping_status === "Inspected"
++          hkCleaned(r.housekeeping_status)
+             ? 0
+             : 1
+         const sorted = [...rs].sort(
+@@ -1484,7 +1484,7 @@
+                     {(() => {
+                       const r = freeRooms?.find((x) => x.name === walk.room)
+                       return r?.housekeeping_status &&
+-                        !["Clean", "Inspected"].includes(r.housekeeping_status) ? (
++                        !hkCleaned(r.housekeeping_status) ? (
+                         <p className="mt-1.5 text-xs text-amber-700">
+                           {t("{room} hasn't been cleaned yet - housekeeping will see the room flip to occupied.", {
+                             room: r.room_number,
+--- a/src/screens/Rooms.tsx	2026-11-27 13:29:08.627115418 +0530
++++ b/src/screens/Rooms.tsx	2026-11-27 13:29:08.627741656 +0530
+@@ -3,6 +3,7 @@
+     Insights shows which rooms sell, earn and get cleaned, and how fast.
+     For the desk and housekeeping supervisors; sized for a tablet. */
+ 
++import { hkCleaned, hkLabel } from "../custom/roomStatus"
+ import { useCallback, useEffect, useMemo, useState } from "react"
+ import { useOutletContext, useSearchParams } from "react-router-dom"
+ import { BedDouble, Lock, LogIn, LogOut, RefreshCw, Search } from "lucide-react"
+@@ -38,7 +39,7 @@
+       return (
+         r.occupancy_status !== "Occupied" &&
+         !r.block &&
+-        ["Clean", "Inspected", "Ready"].includes(r.housekeeping_status)
++        hkCleaned(r.housekeeping_status)
+       )
+     case "dirty":
+       return r.housekeeping_status === "Dirty"
+@@ -329,7 +330,7 @@
+           ? "border-brand-700 bg-brand-700 text-white"
+           : out
+             ? "border-rose-400 bg-rose-50 text-rose-900"
+-            : HK_TONE[r.housekeeping_status],
++            : HK_TONE[hkLabel(r.housekeeping_status) as keyof typeof HK_TONE],
+       )}
+     >
+       <div className="flex w-full items-start justify-between gap-1">
+@@ -344,7 +345,7 @@
+         {who && <div className="truncate text-sm font-semibold">{who}</div>}
+         <div className="flex flex-wrap items-center gap-1">
+           <span className="truncate text-[11px] font-medium uppercase tracking-wide opacity-90">
+-            {r.block ? t("Out of service") : t(r.housekeeping_status)}
++            {r.block ? t("Out of service") : t(hkLabel(r.housekeeping_status))}
+           </span>
+           {r.stay?.departing_today && (
+             <span
+--- a/src/screens/TapeChart.tsx	2026-11-27 13:29:08.631079773 +0530
++++ b/src/screens/TapeChart.tsx	2026-11-27 13:29:08.631736683 +0530
+@@ -1,3 +1,4 @@
++import { hkLabel } from "../custom/roomStatus"
+ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+ import { openStayHub } from "../custom/stayHub"
+ import { Link, useOutletContext } from "react-router-dom"
+@@ -622,7 +623,7 @@
+                             room.housekeeping_status === "Dirty" ? "text-amber-600"
+                               : room.housekeeping_status === "Out of Order" ? "text-rose-600"
+                                 : "text-zinc-400")}>
+-                            {t(room.housekeeping_status)}
++                            {t(hkLabel(room.housekeeping_status))}
+                           </span>
+                         </div>
+                         {/* vacant cell: bars and blocks sit on top, so a click here is a free night */}
+--- a/src/screens/Today.tsx	2026-11-27 13:29:08.635376025 +0530
++++ b/src/screens/Today.tsx	2026-11-27 13:29:08.636242951 +0530
+@@ -1,3 +1,4 @@
++import { hkCounts } from "../custom/roomStatus"
+ import { useCallback, useEffect, useState } from "react"
+ import { openStayHub } from "../custom/stayHub"
+ import {
+@@ -767,7 +768,7 @@
+     { label: t("RevPAR, month to date"), value: `${cur()}${inr0(Number(kpi?.statistics?.revpar ?? 0))}`, to: "/dashboard" },
+     { label: t("Occupancy, month to date"), value: `${kpi?.statistics?.mtd_occupancy_pct ?? 0}%`, to: "/reports/flash" },
+   ]
+-  const hkRoom = kpi?.housekeeping?.room_status ?? {}
++  const hkRoom = hkCounts(kpi?.housekeeping?.room_status)
+   const hkStats = [
+     { label: t("Clean"), value: hkRoom.Clean ?? 0, dot: "bg-emerald-500" },
+     { label: t("Dirty"), value: hkRoom.Dirty ?? 0, dot: "bg-amber-500" },
+--- a/src/screens/Dashboard.tsx	2026-11-27 13:29:08.639710259 +0530
++++ b/src/screens/Dashboard.tsx	2026-11-27 13:29:08.640344558 +0530
+@@ -1,3 +1,4 @@
++import { hkCounts } from "../custom/roomStatus"
+ import { useCallback, useEffect, useState } from "react"
+ import { Link } from "react-router-dom"
+ import { useRealtime } from "../lib/realtime"
+@@ -224,7 +225,7 @@
+               <CardContent className="space-y-1.5 text-sm">
+                 <Row label={t("Clean")} value={prop.housekeeping.room_status.Clean ?? 0} />
+                 <Row label={t("Dirty")} value={prop.housekeeping.room_status.Dirty ?? 0} tone={prop.housekeeping.room_status.Dirty ? "text-amber-600" : undefined} />
+-                <Row label={t("Inspected")} value={prop.housekeeping.room_status.Inspected ?? 0} />
++                <Row label={t("Inspected")} value={hkCounts(prop.housekeeping.room_status).Inspected ?? 0} />
+                 <Row label={t("Out of order")} value={prop.housekeeping.room_status["Out of Order"] ?? 0} />
+                 <Row label={t("Open tasks")} value={prop.housekeeping.open_tasks} />
+                 <Row label={t("Overdue")} value={prop.housekeeping.overdue_tasks} tone={prop.housekeeping.overdue_tasks ? "text-rose-600" : undefined} />
+--- a/src/components/CheckInDialog.tsx	2026-11-27 13:29:08.643617461 +0530
++++ b/src/components/CheckInDialog.tsx	2026-11-27 13:29:08.644299818 +0530
+@@ -1,3 +1,4 @@
++import { hkLabel } from "../custom/roomStatus"
+ import ExpressCheckIn from "../custom/ExpressCheckIn"
+ import { useFlags } from "../custom/flags"
+ import { ComplimentaryBox } from "../custom/CustomComplimentary"
+@@ -920,8 +921,8 @@
+                       )}
+                     </div>
+                     {flow.room.housekeeping_status && (
+-                      <span className={cn("ms-auto rounded-full border px-2.5 py-0.5 text-xs font-semibold", hkTone[flow.room.housekeeping_status] ?? "border-zinc-200 text-zinc-600")}>
+-                        {t(flow.room.housekeeping_status)}
++                      <span className={cn("ms-auto rounded-full border px-2.5 py-0.5 text-xs font-semibold", hkTone[hkLabel(flow.room.housekeeping_status)] ?? "border-zinc-200 text-zinc-600")}>
++                        {t(hkLabel(flow.room.housekeeping_status))}
+                       </span>
+                     )}
+                   </div>
+@@ -960,8 +961,8 @@
+                           )}
+                         >
+                           <span className="block text-lg font-semibold">{x.room_number}</span>
+-                          <span className={cn("mt-1 inline-block rounded-full border px-2 py-0.5 text-[11px] font-semibold", hkTone[x.housekeeping_status] ?? "border-zinc-200 text-zinc-600")}>
+-                            {t(x.housekeeping_status || "Unknown")}
++                          <span className={cn("mt-1 inline-block rounded-full border px-2 py-0.5 text-[11px] font-semibold", hkTone[hkLabel(x.housekeeping_status)] ?? "border-zinc-200 text-zinc-600")}>
++                            {t(hkLabel(x.housekeeping_status) || "Unknown")}
+                           </span>
+                         </button>
+                       ))}

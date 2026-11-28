@@ -1,6 +1,7 @@
 /*  The printed bill with the meal inside the room line (Kamra Custom). The folio screen keeps
     its own table, with the void and move buttons, on screen; this one is only for paper. */
 
+import { showMoment } from "./showDate"
 import { fmtMoney } from "../lib/money"
 import { useT } from "../lib/i18n"
 import { mergeMealIntoRoom, type BillCharge } from "./billLines"
@@ -23,7 +24,7 @@ export function PrintBillLines({ charges }: { charges: BillCharge[] }) {
       <tbody className="divide-y divide-zinc-100">
         {lines.map((l) => (
           <tr key={l.key}>
-            <td className="py-2 pr-3 text-zinc-500">{l.date}</td>
+            <td className="py-2 pr-3 text-zinc-500">{showMoment(l.date)}</td>
             <td className="py-2 pr-3">{l.item}</td>
             <td className="py-2 pr-3 text-right">{fmtMoney(l.amount)}</td>
             <td className="py-2 pr-3 text-right">{l.gst_rate === null ? t("mixed") : `${l.gst_rate}%`}</td>
